@@ -2,9 +2,9 @@
 # @spec: specs/002-fullstack-web-app/plan.md
 # Pydantic schemas for Tag API requests and responses
 
-from typing import List
+from typing import List, Optional
 from uuid import UUID
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, Field
 
 
 class TagCreate(SQLModel):

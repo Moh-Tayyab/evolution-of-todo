@@ -45,31 +45,31 @@
 
 ### Backend Foundation
 
-- [ ] T011 Create backend configuration module in backend/src/config.py (Settings from env)
-- [ ] T012 Create database connection module in backend/src/database.py (SQLModel async engine)
-- [ ] T013 Create Task SQLModel entity in backend/src/models/task.py per data-model.md
-- [ ] T014 [P] Create Pydantic schemas in backend/src/schemas/task.py (TaskCreate, TaskUpdate, TaskRead)
-- [ ] T015 Create JWT verification middleware in backend/src/middleware/auth.py
-- [ ] T016 Create API dependencies in backend/src/api/deps.py (verify_jwt, get_current_user_id)
-- [ ] T017 Create FastAPI main app in backend/src/main.py with CORS and routes
-- [ ] T018 [P] Create backend/src/models/__init__.py with model exports
-- [ ] T019 [P] Create backend/src/schemas/__init__.py with schema exports
-- [ ] T020 [P] Create backend/src/api/__init__.py with router setup
-- [ ] T021 [P] Create backend/src/api/routes/__init__.py with route registration
-- [ ] T022 [P] Create backend/tests/conftest.py with pytest fixtures
+- [X] T011 Create backend configuration module in backend/src/config.py (Settings from env)
+- [X] T012 Create database connection module in backend/src/database.py (SQLModel async engine)
+- [X] T013 Create Task SQLModel entity in backend/src/models/task.py per data-model.md
+- [X] T014 [P] Create Pydantic schemas in backend/src/schemas/task.py (TaskCreate, TaskUpdate, TaskRead)
+- [X] T015 Create JWT verification middleware in backend/src/middleware/auth.py
+- [X] T016 Create API dependencies in backend/src/api/deps.py (verify_jwt, get_current_user_id)
+- [X] T017 Create FastAPI main app in backend/src/main.py with CORS and routes
+- [X] T018 [P] Create backend/src/models/__init__.py with model exports
+- [X] T019 [P] Create backend/src/schemas/__init__.py with schema exports
+- [X] T020 [P] Create backend/src/api/__init__.py with router setup
+- [X] T021 [P] Create backend/src/api/routes/__init__.py with route registration
+- [X] T022 [P] Create backend/tests/conftest.py with pytest fixtures
 
 ### Frontend Foundation
 
-- [ ] T023 Configure Tailwind CSS in frontend/tailwind.config.ts
-- [ ] T024 Configure TypeScript in frontend/tsconfig.json
-- [ ] T025 Create Better Auth client configuration in frontend/src/lib/auth.ts
-- [ ] T026 Create API client with JWT attachment in frontend/src/lib/api.ts
-- [ ] T027 Create Zod validation schemas in frontend/src/lib/validation.ts
-- [ ] T028 Create TypeScript types in frontend/src/types/index.ts per data-model.md
-- [ ] T029 Create root layout with providers in frontend/src/app/layout.tsx
-- [ ] T030 Create ProtectedRoute component in frontend/src/components/layout/ProtectedRoute.tsx
-- [ ] T031 Create Header component in frontend/src/components/layout/Header.tsx
-- [ ] T032 Create landing page with redirect logic in frontend/src/app/page.tsx
+- [X] T023 Configure Tailwind CSS in frontend/tailwind.config.ts
+- [X] T024 Configure TypeScript in frontend/tsconfig.json
+- [X] T025 Create Better Auth client configuration in frontend/src/lib/auth.ts
+- [X] T026 Create API client with JWT attachment in frontend/src/lib/api.ts
+- [X] T027 Create Zod validation schemas in frontend/src/lib/validation.ts
+- [X] T028 Create TypeScript types in frontend/src/types/index.ts per data-model.md
+- [X] T029 Create root layout with providers in frontend/src/app/layout.tsx
+- [X] T030 Create ProtectedRoute component in frontend/src/components/layout/ProtectedRoute.tsx
+- [X] T031 Create Header component in frontend/src/components/layout/Header.tsx
+- [X] T032 Create landing page with redirect logic in frontend/src/app/page.tsx
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -94,12 +94,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T035 [P] [US1] Create SignUpForm component in frontend/src/components/auth/SignUpForm.tsx
+- [X] T035 [P] [US1] Create SignUpForm component in frontend/src/components/auth/SignUpForm.tsx
 - [ ] T036 [US1] Create signup page in frontend/src/app/signup/page.tsx
 - [ ] T037 [US1] Implement signup API route handler (Better Auth handles this via frontend/src/lib/auth.ts)
-- [ ] T038 [US1] Add password validation (8+ chars, uppercase, lowercase, number) to SignUpForm
-- [ ] T039 [US1] Add email validation to SignUpForm
-- [ ] T040 [US1] Add error handling and user feedback to SignUpForm
+- [X] T038 [US1] Add password validation (8+ chars, uppercase, lowercase, number) to SignUpForm
+- [X] T039 [US1] Add email validation to SignUpForm
+- [X] T040 [US1] Add error handling and user feedback to SignUpForm
 
 **Checkpoint**: User Story 1 complete - users can register accounts
 
@@ -124,12 +124,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T043 [P] [US2] Create SignInForm component in frontend/src/components/auth/SignInForm.tsx
-- [ ] T044 [P] [US2] Create SignOutButton component in frontend/src/components/auth/SignOutButton.tsx
+- [X] T043 [P] [US2] Create SignInForm component in frontend/src/components/auth/SignInForm.tsx
+- [X] T044 [P] [US2] Create SignOutButton component in frontend/src/components/auth/SignOutButton.tsx
 - [ ] T045 [US2] Create signin page in frontend/src/app/signin/page.tsx
 - [ ] T046 [US2] Implement signin API route handler (Better Auth via frontend/src/lib/auth.ts)
 - [ ] T047 [US2] Implement signout functionality in SignOutButton
-- [ ] T048 [US2] Add redirect logic to ProtectedRoute for unauthenticated users
+- [X] T048 [US2] Add redirect logic to ProtectedRoute for unauthenticated users
 - [ ] T049 [US2] Add session expiration handling (24h JWT) with redirect to signin
 
 **Checkpoint**: User Stories 1 & 2 complete - users can register and authenticate
@@ -156,14 +156,14 @@
 
 ### Implementation for User Story 3
 
-- [ ] T053 [US3] Implement GET /api/{user_id}/tasks endpoint in backend/src/api/routes/tasks.py
-- [ ] T054 [US3] Add user_id validation (JWT sub must match path param) to tasks routes
-- [ ] T055 [P] [US3] Create TaskList component in frontend/src/components/tasks/TaskList.tsx
-- [ ] T056 [P] [US3] Create TaskItem component in frontend/src/components/tasks/TaskItem.tsx
-- [ ] T057 [US3] Create dashboard page in frontend/src/app/dashboard/page.tsx
-- [ ] T058 [US3] Implement task fetching with API client in dashboard
-- [ ] T059 [US3] Add empty state UI when user has no tasks
-- [ ] T060 [US3] Add loading state UI while fetching tasks
+- [X] T053 [US3] Implement GET /api/{user_id}/tasks endpoint in backend/src/api/routes/tasks.py
+- [X] T054 [US3] Add user_id validation (JWT sub must match path param) to tasks routes
+- [X] T055 [P] [US3] Create TaskList component in frontend/src/components/tasks/TaskList.tsx
+- [X] T056 [P] [US3] Create TaskItem component in frontend/src/components/tasks/TaskItem.tsx
+- [X] T057 [US3] Create dashboard page in frontend/src/app/dashboard/page.tsx
+- [X] T058 [US3] Implement task fetching with API client in dashboard
+- [X] T059 [US3] Add empty state UI when user has no tasks
+- [X] T060 [US3] Add loading state UI while fetching tasks
 
 **Checkpoint**: User Stories 1, 2 & 3 complete - users can view their tasks
 
@@ -188,14 +188,14 @@
 
 ### Implementation for User Story 4
 
-- [ ] T063 [US4] Implement POST /api/{user_id}/tasks endpoint in backend/src/api/routes/tasks.py
-- [ ] T064 [US4] Add 100 task limit validation to create endpoint
-- [ ] T065 [P] [US4] Create TaskForm component (modal) in frontend/src/components/tasks/TaskForm.tsx
-- [ ] T066 [US4] Add "Add Task" button to dashboard that opens TaskForm modal
-- [ ] T067 [US4] Implement task creation with API client
-- [ ] T068 [US4] Add optimistic UI update after task creation
-- [ ] T069 [US4] Add title validation (required, max 200 chars) to TaskForm
-- [ ] T070 [US4] Add description validation (optional, max 2000 chars) to TaskForm
+- [X] T063 [US4] Implement POST /api/{user_id}/tasks endpoint in backend/src/api/routes/tasks.py
+- [X] T064 [US4] Add 100 task limit validation to create endpoint
+- [X] T065 [P] [US4] Create TaskForm component (modal) in frontend/src/components/tasks/TaskForm.tsx
+- [X] T066 [US4] Add "Add Task" button to dashboard that opens TaskForm modal
+- [X] T067 [US4] Implement task creation with API client
+- [X] T068 [US4] Add optimistic UI update after task creation
+- [X] T069 [US4] Add title validation (required, max 200 chars) to TaskForm
+- [X] T070 [US4] Add description validation (optional, max 2000 chars) to TaskForm
 
 **Checkpoint**: User Stories 1-4 complete - users can create tasks
 
@@ -219,11 +219,11 @@
 
 ### Implementation for User Story 5
 
-- [ ] T073 [US5] Implement PATCH /api/{user_id}/tasks/{task_id} endpoint in backend/src/api/routes/tasks.py
-- [ ] T074 [US5] Add checkbox toggle handler to TaskItem component
-- [ ] T075 [US5] Implement toggle API call with optimistic UI update
-- [ ] T076 [US5] Add visual feedback (<200ms) for toggle action
-- [ ] T077 [US5] Handle toggle error with rollback of optimistic update
+- [X] T073 [US5] Implement PATCH /api/{user_id}/tasks/{task_id} endpoint in backend/src/api/routes/tasks.py
+- [X] T074 [US5] Add checkbox toggle handler to TaskItem component
+- [X] T075 [US5] Implement toggle API call with optimistic UI update
+- [X] T076 [US5] Add visual feedback (<200ms) for toggle action
+- [X] T077 [US5] Handle toggle error with rollback of optimistic update
 
 **Checkpoint**: User Stories 1-5 complete - users can complete tasks
 
@@ -248,12 +248,12 @@
 
 ### Implementation for User Story 6
 
-- [ ] T080 [US6] Implement PUT /api/{user_id}/tasks/{task_id} endpoint in backend/src/api/routes/tasks.py
-- [ ] T081 [US6] Add edit button to TaskItem component
-- [ ] T082 [US6] Extend TaskForm to support edit mode (pre-populated values)
-- [ ] T083 [US6] Implement update API call from TaskForm
-- [ ] T084 [US6] Add optimistic UI update for task editing
-- [ ] T085 [US6] Handle update error with user feedback
+- [X] T080 [US6] Implement PUT /api/{user_id}/tasks/{task_id} endpoint in backend/src/api/routes/tasks.py
+- [X] T081 [US6] Add edit button to TaskItem component
+- [X] T082 [US6] Extend TaskForm to support edit mode (pre-populated values)
+- [X] T083 [US6] Implement update API call from TaskForm
+- [X] T084 [US6] Add optimistic UI update for task editing
+- [X] T085 [US6] Handle update error with user feedback
 
 **Checkpoint**: User Stories 1-6 complete - users can edit tasks
 
@@ -278,12 +278,12 @@
 
 ### Implementation for User Story 7
 
-- [ ] T088 [US7] Implement DELETE /api/{user_id}/tasks/{task_id} endpoint in backend/src/api/routes/tasks.py
-- [ ] T089 [P] [US7] Create DeleteConfirmation modal in frontend/src/components/tasks/DeleteConfirmation.tsx
-- [ ] T090 [US7] Add delete button to TaskItem component
-- [ ] T091 [US7] Implement delete confirmation flow (show modal, confirm/cancel)
-- [ ] T092 [US7] Implement delete API call with optimistic UI update
-- [ ] T093 [US7] Handle delete error with user feedback
+- [X] T088 [US7] Implement DELETE /api/{user_id}/tasks/{task_id} endpoint in backend/src/api/routes/tasks.py
+- [X] T089 [P] [US7] Create DeleteConfirmation modal in frontend/src/components/tasks/DeleteConfirmation.tsx
+- [X] T090 [US7] Add delete button to TaskItem component
+- [X] T091 [US7] Implement delete confirmation flow (show modal, confirm/cancel)
+- [X] T092 [US7] Implement delete API call with optimistic UI update
+- [X] T093 [US7] Handle delete error with user feedback
 
 **Checkpoint**: All 7 user stories complete - full CRUD functionality
 
@@ -308,16 +308,16 @@
 
 ### Implementation for User Story 8
 
-- [ ] T107 [US8] Add Priority enum to backend/src/models/task.py (HIGH, MEDIUM, LOW)
-- [ ] T108 [US8] Add priority field to Task SQLModel with default=Medium
-- [ ] T109 [US8] Add priority field to TaskCreate, TaskUpdate, TaskRead schemas
-- [ ] T110 [US8] Update POST /api/{user_id}/tasks endpoint to handle priority field
-- [ ] T111 [US8] Update PUT/PATCH /api/{user_id}/tasks/{task_id} endpoints to handle priority
-- [ ] T112 [P] [US8] Add Priority type to frontend/src/types/index.ts
-- [ ] T113 [US8] Create PrioritySelector component in frontend/src/components/tasks/PrioritySelector.tsx
-- [ ] T114 [US8] Integrate PrioritySelector into TaskForm component
-- [ ] T115 [US8] Add priority display (color/icon) to TaskItem component
-- [ ] T116 [US8] Implement task listing to sort by priority (backend query param)
+- [X] T107 [US8] Add Priority enum to backend/src/models/task.py (HIGH, MEDIUM, LOW)
+- [X] T108 [US8] Add priority field to Task SQLModel with default=Medium
+- [X] T109 [US8] Add priority field to TaskCreate, TaskUpdate, TaskRead schemas
+- [X] T110 [US8] Update POST /api/{user_id}/tasks endpoint to handle priority field
+- [X] T111 [US8] Update PUT/PATCH /api/{user_id}/tasks/{task_id} endpoints to handle priority
+- [X] T112 [P] [US8] Add Priority type to frontend/src/types/index.ts
+- [X] T113 [US8] Create PrioritySelector component in frontend/src/components/tasks/PrioritySelector.tsx
+- [X] T114 [US8] Integrate PrioritySelector into TaskForm component
+- [X] T115 [US8] Add priority display (color/icon) to TaskItem component
+- [X] T116 [US8] Implement task listing to sort by priority (backend query param)
 
 **Checkpoint**: User Story 8 complete - users can set task priorities
 
@@ -468,15 +468,15 @@
 **Purpose**: Improvements that affect multiple user stories
 
 - [ ] T094 [P] Create backend health check endpoint in backend/src/api/routes/health.py
-- [ ] T095 [P] Add @spec comments to all backend source files per constitution
-- [ ] T096 [P] Add @spec comments to all frontend source files per constitution
+- [X] T095 [P] Add @spec comments to all backend source files per constitution
+- [X] T096 [P] Add @spec comments to all frontend source files per constitution
 - [ ] T097 Run backend security scan (safety check) and fix any HIGH/CRITICAL issues
 - [ ] T098 Run frontend security scan (npm audit) and fix any HIGH/CRITICAL issues
-- [ ] T099 [P] Add error toast notifications to frontend for API errors
-- [ ] T100 [P] Add loading spinners to all async operations
+- [X] T099 [P] Add error toast notifications to frontend for API errors
+- [X] T100 [P] Add loading spinners to all async operations
 - [ ] T101 Verify responsive design (320px-1920px) across all pages
 - [ ] T102 Run full test suite and verify coverage (≥80% BE, ≥70% FE)
-- [ ] T103 Update README.md with final setup and usage instructions
+- [X] T103 Update README.md with final setup and usage instructions
 - [ ] T104 Validate quickstart.md steps work on fresh environment
 
 ---

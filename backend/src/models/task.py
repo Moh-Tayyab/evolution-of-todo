@@ -16,13 +16,7 @@ class Priority(str, Enum):
     LOW = "low"
 
 
-# Junction table for many-to-many relationship
-class TaskTag(SQLModel, table=True):
-    """Junction table for Task-Tag relationship"""
-    __tablename__ = "task_tags"
-
-    task_id: UUID = Field(foreign_key="tasks.id", primary_key=True, ondelete="CASCADE")
-    tag_id: UUID = Field(foreign_key="tags.id", primary_key=True, ondelete="CASCADE")
+from .task_tag import TaskTag
 
 
 class TaskBase(SQLModel):
@@ -37,7 +31,7 @@ class Task(TaskBase, table=True):
     __tablename__ = "tasks"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    user_id: UUID = Field(foreign_key="user.id", index=True, nullable=False)
+    user_id: UUID = Field(index=True, nullable=False)
     completed: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

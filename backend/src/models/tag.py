@@ -17,13 +17,15 @@ class TagBase(SQLModel):
     color: Optional[str] = Field(default=None, max_length=7)  # #RRGGBB
 
 
+from .task_tag import TaskTag
+
 class Tag(TagBase, table=True):
     """Database model for tags table"""
     __tablename__ = "tags"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    user_id: UUID = Field(foreign_key="user.id", index=True, nullable=False)
+    user_id: UUID = Field(index=True, nullable=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Relationships
-    tasks: List["Task"] = Relationship(back_populates="tags", link_model="TaskTag")
+    tasks: List["Task"] = Relationship(back_populates="tags", link_model=TaskTag)

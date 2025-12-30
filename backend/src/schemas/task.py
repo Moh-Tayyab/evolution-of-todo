@@ -4,7 +4,7 @@
 
 from typing import Optional, List
 from uuid import UUID
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, Field
 from .tag import TagRead
 from ..models.task import TaskBase, Priority
 
