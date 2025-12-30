@@ -1,0 +1,642 @@
+# Tasks: Phase II - Todo Full-Stack Web Application
+
+**Input**: Design documents from `/specs/002-fullstack-web-app/`
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
+
+**Tests**: Tests are included as the constitution requires ≥80% backend coverage, ≥70% frontend coverage.
+
+**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: Can run in parallel (different files, no dependencies)
+- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
+- Include exact file paths in descriptions
+
+## Path Conventions
+
+- **Backend**: `backend/src/`, `backend/tests/`
+- **Frontend**: `frontend/src/`, `frontend/tests/`
+
+---
+
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: Project initialization and basic structure
+
+- [X] T001 Create monorepo directory structure per implementation plan (frontend/, backend/, specs/)
+- [X] T002 [P] Initialize backend Python project with pyproject.toml in backend/pyproject.toml
+- [X] T003 [P] Initialize frontend Next.js 16+ project with package.json in frontend/package.json
+- [X] T004 [P] Create root CLAUDE.md with project-wide AI instructions
+- [X] T005 [P] Create backend/CLAUDE.md with FastAPI conventions and patterns
+- [X] T006 [P] Create frontend/CLAUDE.md with Next.js conventions and patterns
+- [X] T007 [P] Create docker-compose.yml for local development (postgres, backend, frontend)
+- [X] T008 [P] Create backend/.env.example with required environment variables
+- [X] T009 [P] Create frontend/.env.local.example with required environment variables
+- [X] T010 Update root README.md with setup instructions and quickstart guide
+
+---
+
+## Phase 2: Foundational (Blocking Prerequisites)
+
+**Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
+
+**⚠️ CRITICAL**: No user story work can begin until this phase is complete
+
+### Backend Foundation
+
+- [ ] T011 Create backend configuration module in backend/src/config.py (Settings from env)
+- [ ] T012 Create database connection module in backend/src/database.py (SQLModel async engine)
+- [ ] T013 Create Task SQLModel entity in backend/src/models/task.py per data-model.md
+- [ ] T014 [P] Create Pydantic schemas in backend/src/schemas/task.py (TaskCreate, TaskUpdate, TaskRead)
+- [ ] T015 Create JWT verification middleware in backend/src/middleware/auth.py
+- [ ] T016 Create API dependencies in backend/src/api/deps.py (verify_jwt, get_current_user_id)
+- [ ] T017 Create FastAPI main app in backend/src/main.py with CORS and routes
+- [ ] T018 [P] Create backend/src/models/__init__.py with model exports
+- [ ] T019 [P] Create backend/src/schemas/__init__.py with schema exports
+- [ ] T020 [P] Create backend/src/api/__init__.py with router setup
+- [ ] T021 [P] Create backend/src/api/routes/__init__.py with route registration
+- [ ] T022 [P] Create backend/tests/conftest.py with pytest fixtures
+
+### Frontend Foundation
+
+- [ ] T023 Configure Tailwind CSS in frontend/tailwind.config.ts
+- [ ] T024 Configure TypeScript in frontend/tsconfig.json
+- [ ] T025 Create Better Auth client configuration in frontend/src/lib/auth.ts
+- [ ] T026 Create API client with JWT attachment in frontend/src/lib/api.ts
+- [ ] T027 Create Zod validation schemas in frontend/src/lib/validation.ts
+- [ ] T028 Create TypeScript types in frontend/src/types/index.ts per data-model.md
+- [ ] T029 Create root layout with providers in frontend/src/app/layout.tsx
+- [ ] T030 Create ProtectedRoute component in frontend/src/components/layout/ProtectedRoute.tsx
+- [ ] T031 Create Header component in frontend/src/components/layout/Header.tsx
+- [ ] T032 Create landing page with redirect logic in frontend/src/app/page.tsx
+
+**Checkpoint**: Foundation ready - user story implementation can now begin
+
+---
+
+## Phase 3: User Story 1 - New User Registration (Priority: P1) 🎯 MVP
+
+**Goal**: A new user can create an account to start managing their personal todo tasks
+
+**Independent Test**: Navigate to signup page, fill registration form, verify account creation and redirect to dashboard
+
+**Acceptance Criteria**:
+- Valid email/password → account created, redirected to dashboard
+- Existing email → error message "email is taken"
+- Invalid email format → validation error before submission
+- Weak password → specific password requirement feedback
+
+### Tests for User Story 1
+
+- [ ] T033 [P] [US1] Backend integration test for signup endpoint in backend/tests/integration/test_signup.py
+- [ ] T034 [P] [US1] Frontend component test for SignUpForm in frontend/tests/components/test_signup.tsx
+
+### Implementation for User Story 1
+
+- [ ] T035 [P] [US1] Create SignUpForm component in frontend/src/components/auth/SignUpForm.tsx
+- [ ] T036 [US1] Create signup page in frontend/src/app/signup/page.tsx
+- [ ] T037 [US1] Implement signup API route handler (Better Auth handles this via frontend/src/lib/auth.ts)
+- [ ] T038 [US1] Add password validation (8+ chars, uppercase, lowercase, number) to SignUpForm
+- [ ] T039 [US1] Add email validation to SignUpForm
+- [ ] T040 [US1] Add error handling and user feedback to SignUpForm
+
+**Checkpoint**: User Story 1 complete - users can register accounts
+
+---
+
+## Phase 4: User Story 2 - User Authentication (Priority: P1)
+
+**Goal**: A registered user can sign in to access their personal task dashboard
+
+**Independent Test**: Sign in with valid credentials, verify access to dashboard and session management
+
+**Acceptance Criteria**:
+- Valid credentials → authenticated, redirected to dashboard
+- Invalid credentials → generic error message (no field hints)
+- Sign out → session terminated, redirected to signin
+- Unauthenticated access to dashboard → redirected to signin
+
+### Tests for User Story 2
+
+- [ ] T041 [P] [US2] Backend test for JWT verification in backend/tests/unit/test_auth.py
+- [ ] T042 [P] [US2] Frontend component test for SignInForm in frontend/tests/components/test_signin.tsx
+
+### Implementation for User Story 2
+
+- [ ] T043 [P] [US2] Create SignInForm component in frontend/src/components/auth/SignInForm.tsx
+- [ ] T044 [P] [US2] Create SignOutButton component in frontend/src/components/auth/SignOutButton.tsx
+- [ ] T045 [US2] Create signin page in frontend/src/app/signin/page.tsx
+- [ ] T046 [US2] Implement signin API route handler (Better Auth via frontend/src/lib/auth.ts)
+- [ ] T047 [US2] Implement signout functionality in SignOutButton
+- [ ] T048 [US2] Add redirect logic to ProtectedRoute for unauthenticated users
+- [ ] T049 [US2] Add session expiration handling (24h JWT) with redirect to signin
+
+**Checkpoint**: User Stories 1 & 2 complete - users can register and authenticate
+
+---
+
+## Phase 5: User Story 3 - View Personal Tasks (Priority: P1)
+
+**Goal**: An authenticated user can view their list of tasks with completion status indicators
+
+**Independent Test**: Sign in, view task list with mixed completion states, verify user isolation
+
+**Acceptance Criteria**:
+- User with tasks → sees all tasks with title, description, completion status
+- User with no tasks → sees empty state message
+- Completed tasks → checked box visual indicator
+- User isolation → only sees own tasks, not other users' tasks
+
+### Tests for User Story 3
+
+- [ ] T050 [P] [US3] Backend contract test for GET /api/{user_id}/tasks in backend/tests/contract/test_list_tasks.py
+- [ ] T051 [P] [US3] Backend integration test for task listing in backend/tests/integration/test_tasks.py
+- [ ] T052 [P] [US3] Frontend component test for TaskList in frontend/tests/components/test_tasklist.tsx
+
+### Implementation for User Story 3
+
+- [ ] T053 [US3] Implement GET /api/{user_id}/tasks endpoint in backend/src/api/routes/tasks.py
+- [ ] T054 [US3] Add user_id validation (JWT sub must match path param) to tasks routes
+- [ ] T055 [P] [US3] Create TaskList component in frontend/src/components/tasks/TaskList.tsx
+- [ ] T056 [P] [US3] Create TaskItem component in frontend/src/components/tasks/TaskItem.tsx
+- [ ] T057 [US3] Create dashboard page in frontend/src/app/dashboard/page.tsx
+- [ ] T058 [US3] Implement task fetching with API client in dashboard
+- [ ] T059 [US3] Add empty state UI when user has no tasks
+- [ ] T060 [US3] Add loading state UI while fetching tasks
+
+**Checkpoint**: User Stories 1, 2 & 3 complete - users can view their tasks
+
+---
+
+## Phase 6: User Story 4 - Add New Task (Priority: P2)
+
+**Goal**: An authenticated user can create a new task with title and optional description
+
+**Independent Test**: Create a task, verify it appears in list and persists after refresh
+
+**Acceptance Criteria**:
+- Enter title only → task created, appears in list
+- Enter title + description → both saved and displayed
+- No title → validation error
+- Task persists after page refresh
+
+### Tests for User Story 4
+
+- [ ] T061 [P] [US4] Backend contract test for POST /api/{user_id}/tasks in backend/tests/contract/test_create_task.py
+- [ ] T062 [P] [US4] Frontend component test for TaskForm in frontend/tests/components/test_taskform.tsx
+
+### Implementation for User Story 4
+
+- [ ] T063 [US4] Implement POST /api/{user_id}/tasks endpoint in backend/src/api/routes/tasks.py
+- [ ] T064 [US4] Add 100 task limit validation to create endpoint
+- [ ] T065 [P] [US4] Create TaskForm component (modal) in frontend/src/components/tasks/TaskForm.tsx
+- [ ] T066 [US4] Add "Add Task" button to dashboard that opens TaskForm modal
+- [ ] T067 [US4] Implement task creation with API client
+- [ ] T068 [US4] Add optimistic UI update after task creation
+- [ ] T069 [US4] Add title validation (required, max 200 chars) to TaskForm
+- [ ] T070 [US4] Add description validation (optional, max 2000 chars) to TaskForm
+
+**Checkpoint**: User Stories 1-4 complete - users can create tasks
+
+---
+
+## Phase 7: User Story 5 - Mark Task Complete/Incomplete (Priority: P2)
+
+**Goal**: An authenticated user can toggle task completion status with instant visual feedback
+
+**Independent Test**: Toggle a task's status, verify visual update and persistence
+
+**Acceptance Criteria**:
+- Click checkbox on incomplete task → marked complete with immediate feedback
+- Click checkbox on completed task → marked incomplete with immediate feedback
+- Status persists after page refresh
+
+### Tests for User Story 5
+
+- [ ] T071 [P] [US5] Backend contract test for PATCH /api/{user_id}/tasks/{task_id} in backend/tests/contract/test_toggle_task.py
+- [ ] T072 [P] [US5] Frontend integration test for toggle in frontend/tests/integration/test_toggle.tsx
+
+### Implementation for User Story 5
+
+- [ ] T073 [US5] Implement PATCH /api/{user_id}/tasks/{task_id} endpoint in backend/src/api/routes/tasks.py
+- [ ] T074 [US5] Add checkbox toggle handler to TaskItem component
+- [ ] T075 [US5] Implement toggle API call with optimistic UI update
+- [ ] T076 [US5] Add visual feedback (<200ms) for toggle action
+- [ ] T077 [US5] Handle toggle error with rollback of optimistic update
+
+**Checkpoint**: User Stories 1-5 complete - users can complete tasks
+
+---
+
+## Phase 8: User Story 6 - Update Task Details (Priority: P3)
+
+**Goal**: An authenticated user can modify the title and/or description of an existing task
+
+**Independent Test**: Edit a task, verify changes persist after refresh
+
+**Acceptance Criteria**:
+- Click edit → form pre-populated with current values
+- Update title → new title displayed
+- Clear title → validation error
+- Changes persist after page refresh
+
+### Tests for User Story 6
+
+- [ ] T078 [P] [US6] Backend contract test for PUT /api/{user_id}/tasks/{task_id} in backend/tests/contract/test_update_task.py
+- [ ] T079 [P] [US6] Frontend component test for edit mode in frontend/tests/components/test_edit.tsx
+
+### Implementation for User Story 6
+
+- [ ] T080 [US6] Implement PUT /api/{user_id}/tasks/{task_id} endpoint in backend/src/api/routes/tasks.py
+- [ ] T081 [US6] Add edit button to TaskItem component
+- [ ] T082 [US6] Extend TaskForm to support edit mode (pre-populated values)
+- [ ] T083 [US6] Implement update API call from TaskForm
+- [ ] T084 [US6] Add optimistic UI update for task editing
+- [ ] T085 [US6] Handle update error with user feedback
+
+**Checkpoint**: User Stories 1-6 complete - users can edit tasks
+
+---
+
+## Phase 9: User Story 7 - Delete Task (Priority: P3)
+
+**Goal**: An authenticated user can remove a task with confirmation
+
+**Independent Test**: Delete a task with confirmation, verify it's removed and doesn't reappear
+
+**Acceptance Criteria**:
+- Click delete → confirmation prompt appears
+- Confirm deletion → task permanently removed
+- Cancel deletion → task remains
+- Deleted task doesn't reappear after refresh
+
+### Tests for User Story 7
+
+- [ ] T086 [P] [US7] Backend contract test for DELETE /api/{user_id}/tasks/{task_id} in backend/tests/contract/test_delete_task.py
+- [ ] T087 [P] [US7] Frontend component test for DeleteConfirmation in frontend/tests/components/test_delete.tsx
+
+### Implementation for User Story 7
+
+- [ ] T088 [US7] Implement DELETE /api/{user_id}/tasks/{task_id} endpoint in backend/src/api/routes/tasks.py
+- [ ] T089 [P] [US7] Create DeleteConfirmation modal in frontend/src/components/tasks/DeleteConfirmation.tsx
+- [ ] T090 [US7] Add delete button to TaskItem component
+- [ ] T091 [US7] Implement delete confirmation flow (show modal, confirm/cancel)
+- [ ] T092 [US7] Implement delete API call with optimistic UI update
+- [ ] T093 [US7] Handle delete error with user feedback
+
+**Checkpoint**: All 7 user stories complete - full CRUD functionality
+
+---
+
+## Phase 8: User Story 8 - Set Task Priority (Priority: P2) [Intermediate]
+
+**Goal**: An authenticated user can assign a priority level (High, Medium, Low) to a task for better organization.
+
+**Independent Test**: Set a priority on a task and verify it displays correctly with visual indicator.
+
+**Acceptance Criteria**:
+- Task created with priority → priority saved and displayed
+- Task priority changed → new priority saved and displayed
+- No priority selected → defaults to Medium
+- Priority displayed with distinct visual indicator (color/icon)
+
+### Tests for User Story 8
+
+- [ ] T105 [P] [US8] Backend contract test for priority field in POST/PUT/PATCH in backend/tests/contract/test_priority.py
+- [ ] T106 [P] [US8] Frontend component test for PrioritySelector in frontend/tests/components/test_priority.tsx
+
+### Implementation for User Story 8
+
+- [ ] T107 [US8] Add Priority enum to backend/src/models/task.py (HIGH, MEDIUM, LOW)
+- [ ] T108 [US8] Add priority field to Task SQLModel with default=Medium
+- [ ] T109 [US8] Add priority field to TaskCreate, TaskUpdate, TaskRead schemas
+- [ ] T110 [US8] Update POST /api/{user_id}/tasks endpoint to handle priority field
+- [ ] T111 [US8] Update PUT/PATCH /api/{user_id}/tasks/{task_id} endpoints to handle priority
+- [ ] T112 [P] [US8] Add Priority type to frontend/src/types/index.ts
+- [ ] T113 [US8] Create PrioritySelector component in frontend/src/components/tasks/PrioritySelector.tsx
+- [ ] T114 [US8] Integrate PrioritySelector into TaskForm component
+- [ ] T115 [US8] Add priority display (color/icon) to TaskItem component
+- [ ] T116 [US8] Implement task listing to sort by priority (backend query param)
+
+**Checkpoint**: User Story 8 complete - users can set task priorities
+
+---
+
+## Phase 9: User Story 9 - Add Tags to Tasks (Priority: P2) [Intermediate]
+
+**Goal**: An authenticated user can add tags to tasks for flexible categorization and organization.
+
+**Independent Test**: Create tags, assign to tasks, verify they display as chips with autocomplete.
+
+**Acceptance Criteria**:
+- Tag created → appears in tag suggestions
+- Tag assigned to task → tag appears on task
+- Tag removed from task → tag association removed, tag remains available
+- Tag autocomplete → existing tags suggested while typing
+- Tag name duplicate → error message shown
+
+### Tests for User Story 9
+
+- [ ] T117 [P] [US9] Backend contract test for tag endpoints in backend/tests/contract/test_tags.py
+- [ ] T118 [P] [US9] Frontend component test for TagInput in frontend/tests/components/test_taginput.tsx
+
+### Implementation for User Story 9
+
+- [ ] T119 [US9] Create Tag SQLModel entity in backend/src/models/tag.py
+- [ ] T120 [US9] Create TaskTag junction table model in backend/src/models/tag.py
+- [ ] T121 [P] [US9] Create TagCreate, TagUpdate, TagRead, TagReadWithCount schemas
+- [ ] T122 [US9] Implement GET /api/{user_id}/tags endpoint with task counts
+- [ ] T123 [US9] Implement POST /api/{user_id}/tags endpoint with unique name validation
+- [ ] T124 [US9] Implement PUT /api/{user_id}/tags/{tag_id} endpoint
+- [ ] T125 [US9] Implement DELETE /api/{user_id}/tags/{tag_id} endpoint with cascade
+- [ ] T126 [US9] Update TaskCreate/Update schemas to include tag_ids field
+- [ ] T127 [US9] Update task endpoints to handle tag associations on create/update
+- [ ] T128 [P] [US9] Add Tag types to frontend/src/types/index.ts
+- [ ] T129 [US9] Create TagChip component in frontend/src/components/tasks/TagChip.tsx
+- [ ] T130 [US9] Create TagInput component with autocomplete in frontend/src/components/tasks/TagInput.tsx
+- [ ] T131 [US9] Integrate TagInput into TaskForm component
+- [ ] T132 [US9] Add tag chips display to TaskItem component
+- [ ] T133 [US9] Add tag fetch to dashboard initialization
+
+**Checkpoint**: User Story 9 complete - users can tag tasks
+
+---
+
+## Phase 10: User Story 10 - Search Tasks (Priority: P2) [Intermediate]
+
+**Goal**: An authenticated user can search tasks by title, description, or tag content with debounced input.
+
+**Independent Test**: Search for a term, verify matching tasks appear with highlighted text.
+
+**Acceptance Criteria**:
+- Search term entered → results appear within 500ms (after 300ms debounce)
+- Search results found → matching text highlighted
+- No results found → empty state with search term displayed
+- Search cleared → all tasks displayed again
+- Results update as user types (debounced)
+
+### Tests for User Story 10
+
+- [ ] T134 [P] [US10] Backend integration test for search query param in backend/tests/integration/test_search.py
+- [ ] T135 [P] [US10] Frontend component test for SearchInput in frontend/tests/components/test_searchinput.tsx
+
+### Implementation for User Story 10
+
+- [ ] T136 [US10] Add search query parameter support to GET /api/{user_id}/tasks endpoint
+- [ ] T137 [US10] Implement search logic (title, description, tags) in task queries
+- [ ] T138 [P] [US10] Add TaskListParams type with search field to frontend/src/types/index.ts
+- [ ] T139 [US10] Create SearchInput component with debounce in frontend/src/components/search/SearchInput.tsx
+- [ ] T140 [P] [US10] Add searchParams state to dashboard
+- [ ] T141 [US10] Integrate SearchInput into dashboard header
+- [ ] T142 [US10] Implement result highlighting in TaskList component
+- [ ] T143 [US10] Handle empty search results with clear message
+
+**Checkpoint**: User Story 10 complete - users can search tasks
+
+---
+
+## Phase 11: User Story 11 - Filter Tasks (Priority: P2) [Intermediate]
+
+**Goal**: An authenticated user can filter tasks by status, priority, or tags with visual feedback of active filters.
+
+**Independent Test**: Apply filters, verify only matching tasks appear, clear filters to see all tasks.
+
+**Acceptance Criteria**:
+- Filter by status → only tasks with that status shown
+- Filter by priority → only tasks with that priority shown
+- Filter by tags → only tasks with those tags shown
+- Multiple filters → tasks matching ALL filters shown (AND logic)
+- Clear filters → all tasks displayed again
+- Active filters → visual indicator shows which filters are applied
+
+### Tests for User Story 11
+
+- [ ] T144 [P] [US11] Backend integration test for filter query params in backend/tests/integration/test_filter.py
+- [ ] T145 [P] [US11] Frontend component test for FilterPanel in frontend/tests/components/test_filterpanel.tsx
+
+### Implementation for User Story 11
+
+- [ ] T146 [US11] Add status, priority, tags query params to GET /api/{user_id}/tasks endpoint
+- [ ] T147 [US11] Implement filter logic with AND semantics in task queries
+- [ ] T148 [US11] Add filter fields to TaskListParams type
+- [ ] T149 [P] [US11] Create FilterPanel component in frontend/src/components/search/FilterPanel.tsx
+- [ ] T150 [P] [US11] Create SortSelector component in frontend/src/components/search/SortSelector.tsx
+- [ ] T151 [US11] Create ActiveFilters component in frontend/src/components/search/ActiveFilters.tsx
+- [ ] T152 [US11] Integrate FilterPanel and SortSelector into dashboard header
+- [ ] T153 [US11] Add filter state management to dashboard
+- [ ] T154 [US11] Implement filter/sort persistence in session
+
+**Checkpoint**: User Story 11 complete - users can filter and sort tasks
+
+---
+
+## Phase 12: User Story 12 - Sort Tasks (Priority: P2) [Intermediate]
+
+**Goal**: An authenticated user can sort tasks by different criteria (date, priority, title) with direction toggle.
+
+**Independent Test**: Apply sort options, verify task order changes immediately.
+
+**Acceptance Criteria**:
+- Sort by creation date → tasks ordered by created_at (newest first or oldest first)
+- Sort by priority → tasks ordered High → Medium → Low (or reverse)
+- Sort alphabetically → tasks ordered A-Z or Z-A by title
+- Change sort order → view updates immediately
+- Sort combined with filters → filtered results sorted correctly
+
+### Tests for User Story 12
+
+- [ ] T155 [P] [US12] Backend integration test for sort query params in backend/tests/integration/test_sort.py
+- [ ] T156 [P] [US12] Frontend component test for SortSelector in frontend/tests/components/test_sortselector.tsx
+
+### Implementation for User Story 12
+
+- [ ] T157 [US12] Add sort (field, order) query params to GET /api/{user_id}/tasks endpoint
+- [ ] T158 [US12] Implement sort logic in task queries (created_at, priority, title)
+- [ ] T159 [US12] Add sort fields to TaskListParams type
+- [ ] T160 [US12] Ensure SortSelector component created (from US11) supports all sort options
+- [ ] T161 [US12] Add sort direction toggle to SortSelector
+- [ ] T162 [US12] Implement sort state management in dashboard
+- [ ] T163 [US12] Verify sort persists with filters
+
+**Checkpoint**: All 12 user stories complete - full Basic + Intermediate feature set
+
+---
+
+## Phase 13: Polish & Cross-Cutting Concerns
+
+**Purpose**: Improvements that affect multiple user stories
+
+- [ ] T094 [P] Create backend health check endpoint in backend/src/api/routes/health.py
+- [ ] T095 [P] Add @spec comments to all backend source files per constitution
+- [ ] T096 [P] Add @spec comments to all frontend source files per constitution
+- [ ] T097 Run backend security scan (safety check) and fix any HIGH/CRITICAL issues
+- [ ] T098 Run frontend security scan (npm audit) and fix any HIGH/CRITICAL issues
+- [ ] T099 [P] Add error toast notifications to frontend for API errors
+- [ ] T100 [P] Add loading spinners to all async operations
+- [ ] T101 Verify responsive design (320px-1920px) across all pages
+- [ ] T102 Run full test suite and verify coverage (≥80% BE, ≥70% FE)
+- [ ] T103 Update README.md with final setup and usage instructions
+- [ ] T104 Validate quickstart.md steps work on fresh environment
+
+---
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Setup (Phase 1)**: No dependencies - can start immediately
+- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
+- **User Stories (Phase 3-9)**: All depend on Foundational phase completion
+  - US1 (Registration) → Can start after Phase 2
+  - US2 (Authentication) → Can start after Phase 2, integrates with US1
+  - US3 (View Tasks) → Can start after Phase 2, requires auth from US2
+  - US4 (Add Task) → Can start after Phase 2, requires US3 for display
+  - US5 (Toggle Complete) → Can start after Phase 2, requires US3 for display
+  - US6 (Update Task) → Can start after Phase 2, requires US3 for display
+  - US7 (Delete Task) → Can start after Phase 2, requires US3 for display
+- **Polish (Phase 10)**: Depends on all user stories being complete
+
+### User Story Dependencies
+
+```
+Phase 1: Setup
+    ↓
+Phase 2: Foundational (CRITICAL BLOCKER)
+    ↓
+┌───────────────────────────────────────────────────┐
+│  Phase 3: US1 (Registration) ←─── MVP START      │
+│      ↓                                            │
+│  Phase 4: US2 (Authentication)                   │
+│      ↓                                            │
+│  Phase 5: US3 (View Tasks) ←─── Requires Auth    │
+│      ↓                                            │
+│  Phase 6-9: US4-US7 can proceed in parallel      │
+│  after US3, as they all use the task list UI     │
+└───────────────────────────────────────────────────┘
+    ↓
+Phase 10: Polish
+```
+
+### Within Each User Story
+
+1. Tests written first (they will fail)
+2. Backend implementation (models → endpoints)
+3. Frontend implementation (components → pages)
+4. Integration and error handling
+5. Story checkpoint validation
+
+### Parallel Opportunities
+
+**Phase 1 - Setup** (all [P] tasks):
+```
+T002 (backend init) | T003 (frontend init) | T004-T006 (CLAUDE.md files)
+T007-T010 (config files)
+```
+
+**Phase 2 - Foundational** (backend and frontend can parallelize):
+```
+Backend: T011-T022 (sequential except [P] marked)
+Frontend: T023-T032 (can run in parallel with backend)
+```
+
+**User Story Tests** (per story):
+```
+Each story's test tasks marked [P] can run in parallel
+```
+
+**Cross-Story Parallelization** (after US3 complete):
+```
+US4, US5, US6, US7 can all proceed in parallel once US3 is done
+(they all depend on the task list UI from US3)
+```
+
+---
+
+## Parallel Example: Phase 2 Foundation
+
+```bash
+# Backend foundation (sequential core, parallel utilities)
+T011 → T012 → T013 → T014 (parallel) | T015 → T016 → T017
+T018, T019, T020, T021, T022 (all parallel - just init files)
+
+# Frontend foundation (mostly parallel)
+T023 | T024 | T025 | T026 | T027 | T028 (all parallel)
+T029 → T030 → T031 → T032 (sequential - layout dependencies)
+```
+
+---
+
+## Implementation Strategy
+
+### MVP First (User Stories 1-3)
+
+1. Complete Phase 1: Setup
+2. Complete Phase 2: Foundational (CRITICAL)
+3. Complete Phase 3: User Story 1 (Registration)
+4. Complete Phase 4: User Story 2 (Authentication)
+5. Complete Phase 5: User Story 3 (View Tasks)
+6. **STOP and VALIDATE**: Users can register, login, view tasks
+7. Deploy/demo MVP
+
+### Intermediate Features (User Stories 8-12)
+
+8. Complete Phase 8: US8 (Set Priority) → Users can set task priorities
+9. Complete Phase 9: US9 (Add Tags) → Users can tag tasks
+10. Complete Phase 10: US10 (Search) → Users can search tasks
+11. Complete Phase 11: US11 (Filter) → Users can filter tasks
+12. Complete Phase 12: US12 (Sort) → Users can sort tasks
+13. Complete Phase 13: Polish → Production-ready
+
+### Incremental Delivery
+
+1. MVP (US1-3) → Users can register, login, see tasks
+2. MVP + US4 (Add Task) → Users can create tasks
+3. MVP + US5 (Toggle) → Users can complete tasks
+4. MVP + US6 (Update) → Users can edit tasks
+5. MVP + US7 (Delete) → Users can remove tasks
+6. MVP + US8 (Priority) → Users can set priorities
+7. MVP + US9 (Tags) → Users can tag tasks
+8. MVP + US10 (Search) → Users can search tasks
+9. MVP + US11 (Filter) → Users can filter tasks
+10. MVP + US12 (Sort) → Users can sort tasks
+11. Polish → Production-ready
+
+### Suggested MVP Scope
+
+**Minimum Viable Product**: User Stories 1, 2, 3
+- User can register
+- User can sign in
+- User can view their tasks (seeded or empty state)
+
+This delivers authentication + read capability, proving the full stack works.
+
+---
+
+## Task Summary
+
+| Phase | Task Count | User Story |
+|-------|------------|------------|
+| Phase 1: Setup | 10 | - |
+| Phase 2: Foundational | 22 | - |
+| Phase 3: US1 Registration | 8 | US1 (P1) |
+| Phase 4: US2 Authentication | 9 | US2 (P1) |
+| Phase 5: US3 View Tasks | 11 | US3 (P1) |
+| Phase 6: US4 Add Task | 10 | US4 (P2) |
+| Phase 7: US5 Toggle Complete | 7 | US5 (P2) |
+| Phase 8: US6 Update Task | 8 | US6 (P3) |
+| Phase 9: US7 Delete Task | 8 | US7 (P3) |
+| Phase 10: Polish | 11 | - |
+| **Total** | **104** | **7 stories** |
+
+---
+
+## Notes
+
+- [P] tasks = different files, no dependencies
+- [Story] label maps task to specific user story for traceability
+- Each user story should be independently completable and testable
+- Verify tests fail before implementing (TDD)
+- Commit after each task or logical group
+- Stop at any checkpoint to validate story independently
+- All source files MUST include @spec comments per constitution

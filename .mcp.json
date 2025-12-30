@@ -15,11 +15,11 @@
         "mcp"
       ]
     },
-    "acternity-ui": {
+    "aceternityui": {
       "command": "npx",
       "args": [
         "-y",
-        "@acternity-ui/mcp"
+        "aceternityui-mcp"
       ]
     }
     
