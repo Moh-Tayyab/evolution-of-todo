@@ -1,7 +1,7 @@
 <!--
 Sync Impact Report:
-Version change: 1.0.0 → 1.2.0
-Modified principles: Added Principle VII (Automated Compliance), enhanced all principles with enforcement metrics
+Version change: 1.0.0 → 1.2.0 → 2.0.0
+Modified principles: Added Principle VII (Automated Compliance), enhanced Principle V (Reusability and Intelligence) with detailed component requirements
 Added sections:
   - Principle VII: Automated Compliance Verification
   - Violation Escalation Matrix
@@ -9,7 +9,15 @@ Added sections:
   - Phase-Specific Security Requirements
   - Phase-Specific Testing Requirements
   - Emergency Amendment Protocol
-Removed sections: Verbose rationale paragraphs (moved to history/adr/001-constitution-rationale.md)
+  - Detailed Feature Breakdowns for all 5 phases
+  - Reusable Intelligence Component requirements (Subagents, Skills, Blueprints)
+  - Reusable Intelligence Development Protocol (new section with agent/skill usage guidelines, governance)
+Removed sections:
+  - Verbose rationale paragraphs (moved to history/adr/001-constitution-rationale.md)
+  - Bonus Achievement section (hackathon-specific scoring)
+  - Bonus Standards section
+  - Bonus Constraints section
+  - Submission requirements (hackathon-specific)
 Templates requiring updates:
   ⚠️ .specify/templates/plan-template.md - Add Phase Transition Gates checklist
   ⚠️ .specify/templates/spec-template.md - Add automated compliance checks reference
@@ -20,6 +28,9 @@ Follow-up TODOs:
   - Create ADR 001 with moved rationale content
   - Implement CI checks for spec traceability
   - Create phase transition gate scripts
+  - Create validation for Subagents/Skills structure
+  - Create `.claude/agents/README.md` with agent catalog
+  - Create `.claude/skills/README.md` with skill catalog
 -->
 
 # Evolution of Todo - Project Constitution
@@ -54,7 +65,31 @@ Prioritize stateless designs, loose coupling via Kubernetes, Dapr, and Kafka. Se
 
 Create reusable AI components (Subagents, Skills) and cloud-native blueprints. Intelligence MUST be captured and shared.
 
-**Enforcement**: Bonus points require published reusable components with usage documentation and examples.
+**Reusable Intelligence Components**:
+- **Subagents**: Specialized agents for specific tasks (e.g., betterauth-engineer, chatkit-backend-engineer, nextjs-expert)
+  - MUST be self-contained with clear domain boundaries
+  - MUST include agent description, capabilities, and tool permissions
+  - MUST be documented with usage examples and common patterns
+  - Location: `.claude/agents/`
+
+- **Skills**: Reusable workflows and task patterns (e.g., sp.specify, sp.plan, sp.implement)
+  - MUST handle entire workflows autonomously
+  - MUST include input validation and error handling
+  - MUST create traceability artifacts (PHRs, ADRs)
+  - Location: `.claude/skills/`
+
+- **Blueprints**: Deployment and architecture templates
+  - MUST include complete setup instructions
+  - MUST be tested across multiple environments
+  - MUST document configuration options and trade-offs
+  - Location: `blueprints/` or similar
+
+**Enforcement Requirements**:
+- All Subagents MUST have `.md` files with: description, capabilities, usage examples, limitations
+- All Skills MUST include: README, examples, input/output contracts
+- Reusable components MUST be versioned and documented
+- Components MUST be tested independently before integration
+- CI MUST validate reusable component structure (template linting, schema validation)
 
 ### VI. Security and User Isolation
 
@@ -78,6 +113,13 @@ All compliance checks MUST be automated in CI/CD pipelines. Manual verification 
 
 **Tech Stack**: Python 3.13+, UV, Claude Code, Spec-Kit Plus
 
+**Feature Scope - Basic Level**:
+1. **Create Task** - Add a new task with title and optional description
+2. **Delete Task** - Remove a task from the list
+3. **List Tasks** - Display all tasks with their status
+4. **View Task Details** - Show detailed information for a specific task
+5. **Mark as Complete** - Mark a task as completed
+
 **Security**:
 - N/A (single-user, in-memory)
 
@@ -87,13 +129,29 @@ All compliance checks MUST be automated in CI/CD pipelines. Manual verification 
 - Coverage: ≥80% for core logic
 
 **Success Criteria**:
-- All Basic features functional (CRUD + Complete)
+- All 5 Basic features functional
 - Tests pass
 - Spec traceability: 100%
 
 ### Phase II: Web App (Next.js 16+, FastAPI, PostgreSQL)
 
 **Tech Stack**: Next.js 16+ (App Router, TypeScript, Tailwind), FastAPI, SQLModel, Neon PostgreSQL, Better Auth (JWT)
+
+**Feature Scope - Basic + Intermediate Level**:
+
+**Basic Features (5)**:
+1. **Create Task** - Add a new task with title and optional description
+2. **Delete Task** - Remove a task from the list
+3. **List Tasks** - Display all tasks with their status
+4. **View Task Details** - Show detailed information for a specific task
+5. **Mark as Complete** - Mark a task as completed
+
+**Intermediate Features (5)**:
+6. **Priorities** - Assign priority levels to tasks (High, Medium, Low)
+7. **Tags** - Add tags to tasks for categorization
+8. **Search** - Search tasks by title, description, or content
+9. **Filter** - Filter tasks by status, priority, or tags
+10. **Sort** - Sort tasks by date, priority, or other criteria
 
 **Security**:
 - JWT authentication with 24h expiration
@@ -109,7 +167,7 @@ All compliance checks MUST be automated in CI/CD pipelines. Manual verification 
 - Coverage: ≥80% backend, ≥70% frontend
 
 **Success Criteria**:
-- All Basic + Intermediate features functional
+- All 10 features (5 Basic + 5 Intermediate) functional
 - E2E tests pass in CI
 - Security scan: no HIGH/CRITICAL vulnerabilities
 - Spec traceability: 100%
@@ -117,6 +175,27 @@ All compliance checks MUST be automated in CI/CD pipelines. Manual verification 
 ### Phase III: AI Chatbot (OpenAI ChatKit, Agents SDK, MCP)
 
 **Tech Stack**: OpenAI ChatKit (frontend), OpenAI Agents SDK, Official MCP SDK, stateless MCP server
+
+**Feature Scope - Basic + Intermediate + Advanced Level (via Natural Language)**:
+
+**Basic Features (5)**:
+1. **Create Task** - "Add a task to buy groceries"
+2. **Delete Task** - "Delete the grocery task"
+3. **List Tasks** - "Show me all my tasks"
+4. **View Task Details** - "Tell me about task #5"
+5. **Mark as Complete** - "Mark the grocery task as done"
+
+**Intermediate Features (5)**:
+6. **Priorities** - "Set the grocery task as high priority"
+7. **Tags** - "Add tag 'home' to the grocery task"
+8. **Search** - "Search for tasks with 'groceries'"
+9. **Filter** - "Show me only high priority tasks"
+10. **Sort** - "Sort my tasks by due date"
+
+**Advanced Features (3)**:
+11. **Recurring Tasks** - "Create a recurring task for weekly meetings"
+12. **Due Dates** - "Set the grocery task due for tomorrow"
+13. **Reminders** - "Remind me about the project task 2 hours before due"
 
 **Security**:
 - Rate limiting: 60 requests/minute per user
@@ -131,7 +210,7 @@ All compliance checks MUST be automated in CI/CD pipelines. Manual verification 
 - Coverage: ≥80% MCP server, ≥70% agent code
 
 **Success Criteria**:
-- All Basic + Intermediate + Advanced features via natural language
+- All 13 features (5 Basic + 5 Intermediate + 3 Advanced) via natural language
 - AI quality tests: ≥90% accuracy on sample queries
 - Rate limiting functional
 - Spec traceability: 100%
@@ -139,6 +218,27 @@ All compliance checks MUST be automated in CI/CD pipelines. Manual verification 
 ### Phase IV: Local Kubernetes (Docker, Minikube, Helm)
 
 **Tech Stack**: Docker, Minikube, Helm Charts, kubectl-ai, Kagent
+
+**Feature Scope - Basic + Intermediate + Advanced Level (Local K8s Deployment)**:
+
+**Basic Features (5)**:
+1. **Create Task** - Add a new task with title and optional description
+2. **Delete Task** - Remove a task from the list
+3. **List Tasks** - Display all tasks with their status
+4. **View Task Details** - Show detailed information for a specific task
+5. **Mark as Complete** - Mark a task as completed
+
+**Intermediate Features (5)**:
+6. **Priorities** - Assign priority levels to tasks (High, Medium, Low)
+7. **Tags** - Add tags to tasks for categorization
+8. **Search** - Search tasks by title, description, or content
+9. **Filter** - Filter tasks by status, priority, or tags
+10. **Sort** - Sort tasks by date, priority, or other criteria
+
+**Advanced Features (3)**:
+11. **Recurring Tasks** - Create recurring tasks (daily, weekly, monthly)
+12. **Due Dates** - Set due dates for tasks
+13. **Reminders** - Configure reminders for tasks
 
 **Security**:
 - Kubernetes secrets for database credentials, JWT signing key
@@ -152,6 +252,7 @@ All compliance checks MUST be automated in CI/CD pipelines. Manual verification 
 - Coverage: Chart tests + existing app tests
 
 **Success Criteria**:
+- All 13 features functional in local K8s environment
 - Deploys to fresh Minikube cluster in ≤15 minutes
 - All services healthy (readiness/liveness probes pass)
 - Rollback tested and functional
@@ -160,6 +261,27 @@ All compliance checks MUST be automated in CI/CD pipelines. Manual verification 
 ### Phase V: Cloud Production (Dapr, Kafka, DOKS, CI/CD)
 
 **Tech Stack**: Dapr, Kafka (Redpanda Cloud/Strimzi), DigitalOcean DOKS, GitHub Actions
+
+**Feature Scope - Basic + Intermediate + Advanced Level (Cloud Production)**:
+
+**Basic Features (5)**:
+1. **Create Task** - Add a new task with title and optional description
+2. **Delete Task** - Remove a task from the list
+3. **List Tasks** - Display all tasks with their status
+4. **View Task Details** - Show detailed information for a specific task
+5. **Mark as Complete** - Mark a task as completed
+
+**Intermediate Features (5)**:
+6. **Priorities** - Assign priority levels to tasks (High, Medium, Low)
+7. **Tags** - Add tags to tasks for categorization
+8. **Search** - Search tasks by title, description, or content
+9. **Filter** - Filter tasks by status, priority, or tags
+10. **Sort** - Sort tasks by date, priority, or other criteria
+
+**Advanced Features (3)**:
+11. **Recurring Tasks** - Create recurring tasks (daily, weekly, monthly)
+12. **Due Dates** - Set due dates for tasks
+13. **Reminders** - Configure reminders for tasks
 
 **Security**:
 - Dapr secrets for all credentials
@@ -176,13 +298,84 @@ All compliance checks MUST be automated in CI/CD pipelines. Manual verification 
 - Coverage: Existing tests + production readiness tests
 
 **Success Criteria**:
+- All 13 features functional in cloud production
 - Cloud deployment accessible via public URL
 - Load tests pass (p95 <500ms)
 - Chaos tests pass (recovery <30s)
 - Security: Penetration test report with 0 HIGH/CRITICAL issues
 - Observability: Centralized logs, metrics dashboards, alerts configured
 - CI/CD: Automated deploy on merge to main
+- Event-driven: Kafka integration tested
+- JWT rotation functional
+- Audit logging verified
 - Spec traceability: 100%
+
+## Reusable Intelligence Development Protocol
+
+Our team commits to creating reusable intelligence through Claude Code's agent and skill system. This approach ensures efficiency, consistency, and scalability across all development tasks.
+
+### Agent & Skill Usage Guidelines
+- **Automatic Identification**: For any task, Claude Code will first analyze requirements and automatically invoke relevant agents/skills
+- **No Redundant Instructions**: Team members should not need to repeat agent/skill specifications for similar tasks
+- **Consistency**: Once an agent/skill pattern is established for a task type, it becomes the default approach
+- **Documentation**: All custom agents and skills created will be documented in `.claude/agents/README.md` and `.claude/skills/*/README.md`
+
+### Current Active Agents & Skills
+
+**Project-Specific Skills**:
+- `sp.specify` - Feature specification creation from natural language
+- `sp.plan` - Architecture planning and design artifact generation
+- `sp.tasks` - Actionable, dependency-ordered task breakdown
+- `sp.implement` - Execute implementation plan
+- `sp.phr` - Prompt History Record creation for traceability
+- `sp.adr` - Architecture Decision Record creation
+- `sp.clarify` - Identify underspecified areas via targeted questions
+- `sp.checklist` - Generate custom checklists
+- `sp.constitution` - Constitution management
+
+**Specialized Agents**:
+- `betterauth-engineer` - Better Auth integration and onboarding
+- `chatkit-backend-engineer` - OpenAI ChatKit Python backend (Agents SDK)
+- `chatkit-frontend-engineer` - ChatKit frontend widgets and UI embedding
+- `nextjs-engineer` - Next.js expertise
+- `fullstack-engineer` - Full-stack coordination
+- `prompt-engineer` - Prompt optimization
+- `ui-ux-designer` - Design specifications
+
+**Technology-Specific Skills**:
+- `nextjs-expert` - Next.js best practices and patterns
+- `openai-chatkit-backend-python` - ChatKit Python backend
+- `openai-chatkit-frontend-embed-skill` - ChatKit frontend embedding
+
+### Creating New Reusable Components
+
+When a task pattern is repeated >2 times, we will:
+1. **Identify the Pattern**: Analyze recurring tasks that have similar structure/requirements
+2. **Create Reusable Component**: Build agent or skill to handle the pattern
+3. **Test Thoroughly**: Validate across multiple scenarios and edge cases
+4. **Document Usage**: Add README with examples, input contracts, and known limitations
+5. **Version and Release**: Add to permanent toolkit with clear versioning
+6. **Update Constitution**: Reference new component in relevant sections
+
+### Reusable Intelligence Governance
+
+**Quality Standards**:
+- All agents MUST include: description, capabilities, tool permissions, usage examples
+- All skills MUST include: README, input/output contracts, examples, error handling
+- Components MUST be tested independently before production use
+- Components MUST create traceability artifacts (PHRs, ADRs) where applicable
+
+**CI/CD Integration**:
+- Agent structure validation in `.claude/agents/`
+- Skill template validation in `.claude/skills/`
+- Documentation completeness checks (README, examples, contracts)
+
+**Maintenance**:
+- Regular review of component usage patterns
+- Refactoring opportunities for frequently-invoked components
+- Deprecation process for obsolete components
+
+---
 
 ## Key Standards
 
@@ -271,14 +464,6 @@ Root:
     └── adr/
 ```
 
-### Bonus Standards
-
-**If Pursuing Bonuses** (Optional):
-- Reusable components: Published with usage docs + examples
-- Blueprints: Deployment instructions + config templates
-- Multi-language (Urdu): MUST not break English flows (separate test suite)
-- Voice commands: Same functionality as text (accessibility tests)
-
 ## Constraints
 
 ### No Manual Coding
@@ -318,18 +503,6 @@ Free tiers ONLY: Neon free DB, Redpanda Serverless, DigitalOcean $200 credit.
 - Advanced: Recurring, Due dates, Reminders
 
 **Enforcement**: Feature additions require spec amendment + constitution compliance check.
-
-### Bonus Constraints
-
-Bonus features MUST NOT degrade core performance/stability.
-
-**Enforcement**: Separate test suites MUST verify non-interference.
-
-### Submission
-
-- Public GitHub repo
-- Demo video ≤90 seconds
-- WhatsApp contact included
 
 ## Phase Transition Gates
 
@@ -439,19 +612,9 @@ All 5 phases with working deliverables + demo videos + passing tests.
 
 **Verification**: Automated deployment tests + load tests in CI.
 
-### Bonus Achievement
-
-Up to +600 points:
-- Reusable intelligence (Subagents/Skills): +200
-- Cloud-native blueprints: +150
-- Multi-language (Urdu): +150
-- Voice commands: +100
-
-**Verification**: Published artifacts + demo video showing functionality.
-
 ### Overall Quality
 
-Zero HIGH/CRITICAL vulnerabilities. Total points ≥1,000.
+Zero HIGH/CRITICAL vulnerabilities. All core features functional and tested.
 
 **Security**: Automated scans + penetration testing report.
 
@@ -529,4 +692,20 @@ Use `plan-template.md` Complexity Tracking section for violations.
 
 ---
 
-**Version**: 1.2.0 | **Ratified**: 2025-12-25 | **Last Amended**: 2025-12-25
+**Version**: 2.0.0 | **Ratified**: 2025-12-25 | **Last Amended**: 2025-12-27
+
+**Changes in v2.0.0**:
+- MAJOR update: Added detailed feature breakdowns for all 5 phases with specific feature lists
+- Each phase now includes explicit feature counts (Basic: 5, Intermediate: 5, Advanced: 3)
+- Added natural language examples for Phase III AI features
+- Expanded Principle V (Reusability and Intelligence) with detailed requirements for Subagents, Skills, and Blueprints
+- Added new section: "Reusable Intelligence Development Protocol" with:
+  - Agent & Skill usage guidelines
+  - Catalog of current active agents and skills
+  - Process for creating new reusable components
+  - Governance and quality standards
+  - CI/CD integration requirements
+  - Maintenance procedures
+- Added enforcement requirements for reusable AI components
+- Removed hackathon-specific sections (judging, prizes, submission, bonus points)
+- Constitution now focuses exclusively on technical/architectural principles and development standards

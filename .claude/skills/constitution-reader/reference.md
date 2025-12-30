@@ -1,21 +1,9 @@
 # Constitution Principles Summary
 
-This document summarizes the key principles from `.specify/memory/constitution.md`.
 
 ## Core Principles
 
 ### III. Strict Technical Stack
-
-**Allowed Technologies:**
-- **Backend**: FastAPI (Python), Qdrant (vector DB)
-- **Frontend**: Docusaurus 3.x, React, TypeScript
-- **Auth**: BetterAuth
-- **Chatbot**: CopilotKit/ChatKit
-- **Robotics**: ROS 2 Humble, Gazebo, Isaac Sim, URDF/XACRO
-
-**Prohibited:**
-- No alternative frameworks without explicit approval
-- No hardcoded secrets or tokens
 
 ### IV. Pedagogical Layers
 
@@ -29,11 +17,7 @@ This document summarizes the key principles from `.specify/memory/constitution.m
 
 ### VII. Content Agents Specification
 
-Content must:
-- Include "Try With AI" as the final section
-- Assign pedagogical layer
-- Follow cognitive load guidelines
-- Preserve technical terms in translations
+
 
 ### VIII. Software-Building Agents Specification
 
@@ -45,8 +29,4 @@ Code must:
 
 ### IX. Quality & Verification
 
-All output must:
-- Pass constitution compliance check
-- Include layer assignments for pedagogical content
-- Follow safety guidelines for robotics code
-- Be validated before delivery
+
