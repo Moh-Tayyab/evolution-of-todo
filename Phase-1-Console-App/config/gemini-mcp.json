@@ -1,0 +1,36 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "description": "Documentation retrieval for libraries and frameworks"
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "github-mcp"],
+      "description": "GitHub integration for issues, PRs, and repository operations"
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ],
+      "description": "shadcn/ui component library integration"
+    },
+    "aceternityui": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "aceternityui-mcp"
+      ],
+      "description": "Aceternity UI component library integration"
+    }
+  },
+  "metadata": {
+    "syncedFrom": ".mcp.json",
+    "lastUpdated": "2025-12-29",
+    "purpose": "MCP server configuration for Gemini AI - mirrors Claude Code setup",
+    "compatibility": "cross-platform"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "projectName": "evolution-of-todo",
+  "claudeConfigReference": {
+    "file": "CLAUDE.md",
+    "description": "Primary configuration file for Claude Code that Gemini should reference",
+    "purpose": "Contains project constitution, development guidelines, code standards, and workflow instructions"
+  },
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "github-mcp"]
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ]
+    },
+    "aceternityui": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "aceternityui-mcp"
+      ]
+    }
+  },
+  "workflow": {
+    "methodology": "Spec-Driven Development (SDD)",
+    "process": ["spec", "plan", "tasks", "implement"],
+    "artifactLocations": {
+      "specs": "specs/",
+      "plans": "specs/*/plan.md",
+      "tasks": "specs/*/tasks.md",
+      "history": "history/prompts/"
+    }
+  },
+  "geminiInstructions": {
+    "primaryGuidelines": [
+      "Read and follow the guidelines in CLAUDE.md file",
+      "Use the same project structure as defined in CLAUDE.md",
+      "Follow the same development workflow: spec → plan → tasks → implement",
+      "Maintain consistency with existing Claude Code patterns"
+    ],
+    "fileHandling": {
+      "specsDirectory": "specs/",
+      "constitutionFile": ".specify/memory/constitution.md",
+      "primaryConfig": "CLAUDE.md",
+      "sharedArtifacts": ["specs", "plans", "tasks", "docs"]
+    },
+    "codingStandards": {
+      "specReferences": "Use @spec comments in all source files",
+      "codeQuality": "Follow the same standards as Claude Code",
+      "testing": "Maintain the same testing approach and coverage"
+    }
+  },
+  "integrationPoints": {
+    "claudeMdSection": "Cross-Platform AI Configuration (Claude Code + Gemini)",
+    "keyDirectories": [".claude/agents", ".claude/skills", "specs/", "history/"],
+    "sharedFiles": ["CLAUDE.md", ".specify/memory/constitution.md", "specs/*/spec.md", "specs/*/plan.md", "specs/*/tasks.md"]
+  },
+  "compatibility": {
+    "backwardCompatible": true,
+    "crossPlatform": true,
+    "referenceClaudeMd": true
+  }
+}

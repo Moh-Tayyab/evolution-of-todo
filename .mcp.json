@@ -7,6 +7,20 @@
     "github": {
       "command": "npx",
       "args": ["-y", "github-mcp"]
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ]
+    },
+    "aceternityui": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "aceternityui-mcp"
+      ]
     }
     
   }

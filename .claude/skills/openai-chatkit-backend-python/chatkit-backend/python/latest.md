@@ -5,13 +5,13 @@ This document contains the official server-side API patterns for building custom
 ## Installation
 
 ```bash
-pip install openai-chatkit
+uv add openai-chatkit
 ```
 
 Requires:
 - Python 3.8+
 - FastAPI or similar ASGI framework (for HTTP endpoints)
-- OpenAI Agents SDK (`pip install agents`)
+- OpenAI Agents SDK (`uv add openai-agents`)
 
 ## Overview
 
