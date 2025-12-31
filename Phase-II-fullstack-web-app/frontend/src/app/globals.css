@@ -1,0 +1,78 @@
+/* @spec: specs/002-fullstack-web-app/plan.md */
+/* Global styles with Tailwind */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 252 245 244; /* primary-50 */
+    --foreground: 61 21 18;   /* primary-950 */
+    
+    --card: 255 255 255;
+    --card-foreground: 61 21 18;
+    
+    --popover: 255 255 255;
+    --popover-foreground: 61 21 18;
+    
+    --primary: 214 103 93;    /* primary-500 */
+    --primary-foreground: 255 255 255;
+    
+    --secondary: 250 232 230; /* primary-100 */
+    --secondary-foreground: 162 60 51; /* primary-700 */
+    
+    --muted: 247 212 209;     /* primary-200 */
+    --muted-foreground: 135 52 45; /* primary-800 */
+    
+    --accent: 250 232 230;    /* primary-100 */
+    --accent-foreground: 162 60 51;
+    
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+
+    --border: 240 182 177;    /* primary-300 */
+    --input: 240 182 177;
+    --ring: 214 103 93;
+    
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-gray-200;
+  }
+  body {
+    @apply bg-primary-50 text-gray-900 antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight font-bold text-primary-900;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-xl;
+  }
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-white/40 shadow-sm hover:shadow-md transition-all duration-300;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-primary-200 rounded-full hover:bg-primary-300 transition-colors;
+}
+

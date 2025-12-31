@@ -52,7 +52,7 @@ export function AnimatedComponent() {
 ## Tools Used
 - **Read/Grep Tools:** Examine existing animations, find CSS classes, read component structures.
 - **Write/Edit Tools:** Implement animations, create complex timelines, register plugins.
-- **Bash:** Install `gsap` and `@gsap/react` dependencies.
+- **Bash:** Install `gsap` and `@gsap/react` dependencies using `pnpm`.
 - **Context7 MCP:** Access latest GSAP API documentation and plugin references.
 
 ## Verification Process
