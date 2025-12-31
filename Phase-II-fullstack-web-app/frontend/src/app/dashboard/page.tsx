@@ -328,7 +328,7 @@ export default function DashboardPage() {
             <TaskForm
               mode={taskFormMode}
               task={editingTask}
-              userId={userId}
+              userId={userId || ""}
               availableTags={tags}
               onSubmit={handleTaskSubmit}
               onCancel={handleTaskFormCancel}

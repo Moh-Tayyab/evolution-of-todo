@@ -1,0 +1,14 @@
+# Railway Deployment Configuration
+# https://railway.app
+
+{
+  "build": {
+    "nixpacks": "python_3_13"
+  },
+  "deploy": {
+    "startCommand": "uvicorn src.main:app --host 0.0.0.0 --port $PORT",
+    "healthcheckPath": "/health",
+    "restartPolicyType": "on_failure",
+    "restartPolicyMaxRetries": 3
+  }
+}
