@@ -87,3 +87,27 @@ logs/
 *.build
 dist/
 build/
+
+# Next.js frontend (Phase-II-fullstack-web-app/frontend)
+Phase-II-fullstack-web-app/frontend/.next/
+Phase-II-fullstack-web-app/frontend/out/
+Phase-II-fullstack-web-app/frontend/build/
+Phase-II-fullstack-web-app/frontend/coverage/
+
+# Python backend (Phase-II-fullstack-web-app/backend)
+Phase-II-fullstack-web-app/backend/.venv/
+Phase-II-fullstack-web-app/backend/venv/
+Phase-II-fullstack-web-app/backend/__pycache__/
+Phase-II-fullstack-web-app/backend/dist/
+Phase-II-fullstack-web-app/backend/.coverage/
+Phase-II-fullstack-web-app/backend/.pytest_cache/
+Phase-II-fullstack-web-app/backend/*.egg-info/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# SpecKit & History
+.spec-kit/
+.history/

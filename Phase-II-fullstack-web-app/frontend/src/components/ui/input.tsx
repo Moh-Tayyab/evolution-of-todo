@@ -1,134 +1,105 @@
-// @spec: specs/003-modern-ui-ux/spec.md
-// @spec: specs/003-modern-ui-ux/plan.md
-// Animated Input component with Framer Motion
+import * as React from "react"
+import { motion } from "framer-motion"
+import { useState } from "react"
 
-"use client";
+import { cn } from "@/lib/utils"
 
-import * as React from "react";
-import { motion, HTMLMotionProps } from "framer-motion";
-import { cn } from "@/lib/utils";
-
-export interface InputProps extends Omit<HTMLMotionProps<"input">, "onAnimationStart"> {
-  error?: string;
-  label?: string;
+interface AnimatedInputProps extends React.ComponentProps<"input"> {
+  focusAnimation?: boolean
+  label?: string
+  error?: string
 }
 
-// Animation variants for input
-const inputContainerVariants = {
-  default: { borderColor: "#e2e8f0" },
-  focus: {
-    borderColor: "#0ea5e9",
-    boxShadow: "0 0 0 3px rgba(14, 165, 233, 0.1)",
-    transition: { duration: 0.2 },
-  },
-  error: {
-    borderColor: "#ef4444",
-    boxShadow: "0 0 0 3px rgba(239, 68, 68, 0.1)",
-    transition: { duration: 0.2 },
-  },
-};
+const Input = React.forwardRef<HTMLInputElement, AnimatedInputProps>(
+  ({
+    className,
+    type,
+    focusAnimation = true,
+    label,
+    error,
+    ...props
+  }, ref) => {
+    const [isFocused, setIsFocused] = useState(false)
 
-const shakeVariants = {
-  idle: { x: 0 },
-  shake: {
-    x: [-8, 8, -6, 6, -4, 4, 0],
-    transition: { duration: 0.4 },
-  },
-};
+    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+      setIsFocused(true)
+      props.onFocus?.(e)
+    }
 
-const errorVariants = {
-  hidden: { opacity: 0, y: -8, height: 0 },
-  visible: { opacity: 1, y: 0, height: "auto", transition: { duration: 0.2 } },
-  exit: { opacity: 0, y: -8, height: 0, transition: { duration: 0.15 } },
-};
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+      setIsFocused(false)
+      props.onBlur?.(e)
+    }
 
-export const Input = motion(
-  React.forwardRef<HTMLInputElement, InputProps>(
-    ({ className, type, error, label, isFocused, ...props }, ref) => {
-      const [focused, setFocused] = React.useState(false);
+    const inputVariants = {
+      focused: {
+        y: -2,
+        scale: 1.01,
+        transition: { duration: 0.2, ease: "easeOut" }
+      },
+      default: {
+        y: 0,
+        scale: 1,
+        transition: { duration: 0.2, ease: "easeOut" }
+      }
+    }
 
-      return (
+    return (
+      <motion.div className="relative">
+        {label && (
+          <motion.label
+            className={cn(
+              "absolute left-3 top-1/2 z-10 -translate-y-1/2 bg-background px-1 text-xs text-muted-foreground transition-colors peer-focus:text-foreground peer-disabled:opacity-50",
+              isFocused && "-top-2 text-xs font-medium"
+            )}
+            variants={inputVariants}
+            animate={isFocused ? "focused" : "default"}
+          >
+            {label}
+          </motion.label>
+        )}
         <motion.div
-          className="relative"
-          animate={
-            error
-              ? "error"
-              : focused
-              ? "focus"
-              : "default"
-          }
-          variants={inputContainerVariants}
-        >
-          {label && (
-            <motion.label
-              className={cn(
-                "absolute left-3 text-sm transition-all duration-200 pointer-events-none",
-                focused || props.value
-                  ? "-top-2.5 bg-white px-1 text-xs text-primary-500"
-                  : "top-3.5 text-muted-foreground"
-              )}
-              animate={
-                focused || props.value
-                  ? { scale: 0.9, color: "#0ea5e9" }
-                  : { scale: 1, color: "#64748b" }
-              }
-              transition={{ duration: 0.2 }}
-            >
-              {label}
-            </motion.label>
+          whileHover={{
+            borderColor: "hsl(var(--ring))",
+            transition: { duration: 0.2 }
+          }}
+          animate={isFocused ? {
+            borderColor: "hsl(var(--ring))",
+            boxShadow: "0 0 0 2px hsl(var(--ring) / 0.1)"
+          } : {
+            borderColor: "hsl(var(--input))",
+            boxShadow: "none"
+          }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className={cn(
+            "flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+            error && "border-red-500 focus:border-red-500 focus:ring-red-500",
+            className
           )}
+        >
           <input
             type={type}
-            className={cn(
-              "flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm transition-all duration-200",
-              "placeholder:text-muted-foreground",
-              "focus:outline-none",
-              error ? "border-error" : "",
-              className
-            )}
+            className="w-full bg-transparent outline-none"
             ref={ref}
-            onFocus={(e) => {
-              setFocused(true);
-              props.onFocus?.(e);
-            }}
-            onBlur={(e) => {
-              setFocused(false);
-              props.onBlur?.(e);
-            }}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             {...props}
           />
-          <AnimatePresence>
-            {error && (
-              <motion.p
-                variants={errorVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                className="mt-1 text-sm text-error px-1"
-              >
-                {error}
-              </motion.p>
-            )}
-          </AnimatePresence>
         </motion.div>
-      );
-    }
-  )
-);
+        {error && (
+          <motion.p
+            className="mt-1 text-xs text-red-500"
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+          >
+            {error}
+          </motion.p>
+        )}
+      </motion.div>
+    )
+  }
+)
+Input.displayName = "Input"
 
-Input.displayName = "Input";
-
-// Shake helper for triggering shake animation
-export function useInputShake() {
-  const [shake, setShake] = React.useState(false);
-
-  const triggerShake = React.useCallback(() => {
-    setShake(true);
-    setTimeout(() => setShake(false), 400);
-  }, []);
-
-  return { shake, triggerShake };
-}
-
-// For AnimatePresence
-import { AnimatePresence } from "framer-motion";
+export { Input }

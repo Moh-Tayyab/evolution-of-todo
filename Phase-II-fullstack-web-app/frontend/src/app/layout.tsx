@@ -5,6 +5,7 @@
 import type { ReactNode } from "react";
 import "./globals.css";
 import { Inter } from "next/font/google";
+import { GSAPProvider } from "@/lib/animations/gsap-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,9 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="relative min-h-screen">
-          {children}
-        </div>
+        <GSAPProvider>
+          <div className="relative min-h-screen">
+            {children}
+          </div>
+        </GSAPProvider>
       </body>
     </html>
   );

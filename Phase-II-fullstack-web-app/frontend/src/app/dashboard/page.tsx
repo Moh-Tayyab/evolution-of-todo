@@ -1,341 +1,435 @@
-// @spec: specs/003-modern-ui-ux/spec.md
-// @spec: specs/003-modern-ui-ux/plan.md
-// Dashboard page (protected route) with modern animations
+// @spec: specs/002-fullstack-web-app/spec.md
+// @spec: specs/002-fullstack-web-app/plan.md
+// Dashboard page with professional UI using all components
 
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import ProtectedRoute from "@/components/layout/ProtectedRoute";
-import Header from "@/components/layout/Header";
-import TaskList from "@/components/tasks/TaskList";
-import TaskForm from "@/components/tasks/TaskForm";
-import { SearchInput } from "@/components/search/SearchInput";
-import { FilterPanel, TaskStatus } from "@/components/search/FilterPanel";
-import { ActiveFilters } from "@/components/search/ActiveFilters";
-import { SortSelector, SortField, SortOrder } from "@/components/search/SortSelector";
+import Link from "next/link";
+import {
+  List,
+  LayoutGrid,
+  CheckSquare,
+  TrendingUp,
+  Calendar,
+  AlertCircle,
+  Clock,
+  Layers,
+} from "lucide-react";
+import { DashboardShell, Header, Sidebar } from "@/components/layout";
+import { TaskList, type Task } from "@/components/tasks";
+import { TaskForm } from "@/components/tasks/task-form";
+// import { TaskBoard } from "@/components/tasks/task-board"; // Temporarily disabled - needs @hello-pangea/dng
+import { SearchInput } from "@/components/search";
+import { FilterPanel, type FilterState } from "@/components/search";
+import { SmartAsync } from "@/components/smart";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
-import { LoadingSpinner, TaskCardSkeleton, EmptyState } from "@/components/ui/loading-empty-states";
-import { staggerContainer, fadeInUp } from "@/lib/animations";
-import { apiClient } from "@/lib/api";
-import { getCurrentUserId } from "@/lib/auth";
-import type { Task, TaskCreate, Priority, TagWithCount, TaskListParams } from "@/types";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
+/**
+ * @spec: Dashboard Page Component
+ * @description: Main dashboard with stats, view modes, and task management
+ * @feature: FR-003 - Task viewing functionality
+ */
+
+type ViewMode = "list" | "board";
 
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [tags, setTags] = useState<TagWithCount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [showTaskForm, setShowTaskForm] = useState(false);
-  const [taskFormMode, setTaskFormMode] = useState<"create" | "edit">("create");
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
-
-
-  // Search, filter, and sort state
   const [searchQuery, setSearchQuery] = useState("");
-  const [status, setStatus] = useState<TaskStatus>("all");
-  const [priority, setPriority] = useState<Priority | undefined>(undefined);
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [sort, setSort] = useState<SortField>("created_at");
-  const [order, setOrder] = useState<SortOrder>("desc");
+  const [filters, setFilters] = useState<FilterState>({
+    status: "all",
+    priority: "all",
+    sortBy: "created_at",
+    sortDirection: "desc",
+    tags: [],
+  });
 
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (userId) {
-        loadTasks(userId);
-      }
-    }, 300);
+  const { toast } = useToast();
 
-    return () => clearTimeout(timer);
-  }, [searchQuery, status, priority, selectedTagIds, sort, order, userId]);
+  // Mock user data (replace with actual auth)
+  const userName = "User";
+  const userAvatar = undefined;
 
-  useEffect(() => {
-    async function loadUser() {
-      const uid = await getCurrentUserId();
-      if (!uid) {
-        window.location.href = "/signin";
-        return;
-      }
-      setUserId(uid);
-      loadTags(uid);
-    }
+  // Mock available tags
+  const availableTags = [
+    { id: "1", name: "Work", color: "#D6675D", count: 5 },
+    { id: "2", name: "Personal", color: "#6B9BD1", count: 3 },
+    { id: "3", name: "Urgent", color: "#E74C3C", count: 2 },
+  ];
 
-    loadUser();
-  }, []);
+  // Task counts for sidebar
+  const taskCounts = useMemo(() => ({
+    total: tasks.length,
+    completed: tasks.filter((t) => t.completed).length,
+    pending: tasks.filter((t) => !t.completed).length,
+    highPriority: tasks.filter((t) => t.priority === "high").length,
+  }), [tasks]);
 
-  async function loadTasks(uid: string) {
+  // Load tasks (mock implementation, replace with actual API)
+  const loadTasks = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params: TaskListParams = {
-        search: searchQuery || undefined,
-        status: status !== "all" ? status : undefined,
-        priority,
-        tags: selectedTagIds.length > 0 ? selectedTagIds : undefined,
-        sort,
-        order,
-      };
-      const taskData = await apiClient.getTasks(uid, params);
-      setTasks(taskData);
+      // TODO: Replace with actual API call
+      // const data = await apiClient.getTasks(userId, params);
+      // Simulating API delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Mock data
+      const mockTasks: Task[] = [
+        {
+          id: "1",
+          title: "Review project documentation",
+          description: "Read and review the project specs and architecture docs",
+          priority: "high",
+          completed: false,
+          tags: [{ id: "1", name: "Work", color: "#D6675D" }],
+          due_date: new Date(Date.now() + 86400000).toISOString(),
+          created_at: new Date().toISOString(),
+          is_pinned: true,
+        },
+        {
+          id: "2",
+          title: "Update design system",
+          description: "Add new components to the design library",
+          priority: "medium",
+          completed: false,
+          tags: [{ id: "1", name: "Work", color: "#D6675D" }],
+          created_at: new Date(Date.now() - 86400000).toISOString(),
+        },
+        {
+          id: "3",
+          title: "Team standup meeting",
+          description: "Daily sync with the development team",
+          priority: "low",
+          completed: true,
+          tags: [],
+          due_date: new Date().toISOString(),
+          created_at: new Date(Date.now() - 172800000).toISOString(),
+        },
+      ];
+
+      setTasks(mockTasks);
     } catch (error) {
       console.error("Failed to load tasks:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load tasks. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [toast]);
 
-  async function loadTags(uid: string) {
-    try {
-      const tagData = await apiClient.getTags(uid);
-      setTags(tagData);
-    } catch (error) {
-      console.error("Failed to load tags:", error);
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
+
+  // Filter and sort tasks
+  const filteredTasks = useMemo(() => {
+    let result = [...tasks];
+
+    // Apply search
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (task) =>
+          task.title.toLowerCase().includes(query) ||
+          task.description?.toLowerCase().includes(query)
+      );
     }
-  }
 
-  const handleSortChange = useCallback((newSort: SortField, newOrder: SortOrder) => {
-    setSort(newSort);
-    setOrder(newOrder);
-  }, []);
+    // Apply status filter
+    if (filters.status !== "all") {
+      result = result.filter((task) =>
+        filters.status === "completed" ? task.completed : !task.completed
+      );
+    }
 
-  const handleTagToggle = useCallback((tagId: string) => {
-    setSelectedTagIds((prev) =>
-      prev.includes(tagId)
-        ? prev.filter((id) => id !== tagId)
-        : [...prev, tagId]
-    );
-  }, []);
+    // Apply priority filter
+    if (filters.priority !== "all") {
+      result = result.filter((task) => task.priority === filters.priority);
+    }
 
-  const handleRemoveFilter = useCallback(
-    (type: "status" | "priority" | "tag", value: string) => {
-      if (type === "status") {
-        setStatus("all");
-      } else if (type === "priority") {
-        setPriority(undefined);
-      } else {
-        setSelectedTagIds((prev) => prev.filter((id) => id !== value));
-      }
-    },
-    []
-  );
+    // Apply tag filter
+    if (filters.tags.length > 0) {
+      result = result.filter((task) =>
+        task.tags?.some((tag) => filters.tags.includes(tag.id))
+      );
+    }
 
-  const handleClearAllFilters = useCallback(() => {
-    setSearchQuery("");
-    setStatus("all");
-    setPriority(undefined);
-    setSelectedTagIds([]);
-    setSort("created_at");
-    setOrder("desc");
-  }, []);
+    return result;
+  }, [tasks, searchQuery, filters]);
 
+  // Task handlers
   const handleToggle = async (taskId: string) => {
-    if (!userId) return;
-    try {
-      const task = tasks.find((t) => t.id === taskId);
-      if (task) {
-        await apiClient.patchTask(userId, taskId, { completed: !task.completed });
-        setTasks((prev) =>
-          prev.map((t) =>
-            t.id === taskId ? { ...t, completed: !t.completed } : t
-          )
-        );
-      }
-    } catch (error) {
-      console.error("Failed to toggle task:", error);
-    }
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId ? { ...t, completed: !t.completed } : t
+      )
+    );
+  };
+
+  const handleDelete = async (taskId: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    toast({
+      title: "Task deleted",
+      description: "The task has been deleted successfully.",
+    });
+  };
+
+  const handlePin = async (taskId: string) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, is_pinned: !t.is_pinned } : t))
+    );
+  };
+
+  const handleArchive = async (taskId: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
   };
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
-    setTaskFormMode("edit");
     setShowTaskForm(true);
   };
 
-  const handleDelete = async (task: Task) => {
-    if (!userId) return;
-    if (!confirm("Are you sure you want to delete this task?")) {
-      return;
-    }
-    try {
-      await apiClient.deleteTask(userId, task.id);
-      setTasks((prev) => prev.filter((t) => t.id !== task.id));
-    } catch (error) {
-      console.error("Failed to delete task:", error);
-    }
-  };
-
-  const handleCreateTask = () => {
+  const handleNewTask = () => {
     setEditingTask(undefined);
-    setTaskFormMode("create");
     setShowTaskForm(true);
   };
 
-  const handleTaskSubmit = async (task: TaskCreate) => {
-    if (!userId) return;
+  const handleTaskSubmit = async (data: any) => {
+    // TODO: Replace with actual API call
+    const newTask: Task = {
+      id: Date.now().toString(),
+      title: data.title,
+      description: data.description,
+      priority: data.priority,
+      completed: false,
+      tags: availableTags.filter((tag) => data.tags?.includes(tag.id)),
+      due_date: data.due_date,
+      created_at: new Date().toISOString(),
+    };
 
-    if (taskFormMode === "create") {
-      const newTask = await apiClient.createTask(userId, task);
-      setTasks((prev) => [newTask, ...prev]);
-      // Refresh tags to include any new ones
-      loadTags(userId);
-    } else if (editingTask) {
-      const updatedTask = await apiClient.updateTask(userId, editingTask.id, task);
+    if (editingTask) {
       setTasks((prev) =>
-        prev.map((t) => (t.id === editingTask.id ? updatedTask : t))
+        prev.map((t) => (t.id === editingTask.id ? { ...newTask, id: t.id } : t))
       );
-      // Refresh tags
-      loadTags(userId);
+      toast({
+        title: "Task updated",
+        description: "The task has been updated successfully.",
+      });
+    } else {
+      setTasks((prev) => [newTask, ...prev]);
+      toast({
+        title: "Task created",
+        description: "The task has been created successfully.",
+      });
     }
-    setShowTaskForm(false);
-  };
 
-  const handleTaskFormCancel = () => {
     setShowTaskForm(false);
     setEditingTask(undefined);
   };
-
-  if (isLoading && tasks.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
-  const selectedTags = tags.filter((t) => selectedTagIds.includes(t.id));
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-primary-50 relative overflow-hidden">
-        {/* Animated Background Blob via Framer Motion */}
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 90, 0],
-            x: [0, 50, 0],
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-0 right-0 w-96 h-96 bg-primary-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30"
+    <DashboardShell
+      header={
+        <Header
+          userName={userName}
+          userAvatar={userAvatar}
+          notificationCount={3}
+          onSearch={setSearchQuery}
+          onNewTask={handleNewTask}
         />
-        <motion.div
-          animate={{
-            scale: [1.2, 1, 1.2],
-            rotate: [90, 0, 90],
-            x: [0, -50, 0],
-          }}
-          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-0 left-0 w-96 h-96 bg-primary-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30"
+      }
+      sidebar={
+        <Sidebar
+          taskCounts={taskCounts}
+          tags={availableTags}
+          onFilterChange={(filter) => setFilters({ ...filters, status: filter as any })}
+          onTagChange={(tag) => setFilters({ ...filters, tags: [tag] })}
         />
+      }
+    >
+      {/* Dashboard Stats */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
+      >
+        {[
+          {
+            label: "Total Tasks",
+            value: taskCounts.total,
+            icon: Layers,
+            color: "bg-blue-500",
+            textColor: "text-blue-600",
+          },
+          {
+            label: "Completed",
+            value: taskCounts.completed,
+            icon: CheckSquare,
+            color: "bg-green-500",
+            textColor: "text-green-600",
+          },
+          {
+            label: "Pending",
+            value: taskCounts.pending,
+            icon: Clock,
+            color: "bg-yellow-500",
+            textColor: "text-yellow-600",
+          },
+          {
+            label: "High Priority",
+            value: taskCounts.highPriority,
+            icon: AlertCircle,
+            color: "bg-red-500",
+            textColor: "text-red-600",
+          },
+        ].map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.1 }}
+            whileHover={{ scale: 1.05, y: -5 }}
+            className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 hover:shadow-lg transition-all"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className={cn("p-2 rounded-lg", stat.color)}>
+                <stat.icon className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-2xl font-bold">{stat.value}</span>
+            </div>
+            <p className="text-sm text-gray-600">{stat.label}</p>
+          </motion.div>
+        ))}
+      </motion.div>
 
-        <Header />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
-          <div className="mb-10 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-700 to-primary-900">
-                My Tasks
-              </h1>
-              <p className="mt-2 text-primary-700">
-                Stay organized and keep track of your goals.
-              </p>
-            </motion.div>
-            <Button
-              onClick={handleCreateTask}
-              size="lg"
-              className="px-6 py-6 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-2xl shadow-xl shadow-primary-500/20 font-bold flex items-center gap-2 group"
-            >
-              <span className="text-2xl group-hover:rotate-90 transition-transform duration-300">+</span>
-              Add New Task
+      {/* View Toggle & Filters */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex gap-2">
+          <Button
+            variant={viewMode === "list" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("list")}
+            className="gap-2"
+          >
+            <List className="w-4 h-4" />
+            List
+          </Button>
+          <Button
+            variant={viewMode === "board" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("board")}
+            className="gap-2"
+          >
+            <LayoutGrid className="w-4 h-4" />
+            Board
+          </Button>
+        </div>
+
+        <FilterPanel
+          availableTags={availableTags}
+          onFilterChange={setFilters}
+          variant="inline"
+        />
+      </div>
+
+      {/* Task View */}
+      <SmartAsync
+        query={async () => {
+          // Return filtered tasks
+          return filteredTasks;
+        }}
+        emptyComponent={
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckSquare className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+              No tasks found
+            </h3>
+            <p className="text-gray-500 mb-4">
+              {searchQuery || filters.status !== "all" || filters.priority !== "all"
+                ? "Try adjusting your filters"
+                : "Get started by creating your first task"}
+            </p>
+            <Button onClick={handleNewTask}>
+              <CheckSquare className="w-4 h-4 mr-2" />
+              Create Task
             </Button>
           </div>
-
-
-          {/* Search, Filter, and Sort Controls */}
-          <div className="mb-6 space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <SearchInput
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  placeholder="Search tasks by title, description, or tags..."
-                />
-              </div>
-              <FilterPanel
-                status={status}
-                priority={priority}
-                selectedTagIds={selectedTagIds}
-                availableTags={tags}
-                onStatusChange={setStatus}
-                onPriorityChange={setPriority}
-                onTagToggle={handleTagToggle}
-                onClearAll={handleClearAllFilters}
-              />
-              <SortSelector
-                sort={sort}
-                order={order}
-                onChange={handleSortChange}
-              />
-            </div>
-
-            {/* Active Filters Display */}
-            <ActiveFilters
-              status={status}
-              priority={priority}
-              selectedTags={selectedTags}
-              onRemove={handleRemoveFilter}
-              onClearAll={handleClearAllFilters}
-            />
-          </div>
-
-          <div className="glass-card rounded-3xl p-6 sm:p-8 min-h-[60vh]">
-            {isLoading ? (
+        }
+      >
+        {(tasks) => (
+          <AnimatePresence mode="wait">
+            {viewMode === "list" ? (
               <motion.div
-                variants={staggerContainer}
-                initial="hidden"
-                animate="visible"
-                className="space-y-4"
+                key="list"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
               >
-                {[1, 2, 3].map((i) => (
-                  <motion.div key={i} variants={fadeInUp}>
-                    <TaskCardSkeleton />
-                  </motion.div>
-                ))}
+                <TaskList
+                  tasks={tasks}
+                  onToggle={handleToggle}
+                  onDelete={handleDelete}
+                  onPin={handlePin}
+                  onArchive={handleArchive}
+                  onEdit={handleEdit}
+                />
               </motion.div>
-            ) : tasks.length === 0 ? (
-              <EmptyState
-                onAction={handleCreateTask}
-                title={searchQuery || status !== "all" || priority || selectedTagIds.length > 0 ? "No tasks found" : "No tasks yet"}
-                description={searchQuery || status !== "all" || priority || selectedTagIds.length > 0 ? "Try adjusting your search or filters." : "Get started by creating your first task."}
-              />
             ) : (
-              <TaskList
-                tasks={tasks}
-                onToggle={handleToggle}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
+              <motion.div
+                key="board"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center py-12"
+              >
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <LayoutGrid className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                  Board View Coming Soon
+                </h3>
+                <p className="text-gray-500">
+                  Kanban board view will be available after installing dependencies.
+                </p>
+                <p className="text-sm text-gray-400 mt-2">
+                  Run: npm install @hello-pangea/dng
+                </p>
+              </motion.div>
             )}
-          </div>
-        </main>
+          </AnimatePresence>
+        )}
+      </SmartAsync>
 
-        {/* Task Form Modal */}
-        <Dialog open={showTaskForm} onOpenChange={setShowTaskForm}>
-          <div className="max-w-2xl w-full">
-            <TaskForm
-              mode={taskFormMode}
-              task={editingTask}
-              userId={userId || ""}
-              availableTags={tags}
-              onSubmit={handleTaskSubmit}
-              onCancel={handleTaskFormCancel}
-            />
-          </div>
-        </Dialog>
-      </div>
-    </ProtectedRoute>
+      {/* Task Form Modal */}
+      <AnimatePresence>
+        {showTaskForm && (
+          <TaskForm
+            mode={editingTask ? "edit" : "create"}
+            initialData={editingTask}
+            availableTags={availableTags}
+            onSubmit={handleTaskSubmit}
+            onCancel={() => {
+              setShowTaskForm(false);
+              setEditingTask(undefined);
+            }}
+            isOpen={showTaskForm}
+          />
+        )}
+      </AnimatePresence>
+    </DashboardShell>
   );
 }

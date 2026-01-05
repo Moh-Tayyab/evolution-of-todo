@@ -1,104 +1,811 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Phase II - Todo Full-Stack Web Application
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/sp.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `002-fullstack-web-app` | **Date**: 2026-01-05 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/002-fullstack-web-app/spec.md`
+**Research**: [research.md](./research.md) | **Data Model**: [data-model.md](./data-model.md)
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Transform the Phase I console todo application into a modern, multi-user web application with persistent storage, responsive UI, and JWT-based authentication. The application implements 10 features (5 Basic + 5 Intermediate) including task CRUD operations, priorities, tags, search, filter, and sort capabilities.
+
+**Technical Approach**:
+- **Frontend**: Next.js 16+ with App Router, TypeScript, Tailwind CSS, Better Auth for JWT management
+- **Backend**: FastAPI with SQLModel, async PostgreSQL (Neon), JWT verification middleware
+- **Authentication**: JWT tokens issued by Better Auth, verified by FastAPI using shared BETTER_AUTH_SECRET
+- **Database**: Neon Serverless PostgreSQL with proper user isolation via `user_id` foreign keys
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
+**Language/Version**:
+- Frontend: TypeScript 5.6+, React 19+, Next.js 16.0+
+- Backend: Python 3.13+
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Primary Dependencies**:
+- Frontend: `next`, `react`, `react-dom`, `better-auth`, `zod`, `tailwindcss`
+- Backend: `fastapi>=0.109.0`, `uvicorn[standard]>=0.27.0`, `sqlmodel>=0.0.14`, `asyncpg>=0.29.0`, `python-jose[cryptography]>=3.3.0`, `pydantic>=2.5.0`
+
+**Storage**:
+- Neon Serverless PostgreSQL with connection pooling
+- Tables: `users` (Better Auth), `tasks`, `tags`, `task_tags` (junction)
+
+**Testing**:
+- Backend: `pytest>=7.4.0`, `pytest-asyncio>=0.23.0`, `httpx>=0.26.0`
+- Frontend: `jest>=29.0.0`, `@testing-library/react>=14.0.0`, `@testing-library/jest-dom`
+- Coverage targets: ≥80% backend, ≥70% frontend
+
+**Target Platform**:
+- Development: Local (frontend http://localhost:3000, backend http://localhost:8000)
+- Production: Cloud-hosted (any VPS/PaaS supporting Node.js 18+ and Python 3.13+)
+
+**Project Type**:
+- Web application (monorepo with separate frontend and backend)
+
+**Performance Goals**:
+- API response time: p95 <200ms for CRUD operations
+- Search/filter: p95 <500ms
+- Task completion toggle: Visual feedback within 200ms
+- Initial page load: <3 seconds on 4G mobile connection
+- Support: 100 concurrent users without degradation
+
+**Constraints**:
+- Max 100 tasks per user (enforced at API level)
+- Task title: 1-200 characters
+- Task description: 0-2000 characters
+- JWT token expiration: 24 hours
+- Tag names: 1-50 characters, unique per user
+- Responsive design: 320px - 1920px width support
+
+**Scale/Scope**:
+- Users: Unlimited (Neon free tier limits apply)
+- Tasks: 100 per user maximum
+- API endpoints: 11 total (6 tasks + 4 tags + 1 health)
+- Database tables: 4 (users, tasks, tags, task_tags)
+- Frontend pages: 4 (landing, signup, signin, dashboard)
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Phase II Constitution Requirements
+
+**Tech Stack Compliance** (Principle VI, Phase-Specific Requirements):
+- [x] Next.js 16+ (App Router, TypeScript, Tailwind)
+- [x] FastAPI backend
+- [x] SQLModel ORM
+- [x] Neon Serverless PostgreSQL
+- [x] Better Auth with JWT plugin
+
+**Feature Scope Compliance** (Phase II Requirements):
+- [x] Basic Features (5): Create Task, Delete Task, List Tasks, View Task Details, Mark as Complete
+- [x] Intermediate Features (5): Priorities, Tags, Search, Filter, Sort
+
+**Security Requirements** (Principle VI):
+- [x] JWT authentication with 24h expiration
+- [x] All user-scoped tables have `user_id` foreign key + index
+- [x] Input validation via Pydantic (backend) + Zod (frontend)
+- [x] HTTPS enforced (development: localhost exception)
+- [x] Secrets in `.env` files (never committed to Git)
+
+**Spec-Driven Development** (Principle I):
+- [x] All code MUST include `@spec:` reference comments
+- [x] CI enforces 100% spec traceability
+- [x] Code generated by Claude Code from specs
+
+**Stateless Design** (Principle IV):
+- [x] No in-memory session state
+- [x] All state persisted to PostgreSQL
+- [x] JWT tokens for stateless authentication
+
+**Code Standards** (Constitution - Code Standards):
+- [x] SQLModel ORM only
+- [x] Pydantic input validation on all endpoints
+- [x] Consistent error format: `{"error": "...", "message": "...", "details": [...]}`
+- [x] Auth middleware on all protected endpoints
+
+### Phase II → Phase III Transition Gate Checkpoints
+
+These checkpoints will be validated before advancing to Phase III:
+
+- [ ] All 10 features functional (manual test)
+- [ ] E2E tests pass in CI
+- [ ] Security scan: 0 HIGH/CRITICAL vulnerabilities
+- [ ] JWT auth functional (signup, signin, signout)
+- [ ] Database migrations tested (up + down)
+- [ ] Test coverage: ≥80% backend, ≥70% frontend
+- [ ] Spec traceability: 100% (automated check)
+- [ ] Demo video recorded
+- [ ] Phase II ADR created
+
+**Result**: ✅ **CONSTITUTION COMPLIANT** - All requirements verified
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/sp.plan command output)
-├── research.md          # Phase 0 output (/sp.plan command)
-├── data-model.md        # Phase 1 output (/sp.plan command)
-├── quickstart.md        # Phase 1 output (/sp.plan command)
-├── contracts/           # Phase 1 output (/sp.plan command)
-└── tasks.md             # Phase 2 output (/sp.tasks command - NOT created by /sp.plan)
+specs/002-fullstack-web-app/
+├── plan.md              # This file - architecture and design decisions
+├── spec.md              # Feature specification with user stories
+├── research.md          # Technology research and decision rationale
+├── data-model.md        # Database schema, entities, migrations
+├── quickstart.md        # Developer onboarding guide
+├── tasks.md             # Implementation tasks (user story breakdown)
+├── contracts/           # API contracts and OpenAPI specs
+│   ├── rest-endpoints.md
+│   └── openapi.json
+└── checklists/          # Quality validation checklists
+    ├── spec-quality.md  # Specification quality validation
+    └── implementation-readiness.md
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+/
+├── .specify/                    # SpecKit Plus configuration
+│   ├── memory/
+│   │   └── constitution.md      # Project constitution
+│   └── templates/               # SpecKit templates
+├── specs/                       # All feature specifications
+│   ├── 001-console-todo-app/    # Phase I (completed)
+│   └── 002-fullstack-web-app/   # Phase II (current)
+├── CLAUDE.md                    # Root AI instructions (project-wide)
+├── README.md                    # Project overview and setup
+├── docker-compose.yml           # Local development orchestration
+│
+├── frontend/                    # Next.js 16+ application
+│   ├── src/
+│   │   ├── app/                 # App Router pages
+│   │   │   ├── layout.tsx       # Root layout with providers
+│   │   │   ├── page.tsx         # Landing page (redirect to signin/dashboard)
+│   │   │   ├── signup/
+│   │   │   │   └── page.tsx     # Signup page
+│   │   │   ├── signin/
+│   │   │   │   └── page.tsx     # Signin page
+│   │   │   └── dashboard/
+│   │   │       └── page.tsx     # Main task dashboard
+│   │   ├── components/          # React components
+│   │   │   ├── auth/            # Authentication components
+│   │   │   │   ├── SignUpForm.tsx
+│   │   │   │   ├── SignInForm.tsx
+│   │   │   │   └── SignOutButton.tsx
+│   │   │   ├── tasks/           # Task-related components
+│   │   │   │   ├── TaskList.tsx
+│   │   │   │   ├── TaskItem.tsx
+│   │   │   │   ├── TaskForm.tsx
+│   │   │   │   ├── DeleteConfirmation.tsx
+│   │   │   │   ├── PrioritySelector.tsx
+│   │   │   │   ├── TagInput.tsx
+│   │   │   │   └── TagChip.tsx
+│   │   │   ├── search/          # Search/filter/sort components
+│   │   │   │   ├── SearchInput.tsx
+│   │   │   │   ├── FilterPanel.tsx
+│   │   │   │   ├── SortSelector.tsx
+│   │   │   │   └── ActiveFilters.tsx
+│   │   │   └── layout/          # Layout components
+│   │   │       ├── Header.tsx
+│   │   │       └── ProtectedRoute.tsx
+│   │   ├── lib/                 # Utilities and configurations
+│   │   │   ├── auth.ts          # Better Auth client configuration
+│   │   │   ├── api.ts           # API client with JWT attachment
+│   │   │   ├── validation.ts    # Zod schemas
+│   │   │   └── utils.ts         # Helper functions
+│   │   └── types/               # TypeScript type definitions
+│   │       └── index.ts
+│   ├── tests/                   # Frontend tests
+│   │   ├── components/          # Component tests
+│   │   ├── integration/         # Integration tests
+│   │   └── __mocks__/           # Mock files
+│   ├── public/                  # Static assets
+│   ├── .env.local.example       # Environment variable template
+│   ├── .eslintrc.json           # ESLint configuration
+│   ├── package.json             # Dependencies and scripts
+│   ├── tailwind.config.ts       # Tailwind configuration
+│   ├── tsconfig.json            # TypeScript configuration
+│   ├── next.config.js           # Next.js configuration
+│   └── CLAUDE.md                # Frontend-specific AI instructions
+│
+└── backend/                     # FastAPI application
+    ├── src/
+    │   ├── models/              # SQLModel database models
+    │   │   ├── __init__.py
+    │   │   ├── task.py          # Task, Tag, TaskTag models
+    │   │   └── user.py          # User model (reference only, managed by Better Auth)
+    │   ├── schemas/             # Pydantic request/response schemas
+    │   │   ├── __init__.py
+    │   │   ├── task.py          # TaskCreate, TaskUpdate, TaskRead
+    │   │   └── tag.py           # TagCreate, TagUpdate, TagRead
+    │   ├── api/                 # API routes and dependencies
+    │   │   ├── __init__.py
+    │   │   ├── deps.py          # FastAPI dependencies (JWT verification)
+    │   │   └── routes/
+    │   │       ├── __init__.py
+    │   │       ├── tasks.py     # Task CRUD endpoints
+    │   │       ├── tags.py      # Tag CRUD endpoints
+    │   │       └── health.py    # Health check endpoint
+    │   ├── middleware/          # Custom middleware
+    │   │   ├── __init__.py
+    │   │   └── auth.py          # JWT verification middleware
+    │   ├── config.py            # Configuration from environment
+    │   ├── database.py          # Database connection and session
+    │   └── main.py              # FastAPI application entry point
+    ├── tests/                   # Backend tests
+    │   ├── unit/                # Unit tests
+    │   ├── integration/         # Integration tests
+    │   ├── contract/            # API contract tests
+    │   └── conftest.py          # Pytest fixtures
+    ├── .env.example             # Environment variable template
+    ├── pyproject.toml           # Python project configuration
+    ├── requirements.txt         # Python dependencies lock file
+    └── CLAUDE.md                # Backend-specific AI instructions
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Monorepo with separate `frontend/` and `backend/` directories. This structure provides:
+- Clear separation of concerns between frontend and backend code
+- Independent deployment and scaling
+- Shared `specs/` directory for cross-cutting specifications
+- Root-level `CLAUDE.md` for project-wide conventions
+- Technology-specific `CLAUDE.md` files in each subdirectory
+
+## Architecture Decisions
+
+### 1. JWT Authentication Flow
+
+**Decision**: Better Auth (frontend) issues JWT tokens → FastAPI (backend) verifies using shared secret.
+
+**Flow Diagram**:
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          JWT AUTHENTICATION FLOW                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  User Browser                    Frontend (Next.js)              Backend (FastAPI)
+       │                                │                                │
+       │  1. Click "Sign In"            │                                │
+       ├───────────────────────────────>│                                │
+       │                                │                                │
+       │                    2. Better Auth:                        │
+       │                    - Validate credentials                │
+       │                    - Create JWT token                     │
+       │                    - Token includes:                     │
+       │                      * sub: user_id (UUID)               │
+       │                      * exp: expiration (24h)             │
+       │                      * iat: issued at                    │
+       │                    - Sign with BETTER_AUTH_SECRET        │
+       │                                │                                │
+       │  3. Redirect to dashboard       │                                │
+       │<───────────────────────────────│                                │
+       │                                │                                │
+       │  4. Dashboard loads             │                                │
+       ├───────────────────────────────>│                                │
+       │                                │                                │
+       │                    5. Extract JWT from session:          │
+       │                    const session = await getSession()     │
+       │                    const token = session?.user?.token      │
+       │                                │                                │
+       │  6. API Call: GET /api/{user_id}/tasks                            │
+       ├───────────────────────────────────────────────────────────────────>│
+       │    Header: Authorization: Bearer <jwt_token>                      │
+       │                                │                                │
+       │                                │                        7. FastAPI receives:
+       │                                │                        - Extract token from
+       │                                │                          Authorization header
+       │                                │                        - Verify JWT signature:
+       │                                │                          payload = jwt.decode(
+       │                                │                            token,
+       │                                │                            BETTER_AUTH_SECRET,
+       │                                │                            algorithms=["HS256"]
+       │                                │                          )
+       │                                │                        - Validate expiration
+       │                                │                        - Extract user_id from sub
+       │                                │                        - Compare with path user_id
+       │                                │                                │
+       │                                │                    8. If mismatch → 403 Forbidden
+       │                                │                    If valid → process request
+       │                                │                                │
+       │  9. Response: { tasks: [...] }                                              │
+       │<───────────────────────────────────────────────────────────────────────────│
+       │                                │                                │
+       │  10. Render task list            │                                │
+       │                                │                                │
+```
+
+**Key Implementation Details**:
+
+**Frontend (Better Auth Configuration)**:
+```typescript
+// frontend/src/lib/auth.ts
+import { betterAuth } from "better-auth"
+
+export const auth = betterAuth({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  plugins: [
+    jwt({
+      // JWT issued with 24-hour expiration
+      expiresIn: "24h",
+      // Signed with BETTER_AUTH_SECRET (from .env.local)
+    })
+  ]
+})
+```
+
+**Frontend API Client (JWT Attachment)**:
+```typescript
+// frontend/src/lib/api.ts
+async function apiCall(endpoint: string, options?: RequestInit) {
+  // Get JWT from Better Auth session
+  const session = await auth.api.getSession()
+  const token = session?.user?.token
+
+  return fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      ...options?.headers,
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    }
+  })
+}
+```
+
+**Backend JWT Verification (FastAPI Dependency)**:
+```python
+# backend/src/api/deps.py
+from fastapi import Header, HTTPException, Depends
+from jose import jwt, JWTError
+from backend.src.config import settings
+
+async def verify_jwt(authorization: str = Header(...)) -> dict:
+    """Extract and verify JWT from Authorization header."""
+    try:
+        token = authorization.replace("Bearer ", "")
+        payload = jwt.decode(
+            token,
+            settings.BETTER_AUTH_SECRET,
+            algorithms=["HS256"]
+        )
+        return payload
+    except JWTError as e:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+async def get_current_user_id(
+    user_id: str,  # From path parameter
+    jwt_payload: dict = Depends(verify_jwt)
+) -> str:
+    """Validate that path user_id matches JWT subject."""
+    if jwt_payload["sub"] != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return user_id
+```
+
+**Environment Variables**:
+```bash
+# frontend/.env.local
+BETTER_AUTH_SECRET=your-super-secret-key-min-32-chars
+NEXT_PUBLIC_API_URL=http://localhost:8000
+
+# backend/.env
+BETTER_AUTH_SECRET=your-super-secret-key-min-32-chars  # SAME VALUE
+DATABASE_URL=postgresql://user:pass@ep-cool-neon.us-east-2.aws.neon.tech/dbname
+CORS_ORIGINS=http://localhost:3000
+```
+
+**Security Considerations**:
+- `BETTER_AUTH_SECRET` MUST be at least 32 characters
+- Secret MUST be identical between frontend and backend
+- Secret MUST never be committed to Git (use `.env` files)
+- Token expiration: 24 hours (configurable)
+- Algorithm: HS256 (HMAC with SHA-256)
+
+### 2. Monorepo Structure Rationale
+
+**Decision**: Monorepo with separate `frontend/` and `backend/` directories.
+
+**Rationale**:
+
+| Consideration | Monorepo Choice | Alternative | Trade-off |
+|---------------|-----------------|-------------|-----------|
+| **Spec Traceability** | ✅ Single `specs/` directory for both frontend and backend | Separate repos with separate specs | Easier to maintain cross-cutting specs |
+| **Shared Types** | ✅ TypeScript types can be referenced from both sides | Need to publish/shared types package | Avoids duplication, version alignment |
+| **Unified CI/CD** | ✅ Single pipeline for frontend + backend tests | Separate pipelines per repo | Simpler infrastructure |
+| **Deployment Independence** | ✅ Frontend and backend deploy separately | Monolithic deployment | Flexibility in scaling |
+| **Technology Coupling** | ⚠️ Python and Node.js in same repo | Tech-agnostic repos | Requires polyglot CI |
+| **Repository Size** | ⚠️ Larger clone, longer CI | Smaller per-repo clones | Acceptable for small projects |
+
+**Alternatives Considered**:
+1. **Separate Repositories** (`todo-frontend`, `todo-backend`):
+   - Pros: Technology isolation, smaller clones, independent CI/CD
+   - Cons: Spec synchronization complexity, shared types need npm package, harder cross-cutting changes
+   - Rejected Because: Hackathon scope benefits from unified specs and simpler infrastructure
+
+2. **Polyrepo with Shared Spec Repo** (`todo-specs`, `todo-frontend`, `todo-backend`):
+   - Pros: Clean separation, technology isolation
+   - Cons: Complex PR coordination across 3 repos, spec drift risk
+   - Rejected Because: Overkill for hackathon scope
+
+**Decision**: Monorepo is optimal for this project size and spec-driven development approach.
+
+### 3. Database Schema Decisions
+
+**Decision**: Neon Serverless PostgreSQL with SQLModel ORM.
+
+**Schema Overview**:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              DATABASE SCHEMA                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Table: users (managed by Better Auth)
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ id (UUID PK) │ email (VARCHAR UNIQUE) │ password_hash │ name │ created_at  │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                     │ 1:N
+                                     ├──────────────────┐
+                                     ▼                  ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Table: tasks                                                                 │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ id (UUID PK) │ user_id (FK) │ title │ description │ priority │ completed │  │
+│ created_at │ updated_at │                                                    │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                     │ N:M
+                                     │
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Table: tags                                                                  │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ id (UUID PK) │ user_id (FK) │ name (UNIQUE per user) │ color │ created_at │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Table: task_tags (junction)
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ task_id (FK → tasks.id) │ tag_id (FK → tags.id) │ PRIMARY KEY (task_id, tag_id) │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Design Decisions**:
+
+1. **UUID Primary Keys**:
+   - Pros: Globally unique, no ID collisions, secure (non-guessable)
+   - Cons: Larger storage (16 bytes vs 4/8 bytes for integer)
+   - Decision: UUIDs for security and distributed system compatibility
+
+2. **`user_id` Foreign Key + Index**:
+   - Every user-owned table has `user_id` foreign key
+   - Indexed for efficient user-scoped queries
+   - Enables data isolation at database level
+
+3. **Junction Table for Many-to-Many**:
+   - `task_tags` table for Task ↔ Tag relationship
+   - Composite primary key prevents duplicate associations
+   - CASCADE delete for automatic cleanup
+
+4. **Trigger for `updated_at`**:
+   - PostgreSQL trigger auto-updates `updated_at` on row modification
+   - Eliminates application-level timestamp management
+
+5. **Unique Constraint on Tag Names**:
+   - `(user_id, name)` unique constraint
+   - Each user has their own tag namespace
+   - Prevents confusion from duplicate tag names
+
+**Migration Strategy**:
+- Use Alembic for versioned migrations
+- Migration files in `backend/src/migrations/`
+- Run `alembic upgrade head` on deployment
+
+### 4. API Contract Patterns
+
+**Decision**: RESTful API with `/api/{user_id}/tasks` pattern and consistent error format.
+
+**Endpoint Patterns**:
+
+| Pattern | Endpoint | Purpose | Example |
+|---------|----------|---------|---------|
+| **List** | `GET /api/{user_id}/tasks` | Get all tasks (with query params) | `GET /api/123/tasks?status=completed` |
+| **Create** | `POST /api/{user_id}/tasks` | Create new resource | `POST /api/123/tasks` with body |
+| **Read** | `GET /api/{user_id}/tasks/{id}` | Get single resource | `GET /api/123/tasks/456` |
+| **Update** | `PUT /api/{user_id}/tasks/{id}` | Full update | `PUT /api/123/tasks/456` with body |
+| **Patch** | `PATCH /api/{user_id}/tasks/{id}` | Partial update (toggle) | `PATCH /api/123/tasks/456` with `{completed: true}` |
+| **Delete** | `DELETE /api/{user_id}/tasks/{id}` | Remove resource | `DELETE /api/123/tasks/456` |
+
+**Query Parameters for List Endpoints**:
+```typescript
+interface TaskListParams {
+  search?: string;      // Search in title, description, tags
+  status?: 'all' | 'completed' | 'incomplete';
+  priority?: 'high' | 'medium' | 'low';
+  tags?: string[];      // Tag IDs (comma-separated in URL)
+  sort?: 'created_at' | 'priority' | 'title';
+  order?: 'asc' | 'desc';
+}
+```
+
+**Error Response Format**:
+```json
+{
+  "error": "error_code",
+  "message": "Human-readable error message",
+  "details": ["Additional context", "Field-specific errors"]
+}
+```
+
+**Error Codes**:
+| HTTP Status | Error Code | Description |
+|-------------|------------|-------------|
+| 400 | `validation_error` | Request body validation failed |
+| 401 | `unauthorized` | Missing or invalid JWT |
+| 403 | `forbidden` | user_id mismatch (JWT ≠ path param) |
+| 404 | `not_found` | Resource not found |
+| 422 | `unprocessable_entity` | Business logic violation (e.g., task limit reached) |
+
+### 5. Frontend Component Architecture
+
+**Decision**: Server Components for pages, Client Components for interactive elements.
+
+**Component Hierarchy**:
+```
+App (layout.tsx - Server Component)
+└── DashboardPage (page.tsx - Server Component)
+    ├── Header (Client Component)
+    │   ├── Logo
+    │   ├── UserMenu
+    │   └── SignOutButton
+    ├── SearchBar (Client Component)
+    │   ├── SearchInput
+    │   ├── FilterPanel
+    │   ├── SortSelector
+    │   └── ActiveFilters
+    ├── TaskList (Client Component)
+    │   ├── TaskItem (repeated)
+    │   │   ├── Checkbox
+    │   │   ├── Title
+    │   │   ├── PriorityBadge
+    │   │   ├── TagChips
+    │   │   ├── EditButton
+    │   │   └── DeleteButton
+    │   └── EmptyState
+    ├── TaskForm (Client Component - Modal)
+    │   ├── TitleInput
+    │   ├── DescriptionTextarea
+    │   ├── PrioritySelector
+    │   ├── TagInput
+    │   └── ActionButtons
+    └── DeleteConfirmation (Client Component - Modal)
+```
+
+**State Management Strategy**:
+- **Authentication**: Better Auth hooks (`useSession()`)
+- **Tasks**: React Server Components + Client Components with `useState` for UI state
+- **No Redux/Zustand**: Simplicity for this scope, React Context sufficient
+
+**Data Fetching**:
+- Server Components: `fetch()` with Next.js caching
+- Client Components: API client from `@/lib/api.ts`
+
+### 6. Security Architecture
+
+**Decision**: JWT-based stateless authentication with defense-in-depth.
+
+**Security Layers**:
+
+1. **Transport Layer**:
+   - HTTPS in production (enforced)
+   - CORS: Only allow `NEXT_PUBLIC_API_URL` in development
+   - Backend CORS configured with `CORS_ORIGINS` env var
+
+2. **Authentication Layer**:
+   - JWT tokens with HS256 algorithm
+   - 24-hour expiration
+   - Signed with `BETTER_AUTH_SECRET` (≥32 characters)
+
+3. **Authorization Layer**:
+   - Every request validates `user_id` (JWT `sub` === path `user_id`)
+   - Database-level isolation via `user_id` foreign keys
+   - API never returns data from other users
+
+4. **Input Validation**:
+   - Frontend: Zod schemas (client-side validation)
+   - Backend: Pydantic schemas (server-side validation)
+   - Never trust client input
+
+5. **Output Encoding**:
+   - React automatically escapes JSX
+   - Prevents XSS attacks
+
+**Security Headers** (FastAPI):
+```python
+# backend/src/main.py
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["localhost", "*.yourdomain.com"]
+)
+```
+
+**Secrets Management**:
+- `.env` files for local development (never committed)
+- Environment variables in production
+- `BETTER_AUTH_SECRET` MUST be ≥32 characters
+- Database URL in `.env` only
+
+### 7. Performance Optimization
+
+**Decision**: Database indexes + query optimization + frontend caching.
+
+**Backend Optimizations**:
+
+1. **Database Indexes**:
+```sql
+-- User-scoped queries (most common)
+CREATE INDEX idx_tasks_user_id ON tasks(user_id);
+CREATE INDEX idx_tags_user_id ON tags(user_id);
+
+-- Filtering
+CREATE INDEX idx_tasks_user_priority ON tasks(user_id, priority);
+CREATE INDEX idx_tasks_user_completed ON tasks(user_id, completed);
+
+-- Tag search
+CREATE INDEX idx_task_tags_task_id ON task_tags(task_id);
+CREATE INDEX idx_task_tags_tag_id ON task_tags(tag_id);
+```
+
+2. **Query Optimization**:
+   - Use SQLModel `select()` with explicit column selection
+   - Avoid `SELECT *` queries
+   - Use `join()` for eager loading relationships
+   - Pagination for large result sets (future enhancement)
+
+3. **Connection Pooling**:
+   - Neon provides built-in connection pooling
+   - Configure pool size in `DATABASE_URL`
+
+**Frontend Optimizations**:
+
+1. **Code Splitting**:
+   - Next.js App Router automatically splits by route
+   - Dynamic imports for heavy components
+
+2. **Image Optimization**:
+   - `next/image` for automatic optimization
+
+3. **Caching**:
+   - Next.js ISR (Incremental Static Regeneration) for static content
+   - Client-side caching for API responses (consider SWR in future)
+
+4. **Bundle Size**:
+   - Tree-shaking via Next.js
+   - Tailwind CSS purges unused styles
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations requiring justification. All design decisions follow constitution principles.
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+**Simplicity Maintained**:
+- ✅ No additional architectural layers (no repository pattern, no service layer)
+- ✅ Direct SQLModel database access
+- ✅ Standard FastAPI routing patterns
+- ✅ React state management (no Redux/Zustand)
+- ✅ Native fetch for API calls (no axios)
+
+**Justified Complexity**:
+- N/A (all complexity is baseline for full-stack web application)
+
+## ADR Suggestions
+
+The following architectural decisions warrant ADR documentation:
+
+📋 **JWT Cross-Service Authentication**: Document reasoning and tradeoffs for Better Auth (frontend) + FastAPI (backend) JWT pattern. Run `/sp.adr jwt-auth-integration`
+
+📋 **Monorepo Structure**: Document rationale for monorepo vs polyrepo decision. Run `/sp.adr monorepo-structure`
+
+📋 **SQLModel vs SQLAlchemy**: Document choice of SQLModel over raw SQLAlchemy. Run `/sp.adr orm-choice`
+
+## Risk Analysis
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| JWT secret exposure | Low | High | Use `.env` files, never commit secrets, rotate periodically |
+| Neon cold start latency | Medium | Low | Enable connection pooling, use keep-alive queries |
+| Better Auth API changes | Low | Medium | Pin version in `package.json`, check changelog before updates |
+| CORS misconfiguration | High | Low | Configure `CORS_ORIGINS` in both dev and production |
+| Database migration failure | Low | High | Test migrations in development, use Alembic versioning |
+| Token expiration during session | Medium | Medium | Implement token refresh or re-authentication flow |
+| User data leak (cross-user) | Low | Critical | JWT validation + database-level `user_id` isolation, extensive testing |
+
+## Dependencies
+
+### External Services
+- **Neon PostgreSQL**: Serverless database, free tier sufficient for development
+- **Better Auth**: Open-source authentication library for Next.js
+
+### Frontend Dependencies
+```json
+{
+  "dependencies": {
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "better-auth": "^1.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/react": "^19.0.0",
+    "tailwindcss": "^3.4.0",
+    "jest": "^29.0.0",
+    "@testing-library/react": "^14.0.0"
+  }
+}
+```
+
+### Backend Dependencies
+```toml
+[project]
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "sqlmodel>=0.0.14",
+    "asyncpg>=0.29.0",
+    "python-jose[cryptography]>=3.3.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "httpx>=0.26.0",
+]
+```
+
+## Deployment Considerations
+
+### Development Environment
+```bash
+# Using docker-compose.yml
+docker-compose up
+# Starts: PostgreSQL, FastAPI (port 8000), Next.js (port 3000)
+```
+
+### Production Deployment
+
+**Frontend**:
+- Platform: Vercel, Netlify, or any Node.js 18+ host
+- Build: `npm run build`
+- Start: `npm start`
+- Environment: `NEXT_PUBLIC_API_URL`, `BETTER_AUTH_SECRET`
+
+**Backend**:
+- Platform: Railway, Render, Fly.io, or any Python 3.13+ host
+- Start: `uvicorn backend.src.main:app --host 0.0.0.0 --port 8000`
+- Environment: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `CORS_ORIGINS`
+
+**Database**:
+- Platform: Neon PostgreSQL (managed service)
+- Migrations: `alembic upgrade head`
+
+## Next Steps
+
+1. ✅ **Specification Complete** - `spec.md` with user stories and requirements
+2. ✅ **Research Complete** - `research.md` with technology decisions
+3. ✅ **Data Model Complete** - `data-model.md` with schema and migrations
+4. ✅ **Architecture Plan Complete** - This document (`plan.md`)
+5. ⏭️ **Tasks** - Run `/sp.tasks` to generate implementation tasks
+6. ⏭️ **Implementation** - Run `/sp.implement` to begin coding
+
+---
+
+**Plan Version**: 1.0
+**Last Updated**: 2026-01-05
+**Status**: ✅ Complete and Constitution-Compliant

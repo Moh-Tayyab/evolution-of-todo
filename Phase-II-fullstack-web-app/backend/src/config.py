@@ -12,10 +12,18 @@ class Settings(BaseSettings):
     database_url: str
     jwt_secret: str
     better_auth_url: str
+    better_auth_secret: str = ""  # Shared secret with frontend for JWT verification
+
+    # Optional: OpenAI API key (for Phase III AI chatbot)
+    openai_api_key: str = ""
+
+    # Optional: Redis for distributed rate limiting
+    redis_url: str = ""
 
     class Config:
         env_file = ".env"
         case_sensitive = False
+        extra = "ignore"  # Allow extra fields in .env
 
 
 @lru_cache()
