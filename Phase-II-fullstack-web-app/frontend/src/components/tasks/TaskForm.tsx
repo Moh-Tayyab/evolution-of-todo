@@ -1,19 +1,17 @@
 // @spec: specs/002-fullstack-web-app/spec.md
 // @spec: specs/002-fullstack-web-app/plan.md
-// Task form component (create/edit mode) with tag support
+// Task form component (create/edit mode)
 
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Task, TaskCreate, Priority, Tag, TagWithCount } from "@/types";
+import type { Task, TaskCreate, Priority } from "@/types";
 import { taskCreateSchema } from "@/lib/validation";
-import { TagInput } from "./TagInput";
 
 interface TaskFormProps {
   mode: "create" | "edit";
   task?: Task;
   userId: string;
-  availableTags?: TagWithCount[];
   onSubmit: (task: TaskCreate) => Promise<void>;
   onCancel: () => void;
 }
@@ -22,7 +20,6 @@ export default function TaskForm({
   mode,
   task,
   userId,
-  availableTags = [],
   onSubmit,
   onCancel,
 }: TaskFormProps) {
@@ -30,40 +27,27 @@ export default function TaskForm({
     title: "",
     description: "",
     priority: "medium",
-    tag_ids: [],
   });
-  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [tagError, setTagError] = useState<string | undefined>();
 
-  // Load existing task data including tags
   useEffect(() => {
     if (mode === "edit" && task) {
       setFormData({
         title: task.title,
         description: task.description || "",
         priority: task.priority,
-        tag_ids: task.tags.map((t) => t.id),
       });
-      setSelectedTags(task.tags);
     }
   }, [mode, task]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    setTagError(undefined);
     setIsSubmitting(true);
 
-    // Create submission data
-    const submitData: TaskCreate = {
-      ...formData,
-      tag_ids: selectedTags.map((t) => t.id),
-    };
-
     // Validate form
-    const result = taskCreateSchema.safeParse(submitData);
+    const result = taskCreateSchema.safeParse(formData);
     if (!result.success) {
       const newErrors: Record<string, string> = {};
       result.error.issues.forEach((issue) => {
@@ -77,11 +61,9 @@ export default function TaskForm({
     }
 
     try {
-      await onSubmit(submitData);
+      await onSubmit(formData);
     } catch (error) {
-      setErrors({
-        _form: error instanceof Error ? error.message : "Failed to save task",
-      });
+      setErrors({ _form: error instanceof Error ? error.message : "Failed to save task" });
     } finally {
       setIsSubmitting(false);
     }
@@ -94,30 +76,6 @@ export default function TaskForm({
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name as string]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
-  };
-
-  const handleAddTag = (tag: Tag) => {
-    if (!selectedTags.some((t) => t.id === tag.id)) {
-      setSelectedTags((prev) => [...prev, tag]);
-    }
-    setTagError(undefined);
-  };
-
-  const handleRemoveTag = (tagId: string) => {
-    setSelectedTags((prev) => prev.filter((t) => t.id !== tagId));
-  };
-
-  const handleCreateTag = async (name: string) => {
-    try {
-      // Import dynamically to avoid circular dependency
-      const { apiClient } = await import("@/lib/api");
-      const newTag = await apiClient.createTag(userId, { name });
-      setSelectedTags((prev) => [...prev, newTag]);
-    } catch (error) {
-      setTagError(
-        error instanceof Error ? error.message : "Failed to create tag"
-      );
     }
   };
 
@@ -187,16 +145,6 @@ export default function TaskForm({
             <option value="high">High</option>
           </select>
         </div>
-
-        {/* Tag Input */}
-        <TagInput
-          selectedTags={selectedTags}
-          availableTags={availableTags}
-          onAddTag={handleAddTag}
-          onRemoveTag={handleRemoveTag}
-          onCreateTag={handleCreateTag}
-          error={tagError}
-        />
 
         {errors._form && (
           <div className="bg-red-50 border border-red-200 rounded-md p-4">

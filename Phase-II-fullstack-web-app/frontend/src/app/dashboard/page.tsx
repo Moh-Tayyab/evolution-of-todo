@@ -1,3 +1,4 @@
+```
 // @spec: specs/002-fullstack-web-app/spec.md
 // @spec: specs/002-fullstack-web-app/plan.md
 // Dashboard page with professional UI using all components
@@ -16,18 +17,26 @@ import {
   AlertCircle,
   Clock,
   Layers,
+  Sparkles,
+  Kanban,
 } from "lucide-react";
 import { DashboardShell, Header, Sidebar } from "@/components/layout";
 import { TaskList, type Task } from "@/components/tasks";
 import { TaskForm } from "@/components/tasks/task-form";
-// import { TaskBoard } from "@/components/tasks/task-board"; // Temporarily disabled - needs @hello-pangea/dng
 import { SearchInput } from "@/components/search";
 import { FilterPanel, type FilterState } from "@/components/search";
 import { SmartAsync } from "@/components/smart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+
+// Views
+import { LuxuryView } from "@/components/dashboard/luxury-view";
+import { CalendarView } from "@/components/dashboard/calendar-view";
+import { BoardView } from "@/components/dashboard/board-view";
 
 /**
  * @spec: Dashboard Page Component
@@ -35,7 +44,7 @@ import { cn } from "@/lib/utils";
  * @feature: FR-003 - Task viewing functionality
  */
 
-type ViewMode = "list" | "board";
+type ViewMode = "list" | "board" | "luxury" | "calendar";
 
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -51,6 +60,10 @@ export default function DashboardPage() {
     sortDirection: "desc",
     tags: [],
   });
+
+  // Confirm Dialog State
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const { toast } = useToast();
 
@@ -178,12 +191,21 @@ export default function DashboardPage() {
     );
   };
 
-  const handleDelete = async (taskId: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
-    toast({
-      title: "Task deleted",
-      description: "The task has been deleted successfully.",
-    });
+  const confirmDelete = async (taskId: string) => {
+    setDeleteId(taskId);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmedDelete = async () => {
+    if (deleteId) {
+        setTasks((prev) => prev.filter((t) => t.id !== deleteId));
+        toast({
+        title: "Task deleted",
+        description: "The task has been deleted successfully.",
+        variant: "default",
+        });
+        setDeleteId(null);
+    }
   };
 
   const handlePin = async (taskId: string) => {
@@ -239,6 +261,45 @@ export default function DashboardPage() {
     setEditingTask(undefined);
   };
 
+  const renderContent = () => {
+    if (isLoading) {
+        return (
+            <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-24 w-full rounded-xl" />
+                ))}
+            </div>
+        );
+    }
+
+    switch (viewMode) {
+      case "luxury":
+        return (
+          <LuxuryView 
+            tasks={filteredTasks} 
+            onToggle={handleToggle} 
+            onDelete={confirmDelete} 
+          />
+        );
+      case "calendar":
+        return <CalendarView tasks={filteredTasks} />;
+      case "board":
+        return <BoardView tasks={filteredTasks} onToggle={handleToggle} />;
+      case "list":
+      default:
+        return (
+           <TaskList
+              tasks={filteredTasks}
+              onToggle={handleToggle}
+              onDelete={confirmDelete}
+              onPin={handlePin}
+              onArchive={handleArchive}
+              onEdit={handleEdit}
+            />
+        );
+    }
+  };
+
   return (
     <DashboardShell
       header={
@@ -266,34 +327,34 @@ export default function DashboardPage() {
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
       >
         {[
-          {
-            label: "Total Tasks",
-            value: taskCounts.total,
-            icon: Layers,
-            color: "bg-blue-500",
-            textColor: "text-blue-600",
-          },
-          {
-            label: "Completed",
-            value: taskCounts.completed,
-            icon: CheckSquare,
-            color: "bg-green-500",
-            textColor: "text-green-600",
-          },
-          {
-            label: "Pending",
-            value: taskCounts.pending,
-            icon: Clock,
-            color: "bg-yellow-500",
-            textColor: "text-yellow-600",
-          },
-          {
-            label: "High Priority",
-            value: taskCounts.highPriority,
-            icon: AlertCircle,
-            color: "bg-red-500",
-            textColor: "text-red-600",
-          },
+            {
+                label: "Total Tasks",
+                value: isLoading ? <Skeleton className="h-8 w-16" /> : taskCounts.total,
+                icon: Layers,
+                color: "bg-blue-500",
+                textColor: "text-blue-600",
+            },
+            {
+                label: "Completed",
+                value: isLoading ? <Skeleton className="h-8 w-16" /> : taskCounts.completed,
+                icon: CheckSquare,
+                color: "bg-green-500",
+                textColor: "text-green-600",
+            },
+            {
+                label: "Pending",
+                value: isLoading ? <Skeleton className="h-8 w-16" /> : taskCounts.pending,
+                icon: Clock,
+                color: "bg-yellow-500",
+                textColor: "text-yellow-600",
+            },
+            {
+                label: "High Priority",
+                value: isLoading ? <Skeleton className="h-8 w-16" /> : taskCounts.highPriority,
+                icon: AlertCircle,
+                color: "bg-red-500",
+                textColor: "text-red-600",
+            },
         ].map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -317,6 +378,7 @@ export default function DashboardPage() {
       {/* View Toggle & Filters */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex gap-2">
+            {/* ... Buttons ... */}
           <Button
             variant={viewMode === "list" ? "default" : "outline"}
             size="sm"
@@ -332,8 +394,26 @@ export default function DashboardPage() {
             onClick={() => setViewMode("board")}
             className="gap-2"
           >
-            <LayoutGrid className="w-4 h-4" />
+            <Kanban className="w-4 h-4" />
             Board
+          </Button>
+          <Button
+            variant={viewMode === "luxury" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("luxury")}
+            className="gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            Luxury
+          </Button>
+          <Button
+            variant={viewMode === "calendar" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("calendar")}
+            className="gap-2"
+          >
+            <Calendar className="w-4 h-4" />
+            Calendar
           </Button>
         </div>
 
@@ -351,7 +431,7 @@ export default function DashboardPage() {
           return filteredTasks;
         }}
         emptyComponent={
-          <div className="text-center py-12">
+            <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckSquare className="w-8 h-8 text-gray-400" />
             </div>
@@ -370,46 +450,17 @@ export default function DashboardPage() {
           </div>
         }
       >
-        {(tasks) => (
+        {() => (
           <AnimatePresence mode="wait">
-            {viewMode === "list" ? (
-              <motion.div
-                key="list"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <TaskList
-                  tasks={tasks}
-                  onToggle={handleToggle}
-                  onDelete={handleDelete}
-                  onPin={handlePin}
-                  onArchive={handleArchive}
-                  onEdit={handleEdit}
-                />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="board"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-center py-12"
-              >
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <LayoutGrid className="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                  Board View Coming Soon
-                </h3>
-                <p className="text-gray-500">
-                  Kanban board view will be available after installing dependencies.
-                </p>
-                <p className="text-sm text-gray-400 mt-2">
-                  Run: npm install @hello-pangea/dng
-                </p>
-              </motion.div>
-            )}
+            <motion.div
+                key={viewMode}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+            >
+                {renderContent()}
+            </motion.div>
           </AnimatePresence>
         )}
       </SmartAsync>
@@ -430,6 +481,16 @@ export default function DashboardPage() {
           />
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete Task"
+        description="Are you sure you want to delete this task? This action cannot be undone."
+        onConfirm={handleConfirmedDelete}
+        variant="destructive"
+      />
     </DashboardShell>
   );
 }
+```

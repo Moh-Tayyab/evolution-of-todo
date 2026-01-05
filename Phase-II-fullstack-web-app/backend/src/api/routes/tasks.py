@@ -64,16 +64,6 @@ async def list_tasks(
     if priority:
         query = query.where(Task.priority == priority)
 
-    if tag_ids:
-        # Filter tasks that have ALL the specified tags (AND logic)
-        from src.models.task_tag import TaskTag
-        for tag_id in tag_ids:
-            query = query.where(
-                Task.id.in_(
-                    select(TaskTag.task_id).where(TaskTag.tag_id == tag_id)
-                )
-            )
-
     if search:
         search_pattern = f"%{search}%"
         query = query.where(

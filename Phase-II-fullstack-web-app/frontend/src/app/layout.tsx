@@ -1,17 +1,12 @@
-// @spec: specs/003-modern-ui-ux/spec.md
-// @spec: specs/003-modern-ui-ux/plan.md
-// Root layout with providers and modern animations
+// @spec: specs/002-fullstack-web-app/plan.md
+// Root layout with providers
 
 import type { ReactNode } from "react";
 import "./globals.css";
-import { Inter } from "next/font/google";
-import { GSAPProvider } from "@/lib/animations/gsap-provider";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Todo Modern | Animation Showcase",
-  description: "Experience the next generation of task management with fluid motion and professional UI.",
+  title: "Todo App",
+  description: "Manage your personal todo tasks",
 };
 
 export default function RootLayout({
@@ -21,12 +16,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <GSAPProvider>
-          <div className="relative min-h-screen">
-            {children}
-          </div>
-        </GSAPProvider>
+      <body>
+        {children}
       </body>
     </html>
   );
