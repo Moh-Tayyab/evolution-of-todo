@@ -1,0 +1,33 @@
+{
+  "projectName": "evolution-of-todo",
+  "aiIntegration": {
+    "claudeCode": {
+      "configFile": "CLAUDE.md",
+      "specDirectory": "specs/",
+      "constitutionFile": ".specify/memory/constitution.md",
+      "mcpConfig": ".mcp.json"
+    },
+    "gemini": {
+      "configReference": "CLAUDE.md",
+      "specDirectory": "specs/",
+      "constitutionFile": ".specify/memory/constitution.md",
+      "compatibilityMode": true,
+      "mcpConfig": "config/gemini-mcp.json"
+    }
+  },
+  "workflow": {
+    "methodology": "Spec-Driven Development (SDD)",
+    "stages": ["spec", "plan", "tasks", "implement"],
+    "artifactLocations": {
+      "specs": "specs/",
+      "plans": "specs/*/plan.md",
+      "tasks": "specs/*/tasks.md",
+      "history": "history/prompts/"
+    }
+  },
+  "standards": {
+    "codeReferenceFormat": "@spec: specs/features/*.md",
+    "documentationRequired": true,
+    "backwardCompatibility": true
+  }
+}

@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Testing
+coverage/
+
+# Configuration files
+*.config.js
+*.config.ts
+.eslintrc.*
+
+# Generated files
+*.generated.*
+*.d.ts
+
+# Misc
+.cache/
+.temp/
+.tmp/

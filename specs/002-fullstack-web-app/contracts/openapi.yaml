@@ -1,0 +1,722 @@
+# @spec: specs/002-fullstack-web-app/spec.md
+# API Contract: Phase II Todo Full-Stack Web Application
+
+openapi: 3.1.0
+info:
+  title: Todo API
+  description: RESTful API for Phase II Todo Full-Stack Web Application (Basic + Intermediate features)
+  version: 2.0.0
+  contact:
+    name: Evolution of Todo Project
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token issued by Better Auth (24-hour expiration)
+
+  schemas:
+    Priority:
+      type: string
+      enum:
+        - high
+        - medium
+        - low
+      description: Task priority level
+      example: "medium"
+
+    Tag:
+      type: object
+      required:
+        - id
+        - user_id
+        - name
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique tag identifier
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        user_id:
+          type: string
+          format: uuid
+          description: Owner user identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          maxLength: 50
+          description: Tag name
+          example: "work"
+        color:
+          type: string
+          pattern: "^#[0-9A-Fa-f]{6}$"
+          nullable: true
+          description: Optional hex color code
+          example: "#3B82F6"
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp (ISO 8601)
+          example: "2025-12-29T10:30:00Z"
+
+    TagWithCount:
+      allOf:
+        - $ref: '#/components/schemas/Tag'
+        - type: object
+          properties:
+            task_count:
+              type: integer
+              description: Number of tasks with this tag
+              example: 5
+
+    TagCreate:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Tag name (required)
+          example: "work"
+        color:
+          type: string
+          pattern: "^#[0-9A-Fa-f]{6}$"
+          description: Optional hex color code
+          example: "#3B82F6"
+
+    TagUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Updated tag name
+          example: "personal"
+        color:
+          type: string
+          pattern: "^#[0-9A-Fa-f]{6}$"
+          nullable: true
+          description: Updated hex color code
+          example: "#10B981"
+
+    TagListResponse:
+      type: object
+      required:
+        - tags
+        - count
+      properties:
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagWithCount'
+        count:
+          type: integer
+          description: Total number of tags
+          example: 3
+
+    Task:
+      type: object
+      required:
+        - id
+        - user_id
+        - title
+        - priority
+        - completed
+        - tags
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique task identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        user_id:
+          type: string
+          format: uuid
+          description: Owner user identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        title:
+          type: string
+          maxLength: 200
+          description: Task title
+          example: "Buy groceries"
+        description:
+          type: string
+          maxLength: 2000
+          nullable: true
+          description: Optional task description
+          example: "Milk, eggs, bread"
+        priority:
+          $ref: '#/components/schemas/Priority'
+        completed:
+          type: boolean
+          description: Completion status
+          example: false
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          description: Tags associated with this task
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp (ISO 8601)
+          example: "2025-12-29T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp (ISO 8601)
+          example: "2025-12-29T10:30:00Z"
+
+    TaskCreate:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Task title (required)
+          example: "Buy groceries"
+        description:
+          type: string
+          maxLength: 2000
+          description: Optional task description
+          example: "Milk, eggs, bread"
+        priority:
+          $ref: '#/components/schemas/Priority'
+        tag_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Tag IDs to associate with task
+          example: ["660e8400-e29b-41d4-a716-446655440001"]
+
+    TaskUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Updated task title
+          example: "Buy organic groceries"
+        description:
+          type: string
+          maxLength: 2000
+          nullable: true
+          description: Updated task description
+          example: "Organic milk, free-range eggs"
+        priority:
+          $ref: '#/components/schemas/Priority'
+        completed:
+          type: boolean
+          description: Updated completion status
+          example: true
+        tag_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Updated tag IDs (replaces existing)
+          example: ["660e8400-e29b-41d4-a716-446655440001"]
+
+    TaskListResponse:
+      type: object
+      required:
+        - tasks
+        - count
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        count:
+          type: integer
+          description: Total number of tasks (after filtering)
+          example: 5
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+          enum:
+            - validation_error
+            - unauthorized
+            - forbidden
+            - not_found
+            - task_limit_reached
+            - tag_name_exists
+          example: "validation_error"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Title is required"
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+          description: Field-level validation errors (optional)
+          example:
+            - field: "title"
+              message: "Title must be 200 characters or less"
+
+  parameters:
+    userId:
+      name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: User ID (must match authenticated user)
+      example: "123e4567-e89b-12d3-a456-426614174000"
+
+    taskId:
+      name: task_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Task ID
+      example: "550e8400-e29b-41d4-a716-446655440000"
+
+    tagId:
+      name: tag_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Tag ID
+      example: "660e8400-e29b-41d4-a716-446655440001"
+
+    # Query parameters for task list
+    searchQuery:
+      name: search
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Search term for title, description, or tags
+      example: "groceries"
+
+    statusFilter:
+      name: status
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - all
+          - completed
+          - incomplete
+        default: all
+      description: Filter by completion status
+      example: "incomplete"
+
+    priorityFilter:
+      name: priority
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/Priority'
+      description: Filter by priority level
+      example: "high"
+
+    tagsFilter:
+      name: tags
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Comma-separated tag IDs to filter by
+      example: "660e8400-e29b-41d4-a716-446655440001,770e8400-e29b-41d4-a716-446655440002"
+
+    sortField:
+      name: sort
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - created_at
+          - priority
+          - title
+        default: created_at
+      description: Field to sort by
+      example: "priority"
+
+    sortOrder:
+      name: order
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - asc
+          - desc
+        default: desc
+      description: Sort direction
+      example: "desc"
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid JWT token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "unauthorized"
+            message: "Invalid or expired token"
+
+    Forbidden:
+      description: User ID in path does not match authenticated user
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "forbidden"
+            message: "Access denied to this resource"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "not_found"
+            message: "Resource not found"
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "validation_error"
+            message: "Invalid request body"
+            details:
+              - field: "title"
+                message: "Title is required"
+
+paths:
+  /api/{user_id}/tasks:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+
+    get:
+      summary: List all tasks for user
+      description: Returns tasks belonging to the authenticated user with optional search, filter, and sort
+      operationId: listTasks
+      tags:
+        - Tasks
+      parameters:
+        - $ref: '#/components/parameters/searchQuery'
+        - $ref: '#/components/parameters/statusFilter'
+        - $ref: '#/components/parameters/priorityFilter'
+        - $ref: '#/components/parameters/tagsFilter'
+        - $ref: '#/components/parameters/sortField'
+        - $ref: '#/components/parameters/sortOrder'
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      summary: Create a new task
+      description: Creates a new task for the authenticated user (max 100 tasks per user)
+      operationId: createTask
+      tags:
+        - Tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Validation error or task limit reached
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation:
+                  summary: Validation error
+                  value:
+                    error: "validation_error"
+                    message: "Title is required"
+                limit:
+                  summary: Task limit reached
+                  value:
+                    error: "task_limit_reached"
+                    message: "Task limit reached (100 maximum)"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/{user_id}/tasks/{task_id}:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+      - $ref: '#/components/parameters/taskId'
+
+    get:
+      summary: Get a single task
+      description: Returns details of a specific task
+      operationId: getTask
+      tags:
+        - Tasks
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update a task (full replacement)
+      description: Updates all fields of a task
+      operationId: updateTask
+      tags:
+        - Tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdate'
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      summary: Partially update a task
+      description: Updates specific fields of a task (commonly used for toggling completion or updating priority)
+      operationId: patchTask
+      tags:
+        - Tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdate'
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete a task
+      description: Permanently removes a task
+      operationId: deleteTask
+      tags:
+        - Tasks
+      responses:
+        '204':
+          description: Task deleted successfully (no content)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/{user_id}/tags:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+
+    get:
+      summary: List all tags for user
+      description: Returns all tags belonging to the authenticated user with task counts
+      operationId: listTags
+      tags:
+        - Tags
+      responses:
+        '200':
+          description: List of tags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      summary: Create a new tag
+      description: Creates a new tag for the authenticated user
+      operationId: createTag
+      tags:
+        - Tags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagCreate'
+      responses:
+        '201':
+          description: Tag created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          description: Validation error or tag name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation:
+                  summary: Validation error
+                  value:
+                    error: "validation_error"
+                    message: "Tag name is required"
+                duplicate:
+                  summary: Tag name exists
+                  value:
+                    error: "tag_name_exists"
+                    message: "A tag with this name already exists"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/{user_id}/tags/{tag_id}:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+      - $ref: '#/components/parameters/tagId'
+
+    put:
+      summary: Update a tag
+      description: Updates a tag's name and/or color
+      operationId: updateTag
+      tags:
+        - Tags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagUpdate'
+      responses:
+        '200':
+          description: Tag updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          description: Validation error or tag name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete a tag
+      description: Permanently removes a tag (removes associations from all tasks)
+      operationId: deleteTag
+      tags:
+        - Tags
+      responses:
+        '204':
+          description: Tag deleted successfully (no content)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+tags:
+  - name: Tasks
+    description: Task management operations (Basic + Intermediate features)
+  - name: Tags
+    description: Tag management operations (Intermediate feature)

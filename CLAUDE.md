@@ -212,6 +212,73 @@ See `.specify/memory/constitution.md` for code quality, testing, performance, se
 ## Active Technologies
 - Python 3.13+ + None (standard library only) (001-console-todo-app)
 - In-memory (list of Task objects) (001-console-todo-app)
+- In-memory (Python list data structures) - Phase I only (001-phase-i-complete)
+- Neon Serverless PostgreSQL (SQLModel ORM) (002-fullstack-web-app)
+
+## Cross-Platform AI Configuration (Claude Code + Gemini)
+- This CLAUDE.md file serves as the primary configuration for Claude Code
+- Gemini systems should interpret this file to understand project structure and constraints
+- Both AI systems should follow the same constitution, spec, plan, and task workflow
+- Task files in `specs/*/tasks.md` are compatible with both Claude Code and Gemini
+- Specification files in `specs/*/spec.md` provide requirements for both systems
+- Plan files in `specs/*/plan.md` outline architecture for both AI implementations
 
 ## Recent Changes
+- 002-fullstack-web-app: Added Neon Serverless PostgreSQL (SQLModel ORM)
+- 001-phase-i-complete: Added Python 3.13+
 - 001-console-todo-app: Added Python 3.13+ + None (standard library only)
+
+## Recent Changes
+- 002-fullstack-web-app: Added Neon Serverless PostgreSQL (SQLModel ORM)
+
+
+## Phase I: Console Todo App Implementation
+
+**Status**: ✅ Complete
+
+**Implemented Features** (All 5 Basic Level):
+1. **Add Task** - Create tasks with title and optional description (FR-001, FR-016)
+2. **Delete Task** - Remove tasks by ID with confirmation (FR-007, FR-010)
+3. **Update Task** - Modify task title and/or description (FR-008, FR-009, FR-011)
+4. **View Tasks** - Display all tasks with [x]/[ ] status indicators (FR-003, FR-004)
+5. **Mark as Complete** - Toggle task completion status (FR-005, FR-006)
+
+**Technical Implementation**:
+- **Architecture**: Clean separation of concerns (models, services, CLI)
+- **Storage**: In-memory list of Task objects (FR-014)
+- **Testing**: 36 unit/contract/integration tests, 100% pass rate
+- **Spec Traceability**: @spec comments in all source files (Principle I)
+
+**Files Created**:
+- `src/models/task.py` - Task dataclass
+- `src/services/todo_list.py` - TaskList service with all CRUD operations
+- `src/cli/menu.py` - Menu display and navigation
+- `src/cli/commands.py` - Command handlers with input validation
+- `src/cli/main.py` - Main application loop
+- Tests: unit/contract/integration (36 tests total)
+- Documentation: README.md, specs, plans
+
+**Code Quality**:
+- ✅ Type hints on all functions
+- ✅ Docstrings on all public functions (PEP 257)
+- ✅ Error handling with clear messages (NFR-003)
+- ✅ No external dependencies (Python standard library only)
+- ✅ Clean separation of concerns (Constitution: Code Standards)
+
+**Phase I → Phase II Prerequisites** (Constitution Section):
+1. ✅ All 5 Basic features functional
+2. ✅ Tests pass (36/36 tests)
+3. ✅ Spec traceability: 100% (@spec comments in all source files)
+4. ⏳ Create Phase I ADR documenting technology choices
+5. ⏳ Record demo video showing all features in action
+
+**Next Steps for Phase II** (Web App):
+- Migrate to Next.js 16+ frontend + FastAPI backend
+- Add PostgreSQL persistence
+- Implement Better Auth with JWT
+- Add Intermediate features (Priorities, Tags, Search, Filter, Sort)
+
+**Automated Compliance Verification** (Principle VII):
+- Spec traceability: ✅ 100% (@spec comments in all source files)
+- Test coverage: ≥80% required (36 tests covering all core features)
+- Security scan: Not applicable for Phase I (no external dependencies)
