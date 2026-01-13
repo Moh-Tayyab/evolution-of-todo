@@ -1,5 +1,5 @@
 // @spec: specs/002-fullstack-web-app/plan.md
-// Tailwind CSS configuration - Premium Professional Theme
+// Tailwind CSS configuration - Professional SaaS Theme | Neutral Slate + Indigo
 
 import type { Config } from "tailwindcss";
 
@@ -27,17 +27,17 @@ const config: Config = {
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
-          50: '#fcf5f4',
-          100: '#fae8e6',
-          200: '#f7d4d1',
-          300: '#f0b6b1',
-          400: '#e0786f',
-          500: '#d6675d',
-          600: '#c24a40',
-          700: '#a23c33',
-          800: '#87342d',
-          900: '#71312b',
-          950: '#3d1512',
+          50: '#eef2ff',
+          100: '#e0e7ff',
+          200: '#c7d2fe',
+          300: '#a5b4fc',
+          400: '#818cf8',
+          500: '#6366f1',
+          600: '#4f46e5',
+          700: '#4338ca',
+          800: '#3730a3',
+          900: '#312e81',
+          950: '#1e1b4b',
         },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
@@ -50,10 +50,6 @@ const config: Config = {
         accent: {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))',
-          cyan: '#22d3ee',
-          purple: '#a855f7',
-          pink: '#ec4899',
-          orange: '#f97316',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
@@ -62,33 +58,31 @@ const config: Config = {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
-        // Priority colors
+        // Priority colors - refined professional tones
         priority: {
-          high: '#ef4444',
-          medium: '#f59e0b',
-          low: '#10b981',
+          high: '#dc2626',   /* red-600 */
+          medium: '#d97706', /* amber-600 */
+          low: '#059669',    /* emerald-600 */
         },
-        // Dark theme colors
+        // Dark theme colors - slate based
         dark: {
-          bg: '#0a0a0f',
-          card: '#12121a',
-          border: '#1e1e2e',
-          muted: '#71717a',
+          bg: '#020617',     /* slate-950 */
+          card: '#0f172a',   /* slate-900 */
+          border: '#334155', /* slate-700 */
+          muted: '#64748b',  /* slate-500 */
         },
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-        'hero-gradient': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        'premium-gradient': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-        'dark-gradient': 'linear-gradient(to bottom right, #0f0f1a, #1a1a2e, #16213e)',
+        'hero-gradient': 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+        'premium-gradient': 'linear-gradient(135deg, #818cf8 0%, #6366f1 100%)',
+        'dark-gradient': 'linear-gradient(to bottom right, #020617, #0f172a, #1e293b)',
         'glass-gradient': 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(214, 103, 93, 0.3)',
-        'glow-lg': '0 0 40px rgba(214, 103, 93, 0.4)',
-        'glow-cyan': '0 0 30px rgba(34, 211, 238, 0.3)',
-        'glow-purple': '0 0 30px rgba(168, 85, 247, 0.3)',
+        'glow': '0 0 20px rgba(99, 102, 241, 0.25)',
+        'glow-lg': '0 0 40px rgba(99, 102, 241, 0.35)',
         'premium': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
         'card-hover': '0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1)',
       },

@@ -20,8 +20,8 @@ export function BorderBeam({
 	duration = 15,
 	anchor = 90,
 	borderWidth = 1.5,
-	colorFrom = "#d6675d",
-	colorTo = "#a855f7",
+	colorFrom = "#6366f1",
+	colorTo = "#818cf8",
 	delay = 0,
 }: BorderBeamProps) {
 	return (
@@ -62,7 +62,7 @@ export function GlowingBorder({
 		<div className={cn("relative group", containerClassName)}>
 			{/* Animated gradient border */}
 			<div
-				className="absolute -inset-0.5 bg-gradient-to-r from-primary-500 via-accent-purple to-accent-cyan rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-500 animate-gradient"
+				className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 via-indigo-400 to-indigo-300 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500 animate-gradient"
 				style={{ backgroundSize: "200% 200%" }}
 			/>
 

@@ -12,7 +12,6 @@ import {
   CheckSquare,
   Clock,
   Layers,
-  Sparkles,
   Kanban,
   Calendar,
   AlertCircle,
@@ -38,8 +37,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { StatCard } from "@/components/ui/stat-card";
-import { BackgroundBeams, GridBackground } from "@/components/ui/background-beams";
-import { Spotlight } from "@/components/ui/spotlight";
 
 // Views
 import { LuxuryView } from "@/components/dashboard/luxury-view";
@@ -85,7 +82,7 @@ interface ViewModeConfig {
 const viewModes: ViewModeConfig[] = [
   { id: "list", label: "List", icon: List },
   { id: "board", label: "Board", icon: Kanban },
-  { id: "luxury", label: "Luxury", icon: Sparkles },
+  { id: "luxury", label: "Grid", icon: Layers },
   { id: "calendar", label: "Calendar", icon: Calendar },
 ];
 
@@ -420,13 +417,8 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Premium Background Effects */}
-      <BackgroundBeams className="opacity-50 dark:opacity-30" />
-      <GridBackground className="opacity-30" />
-      <Spotlight className="-top-40 left-0 md:left-60 md:-top-20" />
-
-      <div className="relative z-10">
+    <div className="min-h-screen bg-background">
+      <div>
         {/* Floating Header */}
         <motion.header
           ref={headerRef}
@@ -438,15 +430,11 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between gap-2">
               {/* Logo & Title */}
               <div className="flex items-center gap-2 sm:gap-4">
-                <motion.div
-                  whileHover={{ rotate: 180, scale: 1.1 }}
-                  transition={{ duration: 0.5 }}
-                  className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg shadow-primary-500/30 flex-shrink-0"
-                >
-                  <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </motion.div>
+                <div className="p-2 sm:p-3 rounded-xl bg-primary shadow-sm flex-shrink-0">
+                  <CheckSquare className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
+                </div>
                 <div className="hidden sm:block">
-                  <h1 className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-500 via-purple-500 to-cyan-500">
+                  <h1 className="text-xl sm:text-2xl font-bold text-foreground">
                     TaskFlow Pro
                   </h1>
                   <p className="text-xs sm:text-sm text-muted-foreground hidden md:block">Professional Task Management</p>
