@@ -13,6 +13,11 @@ from .tag import (
     TagRead,
     TagReadWithCount,
 )
+from .user import (
+    UserCreate,
+    UserRead,
+    UserLogin,
+)
 
 __all__ = [
     "TaskCreate",
@@ -23,4 +28,7 @@ __all__ = [
     "TagUpdate",
     "TagRead",
     "TagReadWithCount",
+    "UserCreate",
+    "UserRead",
+    "UserLogin",
 ]

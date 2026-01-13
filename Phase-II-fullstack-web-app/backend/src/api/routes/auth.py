@@ -5,21 +5,25 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
 
-from ...database import get_session
-from ...models.user import User
-from ...security import create_access_token, get_password_hash, verify_password
-from ..deps import get_current_user_id
-from ...schemas.user import UserCreate, UserRead
-
-import uuid
+from src.database import get_session
+from src.models.user import User
+from src.security import create_access_token, get_password_hash, verify_password
+from src.api.deps import get_current_user_id
+from src.schemas.user import UserCreate, UserRead
 
 router = APIRouter()
 
-@router.post("/signup", response_model=UserRead)
+@router.get("/test")
+async def test_endpoint():
+    """Test endpoint without database"""
+    return {"message": "Auth router is working", "status": "ok"}
+
+@router.post("/signup")
 async def signup(
-    user_in: UserCreate, 
+    user_in: UserCreate,
     session: Session = Depends(get_session)
 ):
+    """Register a new user."""
     # Check if email exists
     statement = select(User).where(User.email == user_in.email)
     existing_user = session.exec(statement).first()
@@ -28,23 +32,29 @@ async def signup(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
-    
-    user_id = uuid.uuid4()
+
     hashed_pwd = get_password_hash(user_in.password)
-    
+
     user_data = User(
-        id=user_id,
         email=user_in.email,
-        full_name=user_in.full_name,
+        name=user_in.full_name,
         hashed_password=hashed_pwd,
         is_active=True
     )
-    
+
     session.add(user_data)
     session.commit()
     session.refresh(user_data)
-    
-    return user_data
+
+    return {
+        "id": str(user_data.id),
+        "email": user_data.email,
+        "name": user_data.name,
+        "email_verified": user_data.email_verified,
+        "is_active": user_data.is_active,
+        "created_at": user_data.created_at.isoformat(),
+        "updated_at": user_data.updated_at.isoformat(),
+    }
 
 @router.post("/login")
 async def login(

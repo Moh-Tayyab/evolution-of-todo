@@ -1,27 +1,27 @@
 # @spec: specs/002-fullstack-web-app/plan.md
 # @spec: specs/002-fullstack-web-app/spec.md
-# API dependencies (JWT verification)
+# API dependencies (JWT authentication)
 
-from typing import Annotated
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Annotated, Optional
+from fastapi import Depends, HTTPException, Request, status, Header
 from sqlmodel import Session
+from jose import jwt, JWTError, ExpiredSignatureError
 
-from ..database import get_session
-from ..middleware.auth import verify_jwt_token
+from src.database import get_session
+from src.config import get_settings
 
-security = HTTPBearer()
+settings = get_settings()
 
 
 async def get_current_user_id(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
-    session: Session = Depends(get_session),
+    authorization: Annotated[Optional[str], Header()] = None,
+    session: Session = Depends(get_session)
 ) -> str:
     """
     Get current user ID from JWT token.
 
     Args:
-        credentials: HTTP Bearer credentials
+        authorization: Authorization header with Bearer token
         session: Database session
 
     Returns:
@@ -30,21 +30,45 @@ async def get_current_user_id(
     Raises:
         HTTPException: If token is invalid or missing
     """
-    if credentials.credentials is None:
+    if not authorization:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing authorization token",
+            detail="Not authenticated - no authorization header",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    payload = verify_jwt_token(credentials.credentials)
-    user_id = payload.get("sub")
-
-    if user_id is None:
+    # Extract token from "Bearer <token>"
+    parts = authorization.split()
+    if parts[0].lower() != "bearer" or len(parts) != 2:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload",
+            detail="Invalid authorization header format",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    return user_id
+    token = parts[1]
+
+    try:
+        # Decode JWT token
+        payload = jwt.decode(
+            token,
+            settings.jwt_secret,
+            algorithms=["HS256"]
+        )
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload",
+            )
+        return user_id
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+        )
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )

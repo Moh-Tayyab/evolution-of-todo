@@ -119,9 +119,10 @@ async def create_task(
         )
 
     # Check task limit (100 per user)
-    existing_count = session.exec(
+    existing_tasks = session.exec(
         select(Task).where(Task.user_id == user_id)
-    ).count()
+    ).all()
+    existing_count = len(existing_tasks)
 
     if existing_count >= 100:
         raise HTTPException(
@@ -245,6 +246,58 @@ async def patch_task(
     for field, value in task_data_dict.items():
         setattr(task, field, value)
 
+    session.add(task)
+    session.commit()
+    session.refresh(task)
+    return task
+
+
+@router.patch("/{user_id}/tasks/{task_id}/complete", response_model=TaskRead)
+async def toggle_task_complete(
+    user_id: UUID,
+    task_id: UUID,
+    current_user_id: Annotated[str, Depends(get_current_user_id)],
+    session: Session = Depends(get_session),
+):
+    """
+    Toggle task completion status.
+
+    Args:
+        user_id: User ID from URL path
+        task_id: Task ID to toggle
+        current_user_id: Authenticated user ID from JWT
+        session: Database session
+
+    Returns:
+        Updated task with toggled completion status
+
+    Raises:
+        HTTPException: If task not found or user ID mismatch
+    """
+    # Verify user ownership
+    if current_user_id != str(user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: user ID mismatch",
+        )
+
+    # Get task
+    task = session.get(Task, task_id)
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found",
+        )
+
+    # Verify task ownership
+    if task.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: task belongs to another user",
+        )
+
+    # Toggle completion status
+    task.completed = not task.completed
     session.add(task)
     session.commit()
     session.refresh(task)

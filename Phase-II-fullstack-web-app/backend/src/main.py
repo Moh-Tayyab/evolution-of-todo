@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 
 from .database import engine
 from .api import api_router
-from .models import Task, Tag, TaskTag
+from .models import Task, Tag, TaskTag, User
 from sqlmodel import SQLModel
 
 
@@ -40,7 +40,7 @@ app.add_middleware(
 )
 
 # Include API routes
-app.include_router(api_router)
+app.include_router(api_router, prefix="/api")
 
 
 @app.get("/")

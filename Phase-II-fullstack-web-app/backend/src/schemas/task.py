@@ -4,9 +4,11 @@
 
 from typing import Optional, List
 from uuid import UUID
+from datetime import datetime
+from pydantic import field_serializer
 from sqlmodel import SQLModel, Field
 from .tag import TagRead
-from ..models.task import TaskBase, Priority
+from src.models.task import TaskBase, Priority
 
 
 class TaskCreate(SQLModel):
@@ -26,14 +28,21 @@ class TaskUpdate(SQLModel):
     tag_ids: Optional[List[UUID]] = None
 
 
-class TaskRead(TaskBase):
+class TaskRead(SQLModel):
     """Schema for reading a task"""
     id: UUID
     user_id: UUID
+    title: str
+    description: Optional[str] = None
+    priority: Priority
     completed: bool
     tags: List[TagRead] = []
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
+
+    @field_serializer('created_at', 'updated_at')
+    def serialize_datetime(self, dt: datetime) -> str:
+        return dt.isoformat()
 
 
 class TaskReadWithTags(TaskRead):
