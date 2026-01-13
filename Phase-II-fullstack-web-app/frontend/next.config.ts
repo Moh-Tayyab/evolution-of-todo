@@ -2,14 +2,27 @@
 // Next.js 16+ configuration
 
 import type { NextConfig } from "next";
-import path from "path";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // Prevent Turbopack from bundling better-auth (causes crashes)
+
+  // External packages that should not be bundled
   serverExternalPackages: ["better-auth"],
-  turbopack: {
-    root: path.resolve(__dirname, ".."),
+
+  // Compiler options
+  compiler: {
+    // Remove console.log in production
+    removeConsole: process.env.NODE_ENV === "production",
+  },
+
+  // Image optimization
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**",
+      },
+    ],
   },
 };
 

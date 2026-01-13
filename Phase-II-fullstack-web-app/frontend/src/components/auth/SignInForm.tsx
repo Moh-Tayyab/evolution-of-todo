@@ -1,12 +1,12 @@
 // @spec: specs/002-fullstack-web-app/spec.md
 // @spec: specs/002-fullstack-web-app/plan.md
-// Sign in form component
+// Sign in form component - uses FastAPI backend for authentication
 
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { authClient } from "@/lib/auth";
+import { signIn } from "@/lib/auth";
 
 export default function SignInForm() {
   const router = useRouter();
@@ -23,18 +23,10 @@ export default function SignInForm() {
     setIsSubmitting(true);
 
     try {
-      const result = await authClient.signIn.email({
-        email: formData.email,
-        password: formData.password,
-      });
-
-      if (result.error) {
-        setError("Invalid email or password");
-      } else if (result.data) {
-        router.push("/dashboard");
-      }
-    } catch (error) {
-      setError("Sign in failed. Please try again.");
+      await signIn(formData.email, formData.password);
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Invalid email or password");
     } finally {
       setIsSubmitting(false);
     }
@@ -77,7 +69,7 @@ export default function SignInForm() {
           value={formData.password}
           onChange={handleChange}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-          placeholder="•••••••••"
+          placeholder="••••••••••"
           required
         />
       </div>

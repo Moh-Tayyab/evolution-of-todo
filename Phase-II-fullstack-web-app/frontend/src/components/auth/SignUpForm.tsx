@@ -1,12 +1,12 @@
 // @spec: specs/002-fullstack-web-app/spec.md
 // @spec: specs/002-fullstack-web-app/plan.md
-// Sign up form component
+// Sign up form component - uses FastAPI backend for authentication
 
 "use client";
 
 import { useState } from "react";
-import { authClient } from "@/lib/auth";
-import { tagCreateSchema, type TagCreateInput } from "@/lib/validation";
+import { useRouter } from "next/navigation";
+import { signUp } from "@/lib/auth";
 
 interface SignUpFormProps {
   onSuccess?: () => void;
@@ -14,6 +14,7 @@ interface SignUpFormProps {
 }
 
 export default function SignUpForm({ onSuccess, onError }: SignUpFormProps) {
+  const router = useRouter();
   const [formData, setFormData] = useState<SignUpData>({
     email: "",
     password: "",
@@ -65,23 +66,15 @@ export default function SignUpForm({ onSuccess, onError }: SignUpFormProps) {
     }
 
     try {
-      const result = await authClient.signUp.email({
-        email: formData.email,
-        password: formData.password,
-        name: formData.name,
-      });
-
-      if (result.error) {
-        if (result.error.message?.includes("email is taken")) {
-          setErrors({ email: "Email is already registered" });
-        } else {
-          onError?.(result.error.message || "Sign up failed");
-        }
-      } else if (result.data) {
-        onSuccess?.();
+      await signUp(formData.email, formData.password, formData.name);
+      router.push("/dashboard");
+    } catch (err: any) {
+      const message = err.message || "Sign up failed";
+      if (message.includes("Email already registered")) {
+        setErrors({ email: "Email is already registered" });
+      } else {
+        onError?.(message);
       }
-    } catch (error) {
-      onError?.(error instanceof Error ? error.message : "Sign up failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -150,7 +143,7 @@ export default function SignUpForm({ onSuccess, onError }: SignUpFormProps) {
               ? "border-red-300 focus:ring-red-500"
               : "border-gray-300 focus:ring-primary-500"
           }`}
-          placeholder="•••••••••"
+          placeholder="••••••••••"
         />
         {errors.password && (
           <p className="mt-1 text-sm text-red-600">{errors.password}</p>

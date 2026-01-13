@@ -1,59 +1,111 @@
-```
 // @spec: specs/002-fullstack-web-app/spec.md
 // @spec: specs/002-fullstack-web-app/plan.md
-// Dashboard page with professional UI using all components
+// Professional Dashboard with Premium UI - Next.js 16 / React 19 Compatible
 
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
+import gsap from "gsap";
 import {
   List,
-  LayoutGrid,
   CheckSquare,
-  TrendingUp,
-  Calendar,
-  AlertCircle,
   Clock,
   Layers,
   Sparkles,
   Kanban,
+  Calendar,
+  AlertCircle,
+  Plus,
+  Search,
+  Bell,
 } from "lucide-react";
+
+// Layout
 import { DashboardShell, Header, Sidebar } from "@/components/layout";
-import { TaskList, type Task } from "@/components/tasks";
+
+// Tasks
+import { TaskList, type Task as ComponentTask } from "@/components/tasks";
 import { TaskForm } from "@/components/tasks/task-form";
-import { SearchInput } from "@/components/search";
+import { type Task } from "@/types";
+
+// Search & Filters
 import { FilterPanel, type FilterState } from "@/components/search";
-import { SmartAsync } from "@/components/smart";
+
+// Premium UI Components
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { StatCard } from "@/components/ui/stat-card";
+import { BackgroundBeams, GridBackground } from "@/components/ui/background-beams";
+import { Spotlight } from "@/components/ui/spotlight";
 
 // Views
 import { LuxuryView } from "@/components/dashboard/luxury-view";
 import { CalendarView } from "@/components/dashboard/calendar-view";
 import { BoardView } from "@/components/dashboard/board-view";
 
-/**
- * @spec: Dashboard Page Component
- * @description: Main dashboard with stats, view modes, and task management
- * @feature: FR-003 - Task viewing functionality
- */
+// Hooks & Utils
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
+// API & Auth
+import { apiClient } from "@/lib/api";
+import { getCurrentUserId } from "@/lib/auth";
 
 type ViewMode = "list" | "board" | "luxury" | "calendar";
 
+// Convert API Task type to Component Task type
+function toComponentTask(task: Task): ComponentTask {
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description || undefined,
+    completed: task.completed,
+    priority: task.priority,
+    tags: task.tags?.map(tag => ({
+      id: tag.id,
+      name: tag.name,
+      color: tag.color || "#000000",
+    })),
+    due_date: undefined,
+    created_at: task.created_at,
+    updated_at: task.updated_at,
+    is_pinned: false,
+  };
+}
+
+interface ViewModeConfig {
+  id: ViewMode;
+  label: string;
+  icon: typeof List;
+}
+
+const viewModes: ViewModeConfig[] = [
+  { id: "list", label: "List", icon: List },
+  { id: "board", label: "Board", icon: Kanban },
+  { id: "luxury", label: "Luxury", icon: Sparkles },
+  { id: "calendar", label: "Calendar", icon: Calendar },
+];
+
+interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  count?: number;
+}
+
 export default function DashboardPage() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
-  const [showTaskForm, setShowTaskForm] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filters, setFilters] = useState<FilterState>({
+  const [userId, setUserId] = React.useState<string | null>(null);
+  const [tasks, setTasks] = React.useState<Task[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [viewMode, setViewMode] = React.useState<ViewMode>("luxury");
+  const [showTaskForm, setShowTaskForm] = React.useState(false);
+  const [editingTask, setEditingTask] = React.useState<Task | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [filters, setFilters] = React.useState<FilterState>({
+    search: "",
     status: "all",
     priority: "all",
     sortBy: "created_at",
@@ -62,74 +114,72 @@ export default function DashboardPage() {
   });
 
   // Confirm Dialog State
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteId, setDeleteId] = React.useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+
+  // Refs for GSAP animations
+  const headerRef = React.useRef<HTMLDivElement>(null);
 
   const { toast } = useToast();
 
-  // Mock user data (replace with actual auth)
-  const userName = "User";
-  const userAvatar = undefined;
-
   // Mock available tags
-  const availableTags = [
-    { id: "1", name: "Work", color: "#D6675D", count: 5 },
+  const availableTags: Tag[] = [
+    { id: "1", name: "Work", color: "#d6675d", count: 5 },
     { id: "2", name: "Personal", color: "#6B9BD1", count: 3 },
-    { id: "3", name: "Urgent", color: "#E74C3C", count: 2 },
+    { id: "3", name: "Urgent", color: "#ef4444", count: 2 },
+    { id: "4", name: "Ideas", color: "#a855f7", count: 4 },
   ];
 
-  // Task counts for sidebar
-  const taskCounts = useMemo(() => ({
+  // Task counts
+  const taskCounts = React.useMemo(() => ({
     total: tasks.length,
     completed: tasks.filter((t) => t.completed).length,
     pending: tasks.filter((t) => !t.completed).length,
     highPriority: tasks.filter((t) => t.priority === "high").length,
   }), [tasks]);
 
-  // Load tasks (mock implementation, replace with actual API)
-  const loadTasks = useCallback(async () => {
+  // GSAP Animations
+  React.useEffect(() => {
+    if (!isLoading && headerRef.current) {
+      gsap.fromTo(
+        headerRef.current,
+        { opacity: 0, y: -30 },
+        { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }
+      );
+    }
+  }, [isLoading]);
+
+  // Load user ID on mount
+  React.useEffect(() => {
+    const loadUserId = async () => {
+      const currentUserId = await getCurrentUserId();
+      if (currentUserId) {
+        setUserId(currentUserId);
+      } else {
+        toast({
+          title: "Authentication Error",
+          description: "Please sign in to view your tasks.",
+          variant: "destructive",
+        });
+      }
+    };
+    loadUserId();
+  }, [toast]);
+
+  // Load tasks
+  const loadTasks = React.useCallback(async () => {
+    if (!userId) return;
+
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const data = await apiClient.getTasks(userId, params);
-      // Simulating API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Mock data
-      const mockTasks: Task[] = [
-        {
-          id: "1",
-          title: "Review project documentation",
-          description: "Read and review the project specs and architecture docs",
-          priority: "high",
-          completed: false,
-          tags: [{ id: "1", name: "Work", color: "#D6675D" }],
-          due_date: new Date(Date.now() + 86400000).toISOString(),
-          created_at: new Date().toISOString(),
-          is_pinned: true,
-        },
-        {
-          id: "2",
-          title: "Update design system",
-          description: "Add new components to the design library",
-          priority: "medium",
-          completed: false,
-          tags: [{ id: "1", name: "Work", color: "#D6675D" }],
-          created_at: new Date(Date.now() - 86400000).toISOString(),
-        },
-        {
-          id: "3",
-          title: "Team standup meeting",
-          description: "Daily sync with the development team",
-          priority: "low",
-          completed: true,
-          tags: [],
-          due_date: new Date().toISOString(),
-          created_at: new Date(Date.now() - 172800000).toISOString(),
-        },
-      ];
-
-      setTasks(mockTasks);
+      const fetchedTasks = await apiClient.getTasks(userId, {
+        search: filters.search || undefined,
+        status: filters.status === "all" ? undefined : filters.status as "completed" | "incomplete",
+        priority: filters.priority === "all" ? undefined : filters.priority as "high" | "medium" | "low",
+        sort: filters.sortBy as "created_at" | "priority" | "title",
+        order: filters.sortDirection as "asc" | "desc",
+      });
+      setTasks(fetchedTasks);
     } catch (error) {
       console.error("Failed to load tasks:", error);
       toast({
@@ -140,17 +190,18 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [userId, filters, toast]);
 
-  useEffect(() => {
-    loadTasks();
-  }, [loadTasks]);
+  React.useEffect(() => {
+    if (userId) {
+      loadTasks();
+    }
+  }, [userId, loadTasks]);
 
-  // Filter and sort tasks
-  const filteredTasks = useMemo(() => {
+  // Filter tasks
+  const filteredTasks = React.useMemo(() => {
     let result = [...tasks];
 
-    // Apply search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
@@ -160,19 +211,16 @@ export default function DashboardPage() {
       );
     }
 
-    // Apply status filter
     if (filters.status !== "all") {
       result = result.filter((task) =>
         filters.status === "completed" ? task.completed : !task.completed
       );
     }
 
-    // Apply priority filter
     if (filters.priority !== "all") {
       result = result.filter((task) => task.priority === filters.priority);
     }
 
-    // Apply tag filter
     if (filters.tags.length > 0) {
       result = result.filter((task) =>
         task.tags?.some((tag) => filters.tags.includes(tag.id))
@@ -184,42 +232,94 @@ export default function DashboardPage() {
 
   // Task handlers
   const handleToggle = async (taskId: string) => {
+    if (!userId) return;
+
+    // Optimistic update
     setTasks((prev) =>
       prev.map((t) =>
         t.id === taskId ? { ...t, completed: !t.completed } : t
       )
     );
+
+    try {
+      await apiClient.toggleTaskComplete(userId, taskId);
+      toast({
+        title: "Task updated",
+        description: "Task status has been changed.",
+      });
+    } catch (error) {
+      console.error("Failed to toggle task:", error);
+      // Rollback on error
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId ? { ...t, completed: !t.completed } : t
+        )
+      );
+      toast({
+        title: "Error",
+        description: "Failed to update task. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const confirmDelete = async (taskId: string) => {
+  const confirmDelete = (taskId: string) => {
     setDeleteId(taskId);
     setShowDeleteConfirm(true);
   };
 
   const handleConfirmedDelete = async () => {
-    if (deleteId) {
+    if (deleteId && userId) {
+      try {
+        await apiClient.deleteTask(userId, deleteId);
         setTasks((prev) => prev.filter((t) => t.id !== deleteId));
         toast({
-        title: "Task deleted",
-        description: "The task has been deleted successfully.",
-        variant: "default",
+          title: "Task deleted",
+          description: "The task has been deleted successfully.",
         });
         setDeleteId(null);
+      } catch (error) {
+        console.error("Failed to delete task:", error);
+        toast({
+          title: "Error",
+          description: "Failed to delete task. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
-  const handlePin = async (taskId: string) => {
+  const handlePin = (taskId: string) => {
+    // Pin functionality is not implemented in the backend API
+    // This is a UI-only placeholder for future implementation
     setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, is_pinned: !t.is_pinned } : t))
+      prev.map((t) => (t.id === taskId ? { ...t } : t))
     );
   };
 
-  const handleArchive = async (taskId: string) => {
+  const handleArchive = (taskId: string) => {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
   };
 
-  const handleEdit = (task: Task) => {
-    setEditingTask(task);
+  const handleEdit = (task: ComponentTask) => {
+    // Convert ComponentTask to Task for editing
+    setEditingTask({
+      id: task.id,
+      title: task.title,
+      description: task.description || null,
+      priority: task.priority || "medium",
+      completed: task.completed,
+      tags: task.tags?.map(tag => ({
+        id: tag.id,
+        user_id: userId || "",
+        name: tag.name,
+        color: tag.color,
+        created_at: "",
+      })) || [],
+      user_id: userId || "",
+      created_at: task.created_at,
+      updated_at: task.updated_at,
+    });
     setShowTaskForm(true);
   };
 
@@ -228,249 +328,306 @@ export default function DashboardPage() {
     setShowTaskForm(true);
   };
 
-  const handleTaskSubmit = async (data: any) => {
-    // TODO: Replace with actual API call
-    const newTask: Task = {
-      id: Date.now().toString(),
-      title: data.title,
-      description: data.description,
-      priority: data.priority,
-      completed: false,
-      tags: availableTags.filter((tag) => data.tags?.includes(tag.id)),
-      due_date: data.due_date,
-      created_at: new Date().toISOString(),
-    };
+  const handleTaskSubmit = async (data: Record<string, unknown>) => {
+    if (!userId) return;
 
-    if (editingTask) {
-      setTasks((prev) =>
-        prev.map((t) => (t.id === editingTask.id ? { ...newTask, id: t.id } : t))
-      );
+    try {
+      if (editingTask) {
+        // Update existing task
+        const updatedTask = await apiClient.updateTask(userId, editingTask.id, {
+          title: data.title as string,
+          description: data.description as string | undefined,
+          priority: data.priority as "high" | "medium" | "low",
+        });
+        setTasks((prev) =>
+          prev.map((t) => (t.id === editingTask.id ? updatedTask : t))
+        );
+        toast({ title: "Task updated", description: "The task has been updated." });
+      } else {
+        // Create new task
+        const newTask = await apiClient.createTask(userId, {
+          title: data.title as string,
+          description: data.description as string | undefined,
+          priority: data.priority as "high" | "medium" | "low",
+        });
+        setTasks((prev) => [newTask, ...prev]);
+        toast({ title: "Task created", description: "New task has been created." });
+      }
+
+      setShowTaskForm(false);
+      setEditingTask(undefined);
+    } catch (error) {
+      console.error("Failed to save task:", error);
       toast({
-        title: "Task updated",
-        description: "The task has been updated successfully.",
-      });
-    } else {
-      setTasks((prev) => [newTask, ...prev]);
-      toast({
-        title: "Task created",
-        description: "The task has been created successfully.",
+        title: "Error",
+        description: "Failed to save task. Please try again.",
+        variant: "destructive",
       });
     }
-
-    setShowTaskForm(false);
-    setEditingTask(undefined);
   };
 
+  // Render content based on view mode
   const renderContent = () => {
     if (isLoading) {
-        return (
-            <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-24 w-full rounded-xl" />
-                ))}
-            </div>
-        );
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton
+              key={i}
+              className="h-48 rounded-2xl bg-white/50 dark:bg-white/5"
+            />
+          ))}
+        </div>
+      );
     }
+
+    // Convert Task[] to ComponentTask[] for view components
+    const componentTasks = filteredTasks.map(toComponentTask);
 
     switch (viewMode) {
       case "luxury":
         return (
-          <LuxuryView 
-            tasks={filteredTasks} 
-            onToggle={handleToggle} 
-            onDelete={confirmDelete} 
+          <LuxuryView
+            tasks={componentTasks}
+            onToggle={handleToggle}
+            onDelete={confirmDelete}
+            onPin={handlePin}
           />
         );
       case "calendar":
-        return <CalendarView tasks={filteredTasks} />;
+        return <CalendarView tasks={componentTasks} onTaskClick={handleEdit} />;
       case "board":
-        return <BoardView tasks={filteredTasks} onToggle={handleToggle} />;
+        return (
+          <BoardView
+            tasks={componentTasks}
+            onToggle={handleToggle}
+            onEdit={handleEdit}
+          />
+        );
       case "list":
       default:
         return (
-           <TaskList
-              tasks={filteredTasks}
-              onToggle={handleToggle}
-              onDelete={confirmDelete}
-              onPin={handlePin}
-              onArchive={handleArchive}
-              onEdit={handleEdit}
-            />
+          <TaskList
+            tasks={componentTasks}
+            onToggle={handleToggle}
+            onDelete={confirmDelete}
+            onPin={handlePin}
+            onArchive={handleArchive}
+            onEdit={handleEdit}
+          />
         );
     }
   };
 
   return (
-    <DashboardShell
-      header={
-        <Header
-          userName={userName}
-          userAvatar={userAvatar}
-          notificationCount={3}
-          onSearch={setSearchQuery}
-          onNewTask={handleNewTask}
-        />
-      }
-      sidebar={
-        <Sidebar
-          taskCounts={taskCounts}
-          tags={availableTags}
-          onFilterChange={(filter) => setFilters({ ...filters, status: filter as any })}
-          onTagChange={(tag) => setFilters({ ...filters, tags: [tag] })}
-        />
-      }
-    >
-      {/* Dashboard Stats */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
-      >
-        {[
-            {
-                label: "Total Tasks",
-                value: isLoading ? <Skeleton className="h-8 w-16" /> : taskCounts.total,
-                icon: Layers,
-                color: "bg-blue-500",
-                textColor: "text-blue-600",
-            },
-            {
-                label: "Completed",
-                value: isLoading ? <Skeleton className="h-8 w-16" /> : taskCounts.completed,
-                icon: CheckSquare,
-                color: "bg-green-500",
-                textColor: "text-green-600",
-            },
-            {
-                label: "Pending",
-                value: isLoading ? <Skeleton className="h-8 w-16" /> : taskCounts.pending,
-                icon: Clock,
-                color: "bg-yellow-500",
-                textColor: "text-yellow-600",
-            },
-            {
-                label: "High Priority",
-                value: isLoading ? <Skeleton className="h-8 w-16" /> : taskCounts.highPriority,
-                icon: AlertCircle,
-                color: "bg-red-500",
-                textColor: "text-red-600",
-            },
-        ].map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.1 }}
-            whileHover={{ scale: 1.05, y: -5 }}
-            className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 hover:shadow-lg transition-all"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className={cn("p-2 rounded-lg", stat.color)}>
-                <stat.icon className="w-5 h-5 text-white" />
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Premium Background Effects */}
+      <BackgroundBeams className="opacity-50 dark:opacity-30" />
+      <GridBackground className="opacity-30" />
+      <Spotlight className="-top-40 left-0 md:left-60 md:-top-20" />
+
+      <div className="relative z-10">
+        {/* Floating Header */}
+        <motion.header
+          ref={headerRef}
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-white/10"
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+            <div className="flex items-center justify-between gap-2">
+              {/* Logo & Title */}
+              <div className="flex items-center gap-2 sm:gap-4">
+                <motion.div
+                  whileHover={{ rotate: 180, scale: 1.1 }}
+                  transition={{ duration: 0.5 }}
+                  className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg shadow-primary-500/30 flex-shrink-0"
+                >
+                  <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </motion.div>
+                <div className="hidden sm:block">
+                  <h1 className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-500 via-purple-500 to-cyan-500">
+                    TaskFlow Pro
+                  </h1>
+                  <p className="text-xs sm:text-sm text-muted-foreground hidden md:block">Professional Task Management</p>
+                </div>
               </div>
-              <span className="text-2xl font-bold">{stat.value}</span>
+
+              {/* Actions */}
+              <div className="flex items-center gap-1 sm:gap-3">
+                {/* Search - hidden on mobile */}
+                <div className="relative hidden md:block">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search tasks..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 pr-4 py-2 w-48 sm:w-64 rounded-xl bg-white/50 dark:bg-white/5 border border-white/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
+                  />
+                </div>
+
+                {/* Mobile search trigger */}
+                <button
+                  className="md:hidden p-2 rounded-lg hover:bg-primary-500/10"
+                  onClick={() => {/* Mobile search handler */}}
+                >
+                  <Search className="w-5 h-5" />
+                </button>
+
+                {/* Notifications - hide badge on very small screens */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative rounded-xl hover:bg-primary-500/10 h-9 w-9 sm:h-10 sm:w-10"
+                >
+                  <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
+                    3
+                  </span>
+                </Button>
+
+                <ThemeToggle />
+
+                {/* New Task Button - compact on mobile */}
+                <Button
+                  onClick={handleNewTask}
+                  className="btn-premium gap-2 h-9 px-3 sm:h-10 sm:px-4"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">New Task</span>
+                </Button>
+              </div>
             </div>
-            <p className="text-sm text-gray-600">{stat.label}</p>
-          </motion.div>
-        ))}
-      </motion.div>
-
-      {/* View Toggle & Filters */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex gap-2">
-            {/* ... Buttons ... */}
-          <Button
-            variant={viewMode === "list" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("list")}
-            className="gap-2"
-          >
-            <List className="w-4 h-4" />
-            List
-          </Button>
-          <Button
-            variant={viewMode === "board" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("board")}
-            className="gap-2"
-          >
-            <Kanban className="w-4 h-4" />
-            Board
-          </Button>
-          <Button
-            variant={viewMode === "luxury" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("luxury")}
-            className="gap-2"
-          >
-            <Sparkles className="w-4 h-4" />
-            Luxury
-          </Button>
-          <Button
-            variant={viewMode === "calendar" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("calendar")}
-            className="gap-2"
-          >
-            <Calendar className="w-4 h-4" />
-            Calendar
-          </Button>
-        </div>
-
-        <FilterPanel
-          availableTags={availableTags}
-          onFilterChange={setFilters}
-          variant="inline"
-        />
-      </div>
-
-      {/* Task View */}
-      <SmartAsync
-        query={async () => {
-          // Return filtered tasks
-          return filteredTasks;
-        }}
-        emptyComponent={
-            <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckSquare className="w-8 h-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">
-              No tasks found
-            </h3>
-            <p className="text-gray-500 mb-4">
-              {searchQuery || filters.status !== "all" || filters.priority !== "all"
-                ? "Try adjusting your filters"
-                : "Get started by creating your first task"}
-            </p>
-            <Button onClick={handleNewTask}>
-              <CheckSquare className="w-4 h-4 mr-2" />
-              Create Task
-            </Button>
           </div>
-        }
-      >
-        {() => (
-          <AnimatePresence mode="wait">
-            <motion.div
+        </motion.header>
+
+        {/* Main Content */}
+        <main className="max-w-7xl mx-auto px-6 py-8">
+          {/* Stats Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+          >
+            <StatCard
+              label="Total Tasks"
+              value={isLoading ? 0 : taskCounts.total}
+              icon={Layers}
+              color="blue"
+              delay={0}
+            />
+            <StatCard
+              label="Completed"
+              value={isLoading ? 0 : taskCounts.completed}
+              icon={CheckSquare}
+              color="green"
+              trend={taskCounts.total > 0 ? Math.round((taskCounts.completed / taskCounts.total) * 100) : 0}
+              delay={0.1}
+            />
+            <StatCard
+              label="Pending"
+              value={isLoading ? 0 : taskCounts.pending}
+              icon={Clock}
+              color="yellow"
+              delay={0.2}
+            />
+            <StatCard
+              label="High Priority"
+              value={isLoading ? 0 : taskCounts.highPriority}
+              icon={AlertCircle}
+              color="red"
+              delay={0.3}
+            />
+          </motion.div>
+
+          {/* View Mode Toggle */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-wrap items-center justify-between gap-4 mb-8"
+          >
+            <div className="flex items-center gap-2 p-1 rounded-xl bg-white/50 dark:bg-white/5 backdrop-blur-lg border border-white/20">
+              {viewModes.map((mode) => (
+                <Button
+                  key={mode.id}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewMode(mode.id)}
+                  className={cn(
+                    "gap-2 rounded-lg transition-all duration-300",
+                    viewMode === mode.id
+                      ? "bg-primary-500 text-white shadow-lg shadow-primary-500/30 hover:bg-primary-600"
+                      : "hover:bg-white/50 dark:hover:bg-white/10"
+                  )}
+                >
+                  <mode.icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{mode.label}</span>
+                </Button>
+              ))}
+            </div>
+
+            <FilterPanel
+              filters={filters}
+              availableTags={availableTags}
+              onFiltersChange={setFilters}
+              variant="inline"
+            />
+          </motion.div>
+
+          {/* Task Content */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
                 key={viewMode}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.2 }}
-            >
-                {renderContent()}
-            </motion.div>
-          </AnimatePresence>
-        )}
-      </SmartAsync>
+                transition={{ duration: 0.3 }}
+              >
+                {filteredTasks.length === 0 && !isLoading ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center justify-center py-20"
+                  >
+                    <div className="p-6 rounded-full bg-primary-500/10 mb-6">
+                      <CheckSquare className="w-12 h-12 text-primary-500" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-foreground mb-2">
+                      {searchQuery ? "No matching tasks" : "All caught up!"}
+                    </h3>
+                    <p className="text-muted-foreground mb-6">
+                      {searchQuery
+                        ? "Try adjusting your search or filters"
+                        : "Create a new task to get started"}
+                    </p>
+                    <Button onClick={handleNewTask} className="btn-premium gap-2">
+                      <Plus className="w-4 h-4" />
+                      Create Task
+                    </Button>
+                  </motion.div>
+                ) : (
+                  renderContent()
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
+        </main>
+      </div>
 
       {/* Task Form Modal */}
       <AnimatePresence>
         {showTaskForm && (
           <TaskForm
             mode={editingTask ? "edit" : "create"}
-            initialData={editingTask}
+            initialData={editingTask ? toComponentTask(editingTask) : undefined}
             availableTags={availableTags}
             onSubmit={handleTaskSubmit}
             onCancel={() => {
@@ -482,6 +639,7 @@ export default function DashboardPage() {
         )}
       </AnimatePresence>
 
+      {/* Delete Confirmation */}
       <ConfirmDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
@@ -490,7 +648,6 @@ export default function DashboardPage() {
         onConfirm={handleConfirmedDelete}
         variant="destructive"
       />
-    </DashboardShell>
+    </div>
   );
 }
-```
