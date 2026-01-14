@@ -64,18 +64,18 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
 
 	return (
 		<motion.div
-			initial={{ opacity: 0, y: 20 }}
+			initial={{ opacity: 0, y: 10 }}
 			animate={{ opacity: 1, y: 0 }}
-			className="relative overflow-hidden rounded-2xl bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl p-6"
+			className="rounded-xl bg-card border border-border shadow-sm p-6"
 		>
 			{/* Header */}
-			<div className="flex items-center justify-between mb-8">
+			<div className="flex items-center justify-between mb-6">
 				<div className="flex items-center gap-3">
-					<div className="p-3 rounded-xl bg-primary-500/10">
-						<CalendarIcon className="w-6 h-6 text-primary-500" />
+					<div className="p-2.5 rounded-lg bg-muted">
+						<CalendarIcon className="w-5 h-5 text-foreground" />
 					</div>
 					<div>
-						<h2 className="text-2xl font-bold text-foreground">{monthName}</h2>
+						<h2 className="text-xl font-semibold text-foreground">{monthName}</h2>
 						<p className="text-sm text-muted-foreground">{year}</p>
 					</div>
 				</div>
@@ -85,17 +85,17 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
 						variant="outline"
 						size="icon"
 						onClick={prevMonth}
-						className="rounded-xl hover:bg-primary-500/10 hover:text-primary-500 hover:border-primary-500/50"
+						className="rounded-lg"
 					>
-						<ChevronLeft className="h-5 w-5" />
+						<ChevronLeft className="h-4 w-4" />
 					</Button>
 					<Button
 						variant="outline"
 						size="icon"
 						onClick={nextMonth}
-						className="rounded-xl hover:bg-primary-500/10 hover:text-primary-500 hover:border-primary-500/50"
+						className="rounded-lg"
 					>
-						<ChevronRight className="h-5 w-5" />
+						<ChevronRight className="h-4 w-4" />
 					</Button>
 				</div>
 			</div>
@@ -105,7 +105,7 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
 				{weekDays.map((day) => (
 					<div
 						key={day}
-						className="text-center text-sm font-semibold text-muted-foreground py-2"
+						className="text-center text-xs font-medium text-muted-foreground py-2"
 					>
 						{day}
 					</div>
@@ -115,51 +115,48 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
 			{/* Calendar grid */}
 			<div className="grid grid-cols-7 gap-2">
 				{blanks.map((_, i) => (
-					<div key={`blank-${i}`} className="aspect-square rounded-xl bg-muted/20" />
+					<div key={`blank-${i}`} className="aspect-square rounded-lg bg-muted/30" />
 				))}
 
 				<AnimatePresence mode="popLayout">
-					{days.map((day, index) => {
+					{days.map((day) => {
 						const dayTasks = getTasksForDay(day);
 						const hasHighPriority = dayTasks.some(t => t.priority === "high");
 
 						return (
 							<motion.div
 								key={day}
-								initial={{ opacity: 0, scale: 0.8 }}
-								animate={{ opacity: 1, scale: 1 }}
-								transition={{ delay: index * 0.02 }}
-								whileHover={{ scale: 1.05, zIndex: 10 }}
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								transition={{ delay: day * 0.01, duration: 0.2 }}
 								className={cn(
-									"aspect-square p-2 rounded-xl cursor-pointer transition-all duration-300 relative",
-									"border border-transparent hover:border-primary-500/50",
-									"bg-white/50 dark:bg-white/5 hover:bg-primary-500/10",
-									"shadow-sm hover:shadow-lg",
-									isToday(day) && "ring-2 ring-primary-500 bg-primary-500/10"
+									"aspect-square p-2 rounded-lg cursor-pointer transition-colors duration-150 relative",
+									"border border-transparent hover:border-primary-500/30",
+									"bg-card hover:bg-muted/50",
+									isToday(day) && "ring-2 ring-primary-500/50 bg-primary-500/5"
 								)}
 							>
 								<div className={cn(
-									"text-sm font-medium mb-1",
-									isToday(day) ? "text-primary-500" : "text-foreground"
+									"text-xs font-medium mb-1",
+									isToday(day) ? "text-primary-600 dark:text-primary-400" : "text-foreground"
 								)}>
 									{day}
 								</div>
 
-								<div className="space-y-1 overflow-hidden">
+								<div className="space-y-0.5 overflow-hidden">
 									{dayTasks.slice(0, 2).map((task) => (
 										<motion.div
 											key={task.id}
 											onClick={() => onTaskClick?.(task)}
-											whileHover={{ scale: 1.02 }}
 											className={cn(
-												"text-[10px] p-1 rounded truncate font-medium",
+												"text-[9px] p-1 rounded truncate font-medium",
 												task.completed
-													? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 line-through"
+													? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 line-through"
 													: task.priority === "high"
-														? "bg-red-500/20 text-red-600 dark:text-red-400"
+														? "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"
 														: task.priority === "medium"
-															? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
-															: "bg-blue-500/20 text-blue-600 dark:text-blue-400"
+															? "bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400"
+															: "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
 											)}
 										>
 											{task.title}
@@ -167,15 +164,15 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
 									))}
 
 									{dayTasks.length > 2 && (
-										<div className="text-[10px] text-muted-foreground text-center">
-											+{dayTasks.length - 2} more
+										<div className="text-[9px] text-muted-foreground text-center">
+											+{dayTasks.length - 2}
 										</div>
 									)}
 								</div>
 
 								{/* Priority indicator dot */}
 								{hasHighPriority && !isToday(day) && (
-									<div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+									<div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-red-500" />
 								)}
 							</motion.div>
 						);
@@ -184,17 +181,17 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
 			</div>
 
 			{/* Legend */}
-			<div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t border-white/10">
+			<div className="flex items-center justify-center gap-6 mt-6 pt-4 border-t border-border">
 				<div className="flex items-center gap-2 text-xs text-muted-foreground">
-					<div className="w-3 h-3 rounded-full bg-red-500/30" />
+					<div className="w-2.5 h-2.5 rounded-full bg-red-500 dark:bg-red-400" />
 					<span>High Priority</span>
 				</div>
 				<div className="flex items-center gap-2 text-xs text-muted-foreground">
-					<div className="w-3 h-3 rounded-full bg-amber-500/30" />
+					<div className="w-2.5 h-2.5 rounded-full bg-amber-500 dark:bg-amber-400" />
 					<span>Medium</span>
 				</div>
 				<div className="flex items-center gap-2 text-xs text-muted-foreground">
-					<div className="w-3 h-3 rounded-full bg-emerald-500/30" />
+					<div className="w-2.5 h-2.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
 					<span>Completed</span>
 				</div>
 			</div>

@@ -1,6 +1,6 @@
 // @spec: specs/002-fullstack-web-app/spec.md
 // @spec: specs/002-fullstack-web-app/plan.md
-// Professional Dashboard with Premium UI - Next.js 16 / React 19 Compatible
+// Premium Dashboard with Sidebar + Main Layout - Teacher Dashboard Inspired Todo App
 
 "use client";
 
@@ -18,10 +18,11 @@ import {
   Plus,
   Search,
   Bell,
+  Target,
 } from "lucide-react";
 
-// Layout
-import { DashboardShell, Header, Sidebar } from "@/components/layout";
+// Layout - Premium Sidebar
+import { PremiumSidebar, type Project, type SidebarTag } from "@/components/layout/premium-sidebar";
 
 // Tasks
 import { TaskList, type Task as ComponentTask } from "@/components/tasks";
@@ -42,6 +43,8 @@ import { StatCard } from "@/components/ui/stat-card";
 import { LuxuryView } from "@/components/dashboard/luxury-view";
 import { CalendarView } from "@/components/dashboard/calendar-view";
 import { BoardView } from "@/components/dashboard/board-view";
+import { AnalyticsDashboard } from "@/components/dashboard/analytics-dashboard";
+import { TaskTemplates } from "@/components/dashboard/task-templates";
 
 // Hooks & Utils
 import { useToast } from "@/hooks/use-toast";
@@ -51,7 +54,7 @@ import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api";
 import { getCurrentUserId } from "@/lib/auth";
 
-type ViewMode = "list" | "board" | "luxury" | "calendar";
+type ViewMode = "dashboard" | "tasks" | "list" | "board" | "luxury" | "calendar" | "analytics" | "templates" | "settings";
 
 // Convert API Task type to Component Task type
 function toComponentTask(task: Task): ComponentTask {
@@ -94,12 +97,22 @@ interface Tag {
 }
 
 export default function DashboardPage() {
+  // Auth & Data State
   const [userId, setUserId] = React.useState<string | null>(null);
   const [tasks, setTasks] = React.useState<Task[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [viewMode, setViewMode] = React.useState<ViewMode>("luxury");
+
+  // View State
+  const [currentView, setCurrentView] = React.useState<ViewMode>("dashboard");
+  const [taskViewMode, setTaskViewMode] = React.useState<"list" | "board" | "luxury" | "calendar">("luxury");
+  const [currentFilter, setCurrentFilter] = React.useState<string>("all");
+  const [currentProject, setCurrentProject] = React.useState<string>("");
+
+  // Task Form State
   const [showTaskForm, setShowTaskForm] = React.useState(false);
   const [editingTask, setEditingTask] = React.useState<Task | undefined>(undefined);
+
+  // Search & Filter State
   const [searchQuery, setSearchQuery] = React.useState("");
   const [filters, setFilters] = React.useState<FilterState>({
     search: "",
@@ -110,22 +123,37 @@ export default function DashboardPage() {
     tags: [],
   });
 
-  // Confirm Dialog State
+  // Dialog State
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
-  // Refs for GSAP animations
+  // Refs
   const headerRef = React.useRef<HTMLDivElement>(null);
 
   const { toast } = useToast();
 
-  // Mock available tags
-  const availableTags: Tag[] = [
-    { id: "1", name: "Work", color: "#d6675d", count: 5 },
-    { id: "2", name: "Personal", color: "#6B9BD1", count: 3 },
-    { id: "3", name: "Urgent", color: "#ef4444", count: 2 },
-    { id: "4", name: "Ideas", color: "#a855f7", count: 4 },
-  ];
+  // Mock projects and tags for sidebar
+  const projects: Project[] = React.useMemo(() => [
+    { id: "1", name: "Work Projects", color: "#d6675d", taskCount: tasks.filter(t => !t.completed && (t.tags?.some(tag => tag.name === "Work") ?? false)).length },
+    { id: "2", name: "Personal", color: "#6B9BD1", taskCount: tasks.filter(t => !t.completed && (t.tags?.some(tag => tag.name === "Personal") ?? false)).length },
+    { id: "3", name: "Learning", color: "#a855f7", taskCount: tasks.filter(t => !t.completed && (t.tags?.some(tag => tag.name === "Learning") ?? false)).length },
+    { id: "4", name: "Health & Fitness", color: "#22c55e", taskCount: tasks.filter(t => !t.completed && (t.tags?.some(tag => tag.name === "Health") ?? false)).length },
+  ], [tasks]);
+
+  const availableTags: SidebarTag[] = React.useMemo(() => {
+    const tagMap = new Map<string, number>();
+    tasks.forEach(task => {
+      task.tags?.forEach(tag => {
+        tagMap.set(tag.name, (tagMap.get(tag.name) || 0) + 1);
+      });
+    });
+    return Array.from(tagMap.entries()).map(([name, count], index) => ({
+      id: `tag-${index}`,
+      name,
+      color: name === "Urgent" ? "#ef4444" : name === "Work" ? "#d6675d" : name === "Personal" ? "#6B9BD1" : "#a855f7",
+      count,
+    }));
+  }, [tasks]);
 
   // Task counts
   const taskCounts = React.useMemo(() => ({
@@ -363,9 +391,9 @@ export default function DashboardPage() {
     }
   };
 
-  // Render content based on view mode
+  // Render content based on current view
   const renderContent = () => {
-    if (isLoading) {
+    if (isLoading && currentView !== "analytics" && currentView !== "templates") {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -381,28 +409,67 @@ export default function DashboardPage() {
     // Convert Task[] to ComponentTask[] for view components
     const componentTasks = filteredTasks.map(toComponentTask);
 
-    switch (viewMode) {
-      case "luxury":
+    switch (currentView) {
+      case "dashboard":
+      case "tasks":
+        // Show dashboard overview with task list
         return (
-          <LuxuryView
-            tasks={componentTasks}
-            onToggle={handleToggle}
-            onDelete={confirmDelete}
-            onPin={handlePin}
+          <div className="space-y-8">
+            {/* Stats Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+            >
+              <StatCard
+                label="Total Tasks"
+                value={isLoading ? 0 : taskCounts.total}
+                icon={Layers}
+                color="blue"
+                delay={0}
+              />
+              <StatCard
+                label="Completed"
+                value={isLoading ? 0 : taskCounts.completed}
+                icon={CheckSquare}
+                color="green"
+                trend={taskCounts.total > 0 ? Math.round((taskCounts.completed / taskCounts.total) * 100) : 0}
+                delay={0.1}
+              />
+              <StatCard
+                label="Pending"
+                value={isLoading ? 0 : taskCounts.pending}
+                icon={Clock}
+                color="yellow"
+                delay={0.2}
+              />
+              <StatCard
+                label="High Priority"
+                value={isLoading ? 0 : taskCounts.highPriority}
+                icon={AlertCircle}
+                color="red"
+                delay={0.3}
+              />
+            </motion.div>
+
+            {/* Task View */}
+            {renderTaskView(componentTasks)}
+          </div>
+        );
+
+      case "analytics":
+        return <AnalyticsDashboard />;
+
+      case "templates":
+        return (
+          <TaskTemplates
+            onUseTemplate={handleUseTemplate}
+            onQuickAction={handleQuickAction}
           />
         );
-      case "calendar":
-        return <CalendarView tasks={componentTasks} onTaskClick={handleEdit} />;
-      case "board":
-        return (
-          <BoardView
-            tasks={componentTasks}
-            onToggle={handleToggle}
-            onEdit={handleEdit}
-          />
-        );
+
       case "list":
-      default:
         return (
           <TaskList
             tasks={componentTasks}
@@ -413,61 +480,267 @@ export default function DashboardPage() {
             onEdit={handleEdit}
           />
         );
+
+      case "luxury":
+        return (
+          <LuxuryView
+            tasks={componentTasks}
+            onToggle={handleToggle}
+            onDelete={confirmDelete}
+            onPin={handlePin}
+          />
+        );
+
+      case "calendar":
+        return <CalendarView tasks={componentTasks} onTaskClick={handleEdit} />;
+
+      case "board":
+        return (
+          <BoardView
+            tasks={componentTasks}
+            onToggle={handleToggle}
+            onEdit={handleEdit}
+          />
+        );
+
+      case "settings":
+        return (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="p-6 rounded-full bg-indigo-500/10 mb-6">
+              <SettingsIcon className="w-12 h-12 text-indigo-500" />
+            </div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">
+              Settings
+            </h3>
+            <p className="text-muted-foreground">
+              Settings panel coming soon...
+            </p>
+          </div>
+        );
+
+      default:
+        return renderTaskView(componentTasks);
     }
   };
 
+  // Render task view based on taskViewMode
+  const renderTaskView = (componentTasks: ComponentTask[]) => {
+    // View Mode Toggle
+    const viewModes = [
+      { id: "luxury" as const, label: "Grid", icon: Layers },
+      { id: "list" as const, label: "List", icon: List },
+      { id: "board" as const, label: "Board", icon: Kanban },
+      { id: "calendar" as const, label: "Calendar", icon: Calendar },
+    ];
+
+    return (
+      <div className="space-y-6">
+        {/* View Mode Toggle & Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="flex flex-wrap items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-2 p-1 rounded-xl bg-white/50 dark:bg-white/5 backdrop-blur-lg border border-slate-200 dark:border-slate-800">
+            {viewModes.map((mode) => (
+              <Button
+                key={mode.id}
+                variant="ghost"
+                size="sm"
+                onClick={() => setTaskViewMode(mode.id)}
+                className={cn(
+                  "gap-2 rounded-lg transition-all duration-300",
+                  taskViewMode === mode.id
+                    ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/30"
+                    : "hover:bg-white/50 dark:hover:bg-white/10"
+                )}
+              >
+                <mode.icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{mode.label}</span>
+              </Button>
+            ))}
+          </div>
+
+          <FilterPanel
+            filters={filters}
+            availableTags={availableTags.map(tag => ({ id: tag.id, name: tag.name, color: tag.color }))}
+            onFiltersChange={setFilters}
+            variant="inline"
+          />
+        </motion.div>
+
+        {/* Task Content */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          <AnimatePresence mode="wait">
+            {componentTasks.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center justify-center py-20"
+              >
+                <div className="p-6 rounded-full bg-indigo-500/10 mb-6">
+                  <CheckSquare className="w-12 h-12 text-indigo-500" />
+                </div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">
+                  {searchQuery ? "No matching tasks" : "All caught up!"}
+                </h3>
+                <p className="text-muted-foreground mb-6">
+                  {searchQuery
+                    ? "Try adjusting your search or filters"
+                    : "Create a new task to get started"}
+                </p>
+                <Button onClick={handleNewTask} className="btn-premium gap-2">
+                  <Plus className="w-4 h-4" />
+                  Create Task
+                </Button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key={taskViewMode}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.3 }}
+              >
+                {taskViewMode === "luxury" && (
+                  <LuxuryView
+                    tasks={componentTasks}
+                    onToggle={handleToggle}
+                    onDelete={confirmDelete}
+                    onPin={handlePin}
+                  />
+                )}
+                {taskViewMode === "list" && (
+                  <TaskList
+                    tasks={componentTasks}
+                    onToggle={handleToggle}
+                    onDelete={confirmDelete}
+                    onPin={handlePin}
+                    onArchive={handleArchive}
+                    onEdit={handleEdit}
+                  />
+                )}
+                {taskViewMode === "board" && (
+                  <BoardView
+                    tasks={componentTasks}
+                    onToggle={handleToggle}
+                    onEdit={handleEdit}
+                  />
+                )}
+                {taskViewMode === "calendar" && (
+                  <CalendarView tasks={componentTasks} onTaskClick={handleEdit} />
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
+    );
+  };
+
+  // Template handlers
+  const handleUseTemplate = async (template: { tasks: Array<{ title: string; description?: string; priority: "high" | "medium" | "low" }> }) => {
+    if (!userId) return;
+
+    try {
+      for (const task of template.tasks) {
+        await apiClient.createTask(userId, {
+          title: task.title,
+          description: task.description,
+          priority: task.priority,
+        });
+      }
+      await loadTasks();
+      toast({
+        title: "Template applied",
+        description: `${template.tasks.length} tasks have been created.`,
+      });
+    } catch (error) {
+      console.error("Failed to use template:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create tasks from template.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleQuickAction = (category: string) => {
+    setEditingTask(undefined);
+    setShowTaskForm(true);
+    // Could pre-populate with category tag
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      <div>
-        {/* Floating Header */}
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
+      {/* Premium Sidebar */}
+      <PremiumSidebar
+        projects={projects}
+        tags={availableTags}
+        currentView={currentView}
+        currentFilter={currentFilter}
+        currentProject={currentProject}
+        onNavigate={setCurrentView}
+        onFilterChange={setCurrentFilter}
+        onProjectChange={setCurrentProject}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col lg:ml-72">
+        {/* Top Bar */}
         <motion.header
           ref={headerRef}
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-white/10"
+          className="sticky top-0 z-40 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800"
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
             <div className="flex items-center justify-between gap-2">
-              {/* Logo & Title */}
-              <div className="flex items-center gap-2 sm:gap-4">
-                <div className="p-2 sm:p-3 rounded-xl bg-primary shadow-sm flex-shrink-0">
-                  <CheckSquare className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
-                </div>
-                <div className="hidden sm:block">
-                  <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-                    TaskFlow Pro
-                  </h1>
-                  <p className="text-xs sm:text-sm text-muted-foreground hidden md:block">Professional Task Management</p>
-                </div>
+              {/* Page Title */}
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  {currentView === "analytics" && <BarChart3 className="w-6 h-6 text-indigo-500" />}
+                  {currentView === "templates" && <Sparkles className="w-6 h-6 text-amber-500" />}
+                  {currentView === "settings" && <SettingsIcon className="w-6 h-6 text-slate-500" />}
+                  {(!currentView || currentView === "dashboard" || currentView === "tasks") && <Target className="w-6 h-6 text-indigo-500" />}
+                  {currentView === "dashboard" || currentView === "tasks" || !currentView
+                    ? "Dashboard"
+                    : currentView.charAt(0).toUpperCase() + currentView.slice(1)}
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 hidden md:block">
+                  {currentView === "analytics" && "Track your productivity and insights"}
+                  {currentView === "templates" && "Quick-start with pre-made templates"}
+                  {currentView === "settings" && "Customize your experience"}
+                  {(!currentView || currentView === "dashboard" || currentView === "tasks") && "Manage your tasks efficiently"}
+                </p>
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-1 sm:gap-3">
-                {/* Search - hidden on mobile */}
-                <div className="relative hidden md:block">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Search tasks..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 py-2 w-48 sm:w-64 rounded-xl bg-white/50 dark:bg-white/5 border border-white/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
-                  />
-                </div>
+              <div className="flex items-center gap-2">
+                {/* Search */}
+                {currentView !== "analytics" && currentView !== "templates" && (
+                  <div className="relative hidden sm:block">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search tasks..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 pr-4 py-2 w-48 sm:w-64 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                    />
+                  </div>
+                )}
 
-                {/* Mobile search trigger */}
-                <button
-                  className="md:hidden p-2 rounded-lg hover:bg-primary-500/10"
-                  onClick={() => {/* Mobile search handler */}}
-                >
-                  <Search className="w-5 h-5" />
-                </button>
-
-                {/* Notifications - hide badge on very small screens */}
+                {/* Notifications */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative rounded-xl hover:bg-primary-500/10 h-9 w-9 sm:h-10 sm:w-10"
+                  className="relative rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 h-9 w-9 sm:h-10 sm:w-10"
                 >
                   <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
@@ -475,138 +748,26 @@ export default function DashboardPage() {
                   </span>
                 </Button>
 
-                <ThemeToggle />
-
-                {/* New Task Button - compact on mobile */}
-                <Button
-                  onClick={handleNewTask}
-                  className="btn-premium gap-2 h-9 px-3 sm:h-10 sm:px-4"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">New Task</span>
-                </Button>
+                {/* New Task Button - only show on task views */}
+                {(currentView === "dashboard" || currentView === "tasks" || !currentView || currentView === "list" || currentView === "luxury" || currentView === "board" || currentView === "calendar") && (
+                  <Button
+                    onClick={handleNewTask}
+                    className="btn-premium gap-2 h-9 px-3 sm:h-10 sm:px-4"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">New Task</span>
+                  </Button>
+                )}
               </div>
             </div>
           </div>
         </motion.header>
 
         {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-6 py-8">
-          {/* Stats Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
-          >
-            <StatCard
-              label="Total Tasks"
-              value={isLoading ? 0 : taskCounts.total}
-              icon={Layers}
-              color="blue"
-              delay={0}
-            />
-            <StatCard
-              label="Completed"
-              value={isLoading ? 0 : taskCounts.completed}
-              icon={CheckSquare}
-              color="green"
-              trend={taskCounts.total > 0 ? Math.round((taskCounts.completed / taskCounts.total) * 100) : 0}
-              delay={0.1}
-            />
-            <StatCard
-              label="Pending"
-              value={isLoading ? 0 : taskCounts.pending}
-              icon={Clock}
-              color="yellow"
-              delay={0.2}
-            />
-            <StatCard
-              label="High Priority"
-              value={isLoading ? 0 : taskCounts.highPriority}
-              icon={AlertCircle}
-              color="red"
-              delay={0.3}
-            />
-          </motion.div>
-
-          {/* View Mode Toggle */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="flex flex-wrap items-center justify-between gap-4 mb-8"
-          >
-            <div className="flex items-center gap-2 p-1 rounded-xl bg-white/50 dark:bg-white/5 backdrop-blur-lg border border-white/20">
-              {viewModes.map((mode) => (
-                <Button
-                  key={mode.id}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setViewMode(mode.id)}
-                  className={cn(
-                    "gap-2 rounded-lg transition-all duration-300",
-                    viewMode === mode.id
-                      ? "bg-primary-500 text-white shadow-lg shadow-primary-500/30 hover:bg-primary-600"
-                      : "hover:bg-white/50 dark:hover:bg-white/10"
-                  )}
-                >
-                  <mode.icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{mode.label}</span>
-                </Button>
-              ))}
-            </div>
-
-            <FilterPanel
-              filters={filters}
-              availableTags={availableTags}
-              onFiltersChange={setFilters}
-              variant="inline"
-            />
-          </motion.div>
-
-          {/* Task Content */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-          >
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={viewMode}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.3 }}
-              >
-                {filteredTasks.length === 0 && !isLoading ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex flex-col items-center justify-center py-20"
-                  >
-                    <div className="p-6 rounded-full bg-primary-500/10 mb-6">
-                      <CheckSquare className="w-12 h-12 text-primary-500" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-foreground mb-2">
-                      {searchQuery ? "No matching tasks" : "All caught up!"}
-                    </h3>
-                    <p className="text-muted-foreground mb-6">
-                      {searchQuery
-                        ? "Try adjusting your search or filters"
-                        : "Create a new task to get started"}
-                    </p>
-                    <Button onClick={handleNewTask} className="btn-premium gap-2">
-                      <Plus className="w-4 h-4" />
-                      Create Task
-                    </Button>
-                  </motion.div>
-                ) : (
-                  renderContent()
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </motion.div>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+          <div className="max-w-7xl mx-auto">
+            {renderContent()}
+          </div>
         </main>
       </div>
 
@@ -616,7 +777,7 @@ export default function DashboardPage() {
           <TaskForm
             mode={editingTask ? "edit" : "create"}
             initialData={editingTask ? toComponentTask(editingTask) : undefined}
-            availableTags={availableTags}
+            availableTags={availableTags.map(tag => ({ id: tag.id, name: tag.name, color: tag.color }))}
             onSubmit={handleTaskSubmit}
             onCancel={() => {
               setShowTaskForm(false);
@@ -637,5 +798,63 @@ export default function DashboardPage() {
         variant="destructive"
       />
     </div>
+  );
+}
+
+// Additional icon components
+function SettingsIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function BarChart3({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M3 3v18h18" />
+      <path d="m19 9-5 5-4-4-3 3" />
+    </svg>
+  );
+}
+
+function Sparkles({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+      <path d="M5 3v4" />
+      <path d="M19 17v4" />
+      <path d="M3 5h4" />
+      <path d="M17 19h4" />
+    </svg>
   );
 }

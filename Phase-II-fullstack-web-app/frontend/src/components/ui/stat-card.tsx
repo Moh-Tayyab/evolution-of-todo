@@ -4,110 +4,91 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import { type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { BorderBeam } from "./border-beam";
 
 interface StatCardProps {
 	label: string;
 	value: number | React.ReactNode;
 	icon: LucideIcon;
 	trend?: number;
-	color: "blue" | "green" | "yellow" | "red" | "purple" | "cyan";
+	color?: "blue" | "green" | "yellow" | "red" | "purple" | "gray";
 	delay?: number;
 }
 
-const colorStyles: Record<string, { bg: string; icon: string; glow: string; gradient: string }> = {
+const colorStyles: Record<string, { bg: string; icon: string; border: string }> = {
 	blue: {
-		bg: "bg-blue-500/10 dark:bg-blue-500/20",
-		icon: "text-blue-500",
-		glow: "shadow-blue-500/20",
-		gradient: "from-blue-500 to-cyan-500",
+		bg: "bg-blue-50 dark:bg-blue-950/30",
+		icon: "text-blue-600 dark:text-blue-400",
+		border: "border-blue-200 dark:border-blue-900/50",
 	},
 	green: {
-		bg: "bg-emerald-500/10 dark:bg-emerald-500/20",
-		icon: "text-emerald-500",
-		glow: "shadow-emerald-500/20",
-		gradient: "from-emerald-500 to-teal-500",
+		bg: "bg-emerald-50 dark:bg-emerald-950/30",
+		icon: "text-emerald-600 dark:text-emerald-400",
+		border: "border-emerald-200 dark:border-emerald-900/50",
 	},
 	yellow: {
-		bg: "bg-amber-500/10 dark:bg-amber-500/20",
-		icon: "text-amber-500",
-		glow: "shadow-amber-500/20",
-		gradient: "from-amber-500 to-orange-500",
+		bg: "bg-amber-50 dark:bg-amber-950/30",
+		icon: "text-amber-600 dark:text-amber-400",
+		border: "border-amber-200 dark:border-amber-900/50",
 	},
 	red: {
-		bg: "bg-red-500/10 dark:bg-red-500/20",
-		icon: "text-red-500",
-		glow: "shadow-red-500/20",
-		gradient: "from-red-500 to-pink-500",
+		bg: "bg-red-50 dark:bg-red-950/30",
+		icon: "text-red-600 dark:text-red-400",
+		border: "border-red-200 dark:border-red-900/50",
 	},
 	purple: {
-		bg: "bg-purple-500/10 dark:bg-purple-500/20",
-		icon: "text-purple-500",
-		glow: "shadow-purple-500/20",
-		gradient: "from-purple-500 to-pink-500",
+		bg: "bg-purple-50 dark:bg-purple-950/30",
+		icon: "text-purple-600 dark:text-purple-400",
+		border: "border-purple-200 dark:border-purple-900/50",
 	},
-	cyan: {
-		bg: "bg-cyan-500/10 dark:bg-cyan-500/20",
-		icon: "text-cyan-500",
-		glow: "shadow-cyan-500/20",
-		gradient: "from-cyan-500 to-blue-500",
+	gray: {
+		bg: "bg-slate-50 dark:bg-slate-900/50",
+		icon: "text-slate-600 dark:text-slate-400",
+		border: "border-slate-200 dark:border-slate-800",
 	},
 };
 
-export function StatCard({ label, value, icon: Icon, trend, color, delay = 0 }: StatCardProps) {
+export function StatCard({
+	label,
+	value,
+	icon: Icon,
+	trend,
+	color = "blue",
+	delay = 0
+}: StatCardProps) {
 	const styles = colorStyles[color];
 
 	return (
 		<motion.div
-			initial={{ opacity: 0, y: 20, scale: 0.95 }}
-			animate={{ opacity: 1, y: 0, scale: 1 }}
-			transition={{ delay, duration: 0.5, type: "spring" }}
-			whileHover={{ y: -5, scale: 1.02 }}
-			className="relative group"
+			initial={{ opacity: 0, y: 10 }}
+			animate={{ opacity: 1, y: 0 }}
+			transition={{ delay, duration: 0.3 }}
+			whileHover={{ y: -2 }}
+			className="group"
 		>
 			<div
 				className={cn(
-					"relative overflow-hidden rounded-2xl p-6",
-					"bg-white/80 dark:bg-white/5 backdrop-blur-xl",
-					"border border-white/20 dark:border-white/10",
-					"shadow-xl hover:shadow-2xl",
-					"transition-all duration-500"
+					"rounded-xl p-5",
+					"bg-card border border-border",
+					"shadow-sm hover:shadow-md",
+					"transition-all duration-200"
 				)}
 			>
-				{/* Hover glow effect */}
-				<div
-					className={cn(
-						"absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500",
-						"bg-gradient-to-br",
-						styles.gradient,
-						"blur-2xl -z-10"
-					)}
-					style={{ opacity: 0.1 }}
-				/>
-
-				{/* Border beam on hover */}
-				<BorderBeam
-					className="opacity-0 group-hover:opacity-100 transition-opacity"
-					colorFrom={color === "blue" ? "#3b82f6" : color === "green" ? "#10b981" : "#d6675d"}
-					colorTo={color === "purple" ? "#a855f7" : "#22d3ee"}
-				/>
-
-				<div className="flex items-center justify-between">
+				<div className="flex items-start justify-between">
 					{/* Icon */}
-					<div className={cn("p-3 rounded-xl", styles.bg)}>
-						<Icon className={cn("w-6 h-6", styles.icon)} />
+					<div className={cn("p-2.5 rounded-lg", styles.bg)}>
+						<Icon className={cn("w-5 h-5", styles.icon)} />
 					</div>
 
 					{/* Trend indicator */}
 					{trend !== undefined && (
 						<div
 							className={cn(
-								"px-2 py-1 rounded-full text-xs font-medium",
+								"px-2 py-1 rounded-md text-xs font-medium",
 								trend > 0
-									? "bg-emerald-500/10 text-emerald-500"
+									? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400"
 									: trend < 0
-										? "bg-red-500/10 text-red-500"
-										: "bg-gray-500/10 text-gray-500"
+										? "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"
+										: "bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400"
 							)}
 						>
 							{trend > 0 ? "+" : ""}
@@ -121,23 +102,13 @@ export function StatCard({ label, value, icon: Icon, trend, color, delay = 0 }: 
 					<motion.div
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
-						transition={{ delay: delay + 0.2 }}
-						className="text-3xl font-bold text-foreground"
+						transition={{ delay: delay + 0.1 }}
+						className="text-2xl font-semibold text-foreground"
 					>
 						{value}
 					</motion.div>
-					<p className="text-sm text-muted-foreground mt-1">{label}</p>
+					<p className="text-sm text-muted-foreground mt-0.5">{label}</p>
 				</div>
-
-				{/* Decorative gradient line */}
-				<div
-					className={cn(
-						"absolute bottom-0 left-0 right-0 h-1",
-						"bg-gradient-to-r",
-						styles.gradient,
-						"opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-					)}
-				/>
 			</div>
 		</motion.div>
 	);
