@@ -44,7 +44,7 @@ export function BoardView({ tasks, onToggle, onEdit }: BoardViewProps) {
 			title: "To Do",
 			icon: <Circle className="w-5 h-5" />,
 			tasks: tasks.filter(t => !t.completed),
-			color: "text-amber-600 dark:text-amber-400",
+			color: "text-blue-600 dark:text-blue-400",
 		},
 		{
 			id: "completed",
@@ -75,7 +75,7 @@ export function BoardView({ tasks, onToggle, onEdit }: BoardViewProps) {
 
 	const priorityStyles: Record<string, string> = {
 		high: "bg-red-600 dark:bg-red-500",
-		medium: "bg-amber-600 dark:bg-amber-500",
+		medium: "bg-blue-600 dark:bg-blue-500",
 		low: "bg-emerald-600 dark:bg-emerald-500",
 	};
 

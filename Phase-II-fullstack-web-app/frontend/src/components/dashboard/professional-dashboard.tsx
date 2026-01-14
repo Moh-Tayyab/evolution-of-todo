@@ -108,8 +108,8 @@ export function ProfessionalDashboard({
       title: "Pending Tasks",
       value: todayTasks.length,
       icon: Clock,
-      color: "text-amber-600 dark:text-amber-400",
-      bgColor: "bg-amber-50 dark:bg-amber-950/30",
+      color: "text-blue-600 dark:text-blue-400",
+      bgColor: "bg-blue-50 dark:bg-blue-950/30",
       trend: null,
     },
     {
@@ -256,7 +256,7 @@ export function ProfessionalDashboard({
                         className={cn(
                           "mt-0.5 w-2 h-2 rounded-full flex-shrink-0",
                           task.priority === "high" && "bg-red-500",
-                          task.priority === "medium" && "bg-amber-500",
+                          task.priority === "medium" && "bg-blue-500",
                           task.priority === "low" && "bg-emerald-500"
                         )}
                       />
@@ -288,7 +288,7 @@ export function ProfessionalDashboard({
                         className={cn(
                           "text-[10px] capitalize shrink-0",
                           task.priority === "high" && "border-red-200 text-red-700 dark:border-red-900/50 dark:text-red-400",
-                          task.priority === "medium" && "border-amber-200 text-amber-700 dark:border-amber-900/50 dark:text-amber-400",
+                          task.priority === "medium" && "border-blue-200 text-blue-700 dark:border-blue-900/50 dark:text-blue-400",
                           task.priority === "low" && "border-emerald-200 text-emerald-700 dark:border-emerald-900/50 dark:text-emerald-400"
                         )}
                       >
@@ -433,7 +433,7 @@ export function ProfessionalDashboard({
             <div className="space-y-3">
               {[
                 { label: "High", count: highPriorityCount, color: "bg-red-500" },
-                { label: "Medium", count: mediumPriorityCount, color: "bg-amber-500" },
+                { label: "Medium", count: mediumPriorityCount, color: "bg-blue-500" },
                 { label: "Low", count: lowPriorityCount, color: "bg-emerald-500" },
               ].map((item, index) => (
                 <div key={item.label} className="flex items-center gap-3">

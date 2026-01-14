@@ -155,7 +155,7 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
 													: task.priority === "high"
 														? "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"
 														: task.priority === "medium"
-															? "bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400"
+															? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
 															: "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
 											)}
 										>
@@ -187,7 +187,7 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
 					<span>High Priority</span>
 				</div>
 				<div className="flex items-center gap-2 text-xs text-muted-foreground">
-					<div className="w-2.5 h-2.5 rounded-full bg-amber-500 dark:bg-amber-400" />
+					<div className="w-2.5 h-2.5 rounded-full bg-blue-500 dark:bg-blue-400" />
 					<span>Medium</span>
 				</div>
 				<div className="flex items-center gap-2 text-xs text-muted-foreground">

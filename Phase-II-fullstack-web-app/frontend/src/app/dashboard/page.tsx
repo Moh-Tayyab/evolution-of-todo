@@ -711,7 +711,7 @@ export default function DashboardPage() {
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   {currentView === "analytics" && <BarChart3 className="w-6 h-6 text-indigo-500" />}
-                  {currentView === "templates" && <Sparkles className="w-6 h-6 text-amber-500" />}
+                  {currentView === "templates" && <Sparkles className="w-6 h-6 text-blue-500" />}
                   {currentView === "settings" && <SettingsIcon className="w-6 h-6 text-slate-500" />}
                   {(!currentView || currentView === "dashboard" || currentView === "tasks") && <Target className="w-6 h-6 text-indigo-500" />}
                   {currentView === "dashboard" || currentView === "tasks" || !currentView

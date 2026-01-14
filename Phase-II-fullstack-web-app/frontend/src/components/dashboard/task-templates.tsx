@@ -208,7 +208,7 @@ export function TaskTemplates({
       >
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-amber-500" />
+            <Sparkles className="w-6 h-6 text-blue-500" />
             Task Templates
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -317,7 +317,7 @@ export function TaskTemplates({
                           task.priority === "high"
                             ? "bg-red-500"
                             : task.priority === "medium"
-                            ? "bg-amber-500"
+                            ? "bg-blue-500"
                             : "bg-emerald-500"
                         )}
                       />
@@ -489,7 +489,7 @@ function TemplatePreviewModal({ template, onClose, onUse }: TemplatePreviewModal
                     task.priority === "high"
                       ? "bg-red-500"
                       : task.priority === "medium"
-                      ? "bg-amber-500"
+                      ? "bg-blue-500"
                       : "bg-emerald-500"
                   )}
                 />

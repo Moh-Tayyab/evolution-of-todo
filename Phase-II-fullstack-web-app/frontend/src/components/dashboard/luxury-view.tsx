@@ -35,8 +35,8 @@ const priorityStyles: Record<string, { badge: string; text: string }> = {
 		text: "text-red-700 dark:text-red-400",
 	},
 	medium: {
-		badge: "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/50",
-		text: "text-amber-700 dark:text-amber-400",
+		badge: "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-900/50",
+		text: "text-blue-700 dark:text-blue-400",
 	},
 	low: {
 		badge: "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50",
@@ -160,7 +160,7 @@ export function LuxuryView({ tasks, onToggle, onDelete, onPin }: ProfessionalVie
 											"flex items-center gap-1.5 px-2 py-1 rounded-md",
 											new Date(task.due_date) < new Date()
 												? "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"
-												: "bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400"
+												: "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
 										)}>
 											<Clock className="h-3.5 w-3.5" />
 											<span>{new Date(task.due_date).toLocaleDateString()}</span>

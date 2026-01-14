@@ -10,7 +10,7 @@ interface StatCardProps {
 	value: number | React.ReactNode;
 	icon: LucideIcon;
 	trend?: number;
-	color?: "blue" | "green" | "yellow" | "red" | "purple" | "gray";
+	color?: "blue" | "green" | "orange" | "red" | "purple" | "gray";
 	delay?: number;
 }
 
@@ -25,10 +25,10 @@ const colorStyles: Record<string, { bg: string; icon: string; border: string }> 
 		icon: "text-emerald-600 dark:text-emerald-400",
 		border: "border-emerald-200 dark:border-emerald-900/50",
 	},
-	yellow: {
-		bg: "bg-amber-50 dark:bg-amber-950/30",
-		icon: "text-amber-600 dark:text-amber-400",
-		border: "border-amber-200 dark:border-amber-900/50",
+	orange: {
+		bg: "bg-orange-50 dark:bg-orange-950/30",
+		icon: "text-orange-600 dark:text-orange-400",
+		border: "border-orange-200 dark:border-orange-900/50",
 	},
 	red: {
 		bg: "bg-red-50 dark:bg-red-950/30",
