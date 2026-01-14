@@ -46,6 +46,7 @@ import { CalendarView } from "@/components/dashboard/calendar-view";
 import { BoardView } from "@/components/dashboard/board-view";
 import { AnalyticsDashboard } from "@/components/dashboard/analytics-dashboard";
 import { TaskTemplates } from "@/components/dashboard/task-templates";
+import { ProfessionalDashboard } from "@/components/dashboard/professional-dashboard";
 
 // Hooks & Utils
 import { useToast } from "@/hooks/use-toast";
@@ -101,6 +102,7 @@ interface Tag {
 export default function DashboardPage() {
   // Auth & Data State
   const [userId, setUserId] = React.useState<string | null>(null);
+  const [userName, setUserName] = React.useState<string>("User");
   const [tasks, setTasks] = React.useState<Task[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
@@ -208,6 +210,12 @@ export default function DashboardPage() {
         order: filters.sortDirection as "asc" | "desc",
       });
       setTasks(fetchedTasks);
+
+      // Try to get user name from the first task's user data or set default
+      if (fetchedTasks.length > 0) {
+        // We'll use the user's name if available, otherwise use "User"
+        setUserName("User");
+      }
     } catch (error) {
       console.error("Failed to load tasks:", error);
       toast({
@@ -220,11 +228,24 @@ export default function DashboardPage() {
     }
   }, [userId, filters, toast]);
 
+  // Load user data
+  const loadUserData = React.useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      // For now, use a default name. In production, you'd fetch from API
+      setUserName("User");
+    } catch (error) {
+      console.error("Failed to load user data:", error);
+    }
+  }, [userId]);
+
   React.useEffect(() => {
     if (userId) {
       loadTasks();
+      loadUserData();
     }
-  }, [userId, loadTasks]);
+  }, [userId]);
 
   // Filter tasks
   const filteredTasks = React.useMemo(() => {
@@ -415,50 +436,18 @@ export default function DashboardPage() {
     switch (currentView) {
       case "dashboard":
       case "tasks":
-        // Show dashboard overview with task list
+        // Show professional dashboard overview
         return (
-          <div className="space-y-8">
-            {/* Stats Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-            >
-              <StatCard
-                label="Total Tasks"
-                value={isLoading ? 0 : taskCounts.total}
-                icon={Layers}
-                color="blue"
-                delay={0}
-              />
-              <StatCard
-                label="Completed"
-                value={isLoading ? 0 : taskCounts.completed}
-                icon={CheckSquare}
-                color="green"
-                trend={taskCounts.total > 0 ? Math.round((taskCounts.completed / taskCounts.total) * 100) : 0}
-                delay={0.1}
-              />
-              <StatCard
-                label="Pending"
-                value={isLoading ? 0 : taskCounts.pending}
-                icon={Clock}
-                color="yellow"
-                delay={0.2}
-              />
-              <StatCard
-                label="High Priority"
-                value={isLoading ? 0 : taskCounts.highPriority}
-                icon={AlertCircle}
-                color="red"
-                delay={0.3}
-              />
-            </motion.div>
-
-            {/* Task View */}
-            {renderTaskView(componentTasks)}
-          </div>
+          <ProfessionalDashboard
+            tasks={tasks}
+            userName={userName}
+            onCreateTask={handleNewTask}
+            onViewAllTasks={() => {
+              // Switch to list view
+              setTaskViewMode("list");
+            }}
+            onTaskClick={handleEdit}
+          />
         );
 
       case "analytics":
