@@ -19,6 +19,7 @@ import {
   Search,
   Bell,
   Target,
+  LogOut,
 } from "lucide-react";
 
 // Layout - Premium Sidebar
@@ -26,7 +27,7 @@ import { PremiumSidebar, type Project, type SidebarTag } from "@/components/layo
 
 // Tasks
 import { TaskList, type Task as ComponentTask } from "@/components/tasks";
-import { TaskForm } from "@/components/tasks/task-form";
+import { TaskForm, TaskModal } from "@/components/tasks/task-form";
 import { type Task } from "@/types";
 
 // Search & Filters
@@ -52,7 +53,8 @@ import { cn } from "@/lib/utils";
 
 // API & Auth
 import { apiClient } from "@/lib/api";
-import { getCurrentUserId } from "@/lib/auth";
+import { getCurrentUserId, signOut } from "@/lib/auth";
+import { useRouter } from "next/navigation";
 
 type ViewMode = "dashboard" | "tasks" | "list" | "board" | "luxury" | "calendar" | "analytics" | "templates" | "settings";
 
@@ -131,6 +133,7 @@ export default function DashboardPage() {
   const headerRef = React.useRef<HTMLDivElement>(null);
 
   const { toast } = useToast();
+  const router = useRouter();
 
   // Mock projects and tags for sidebar
   const projects: Project[] = React.useMemo(() => [
@@ -676,6 +679,20 @@ export default function DashboardPage() {
     // Could pre-populate with category tag
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      router.push("/signin");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast({
+        title: "Error",
+        description: "Failed to logout. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Premium Sidebar */}
@@ -748,6 +765,17 @@ export default function DashboardPage() {
                   </span>
                 </Button>
 
+                {/* Logout Button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleLogout}
+                  className="rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 h-9 w-9 sm:h-10 sm:w-10"
+                  title="Logout"
+                >
+                  <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+                </Button>
+
                 {/* New Task Button - only show on task views */}
                 {(currentView === "dashboard" || currentView === "tasks" || !currentView || currentView === "list" || currentView === "luxury" || currentView === "board" || currentView === "calendar") && (
                   <Button
@@ -774,7 +802,7 @@ export default function DashboardPage() {
       {/* Task Form Modal */}
       <AnimatePresence>
         {showTaskForm && (
-          <TaskForm
+          <TaskModal
             mode={editingTask ? "edit" : "create"}
             initialData={editingTask ? toComponentTask(editingTask) : undefined}
             availableTags={availableTags.map(tag => ({ id: tag.id, name: tag.name, color: tag.color }))}
@@ -784,6 +812,10 @@ export default function DashboardPage() {
               setEditingTask(undefined);
             }}
             isOpen={showTaskForm}
+            onClose={() => {
+              setShowTaskForm(false);
+              setEditingTask(undefined);
+            }}
           />
         )}
       </AnimatePresence>
