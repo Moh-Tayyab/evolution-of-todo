@@ -372,6 +372,20 @@ export default function DashboardPage() {
     setShowTaskForm(true);
   };
 
+  // Handler for Task type (from @/types) - converts to ComponentTask for handleEdit
+  const handleTaskFromTypes = (task: Task) => {
+    handleEdit(toComponentTask(task));
+  };
+
+  // Wrapper handlers for sidebar callbacks
+  const handleSidebarNavigate = (view: string) => {
+    setCurrentView(view as ViewMode);
+  };
+
+  const handleSidebarFilterChange = (filter: string) => {
+    setCurrentFilter(filter);
+  };
+
   const handleNewTask = () => {
     setEditingTask(undefined);
     setShowTaskForm(true);
@@ -446,7 +460,7 @@ export default function DashboardPage() {
               // Switch to list view
               setTaskViewMode("list");
             }}
-            onTaskClick={handleEdit}
+            onTaskClick={handleTaskFromTypes}
           />
         );
 
@@ -683,7 +697,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
       {/* Premium Sidebar */}
       <PremiumSidebar
         projects={projects}
@@ -691,8 +705,8 @@ export default function DashboardPage() {
         currentView={currentView}
         currentFilter={currentFilter}
         currentProject={currentProject}
-        onNavigate={setCurrentView}
-        onFilterChange={setCurrentFilter}
+        onNavigate={handleSidebarNavigate}
+        onFilterChange={handleSidebarFilterChange}
         onProjectChange={setCurrentProject}
       />
 
@@ -703,7 +717,7 @@ export default function DashboardPage() {
           ref={headerRef}
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="sticky top-0 z-40 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800"
+          className="sticky top-0 z-40 backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border-b border-slate-200/50 dark:border-slate-800/50"
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
             <div className="flex items-center justify-between gap-2">

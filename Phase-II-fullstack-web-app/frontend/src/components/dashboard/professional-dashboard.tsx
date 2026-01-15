@@ -3,7 +3,6 @@
 import * as React from "react";
 import { motion } from "framer-motion";
 import {
-  Calendar,
   Clock,
   TrendingUp,
   Target,
@@ -57,18 +56,13 @@ export function ProfessionalDashboard({
     return taskDate >= today && t.completed;
   });
 
-  const overdueTasks = tasks.filter(t => {
-    if (!t.due_date || t.completed) return false;
-    const dueDate = new Date(t.due_date);
-    return dueDate < today;
-  });
+  const highPriorityTasks = tasks.filter(t => t.priority === "high" && !t.completed);
 
-  const thisWeekTasks = tasks.filter(t => {
-    if (!t.due_date) return false;
-    const dueDate = new Date(t.due_date);
+  const recentlyCreated = tasks.filter(t => {
+    const taskDate = new Date(t.created_at);
     const weekFromNow = new Date(today);
-    weekFromNow.setDate(weekFromNow.getDate() + 7);
-    return dueDate >= today && dueDate <= weekFromNow;
+    weekFromNow.setDate(weekFromNow.getDate() - 7);
+    return taskDate >= weekFromNow;
   });
 
   // Priority breakdown
@@ -113,12 +107,12 @@ export function ProfessionalDashboard({
       trend: null,
     },
     {
-      title: "Overdue",
-      value: overdueTasks.length,
+      title: "High Priority",
+      value: highPriorityTasks.length,
       icon: AlertCircle,
       color: "text-red-600 dark:text-red-400",
       bgColor: "bg-red-50 dark:bg-red-950/30",
-      trend: overdueTasks.length > 0 ? "urgent" : null,
+      trend: highPriorityTasks.length > 0 ? "urgent" : null,
     },
     {
       title: "Completion Rate",
@@ -318,7 +312,7 @@ export function ProfessionalDashboard({
 
         {/* Sidebar Stats */}
         <div className="space-y-6">
-          {/* Upcoming Deadlines */}
+          {/* Recent Tasks */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -327,9 +321,9 @@ export function ProfessionalDashboard({
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-primary" />
+                <Clock className="w-4 h-4 text-primary" />
                 <h3 className="text-sm font-semibold text-foreground">
-                  Upcoming
+                  Recent
                 </h3>
               </div>
               <Badge variant="secondary" className="text-[10px]">
@@ -337,42 +331,37 @@ export function ProfessionalDashboard({
               </Badge>
             </div>
             <div className="divide-y divide-border">
-              {thisWeekTasks.length === 0 ? (
+              {recentlyCreated.length === 0 ? (
                 <div className="px-5 py-8 text-center text-sm text-muted-foreground">
-                  No upcoming deadlines
+                  No recent tasks
                 </div>
               ) : (
-                thisWeekTasks.slice(0, 4).map((task, index) => {
-                  const daysUntil = Math.ceil(
-                    (new Date(task.due_date!).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-                  );
-                  return (
-                    <div
-                      key={task.id}
-                      onClick={() => onTaskClick?.(task)}
-                      className="px-5 py-3 hover:bg-muted/50 cursor-pointer transition-colors"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="text-center">
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(task.due_date!).toLocaleDateString("en-US", { weekday: "short" })}
-                          </div>
-                          <div className="text-sm font-semibold text-foreground">
-                            {new Date(task.due_date!).getDate()}
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">
-                            {task.title}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {daysUntil === 0 ? "Today" : daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`}
-                          </p>
-                        </div>
+                recentlyCreated.slice(0, 4).map((task) => (
+                  <div
+                    key={task.id}
+                    onClick={() => onTaskClick?.(task)}
+                    className="px-5 py-3 hover:bg-muted/50 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {task.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(task.created_at).toLocaleDateString()}
+                        </p>
                       </div>
+                      {!task.completed && (
+                        <div className={cn(
+                          "w-2 h-2 rounded-full shrink-0",
+                          task.priority === "high" && "bg-red-500",
+                          task.priority === "medium" && "bg-blue-500",
+                          task.priority === "low" && "bg-emerald-500"
+                        )} />
+                      )}
                     </div>
-                  );
-                })
+                  </div>
+                ))
               )}
             </div>
           </motion.div>
