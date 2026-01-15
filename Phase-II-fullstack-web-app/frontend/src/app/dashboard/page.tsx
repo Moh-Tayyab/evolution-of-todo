@@ -433,8 +433,8 @@ export default function DashboardPage() {
   const renderContent = () => {
     if (isLoading && currentView !== "analytics" && currentView !== "templates") {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
             <Skeleton
               key={i}
               className="h-48 rounded-2xl bg-white/50 dark:bg-white/5"
@@ -719,7 +719,7 @@ export default function DashboardPage() {
           animate={{ opacity: 1, y: 0 }}
           className="sticky top-0 z-40 backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border-b border-slate-200/50 dark:border-slate-800/50"
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 py-3 sm:py-4">
             <div className="flex items-center justify-between gap-2">
               {/* Page Title */}
               <div>
@@ -795,8 +795,8 @@ export default function DashboardPage() {
         </motion.header>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 xl:p-10 2xl:p-12 overflow-auto">
+          <div className="w-full">
             {renderContent()}
           </div>
         </main>

@@ -80,7 +80,7 @@ export function LuxuryView({ tasks, onToggle, onDelete, onPin }: LuxuryViewProps
 	}
 
 	return (
-		<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+		<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
 			{tasks.map((task, index) => {
 				const priority = task.priority as keyof typeof priorityStyles;
 				const styles = priorityStyles[priority] || priorityStyles.medium;
