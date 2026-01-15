@@ -61,7 +61,7 @@ const config: Config = {
         // Priority colors - refined professional tones
         priority: {
           high: '#dc2626',   /* red-600 */
-          medium: '#d97706', /* amber-600 */
+          medium: '#2563eb', /* blue-600 */
           low: '#059669',    /* emerald-600 */
         },
         // Dark theme colors - slate based
