@@ -61,7 +61,7 @@ const templates: TaskTemplate[] = [
     id: "daily-routine",
     name: "Daily Routine",
     icon: Coffee,
-    color: "#f59e0b",
+    color: "#3b82f6",
     category: "Personal",
     description: "Start your day with these productive habits",
     tasks: [
@@ -161,7 +161,7 @@ const quickActions = [
   { id: "4", name: "Health", icon: Dumbbell, color: "#22c55e" },
   { id: "5", name: "Shopping", icon: ShoppingBag, color: "#ec4899" },
   { id: "6", name: "Code", icon: Code, color: "#3b82f6" },
-  { id: "7", name: "Music", icon: Music, color: "#f59e0b" },
+  { id: "7", name: "Music", icon: Music, color: "#8b5cf6" },
   { id: "8", name: "Travel", icon: Plane, color: "#06b6d4" },
 ];
 

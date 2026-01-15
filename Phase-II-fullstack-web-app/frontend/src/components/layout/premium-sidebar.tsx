@@ -89,7 +89,7 @@ export function PremiumSidebar({
     { id: "1", name: "Urgent", color: "#ef4444", count: 2 },
     { id: "2", name: "Design", color: "#8b5cf6", count: 5 },
     { id: "3", name: "Development", color: "#3b82f6", count: 7 },
-    { id: "4", name: "Meeting", color: "#f59e0b", count: 3 },
+    { id: "4", name: "Meeting", color: "#06b6d4", count: 3 },
     { id: "5", name: "Research", color: "#10b981", count: 4 },
   ],
   currentView = "dashboard",
