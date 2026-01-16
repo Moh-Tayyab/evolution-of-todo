@@ -70,11 +70,11 @@ export function LuxuryView({ tasks, onToggle, onDelete, onPin }: LuxuryViewProps
 				animate={{ opacity: 1 }}
 				className="flex flex-col items-center justify-center py-20"
 			>
-				<div className="p-4 rounded-xl bg-muted/50 mb-4">
-					<Plus className="w-10 h-10 text-muted-foreground" />
+				<div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-800/50 mb-4">
+					<Plus className="w-10 h-10 text-slate-400 dark:text-slate-500" />
 				</div>
-				<h3 className="text-lg font-medium text-foreground mb-1">No tasks yet</h3>
-				<p className="text-sm text-muted-foreground">Create your first task to get started</p>
+				<h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-1">No tasks yet</h3>
+				<p className="text-sm text-slate-600 dark:text-slate-400">Create your first task to get started</p>
 			</motion.div>
 		);
 	}
@@ -96,7 +96,7 @@ export function LuxuryView({ tasks, onToggle, onDelete, onPin }: LuxuryViewProps
 						}}
 						className="group"
 					>
-						<div className="h-full flex flex-col rounded-lg border border-border bg-card/50 backdrop-blur-sm p-4 hover:shadow-sm transition-all duration-200">
+						<div className="h-full flex flex-col rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 backdrop-blur-sm p-4 hover:shadow-sm transition-all duration-200">
 							{/* Header */}
 							<div className="flex items-center justify-between mb-3">
 								<Badge className={cn("text-xs font-medium", styles.badge)} variant="outline">
@@ -108,10 +108,10 @@ export function LuxuryView({ tasks, onToggle, onDelete, onPin }: LuxuryViewProps
 										<Button
 											variant="ghost"
 											size="icon"
-											className="h-7 w-7 hover:bg-muted"
+											className="h-7 w-7 hover:bg-slate-100 dark:hover:bg-slate-700/50"
 											onClick={() => onPin(task.id)}
 										>
-											<Pin className={cn("h-3.5 w-3.5", task.is_pinned && "text-primary fill-primary")} />
+											<Pin className={cn("h-3.5 w-3.5", task.is_pinned && "text-indigo-600 dark:text-indigo-400 fill-indigo-600 dark:fill-indigo-400")} />
 										</Button>
 									)}
 									<Button
@@ -128,7 +128,7 @@ export function LuxuryView({ tasks, onToggle, onDelete, onPin }: LuxuryViewProps
 							{/* Pinned indicator */}
 							{task.is_pinned && (
 								<div className="absolute top-2 right-2">
-									<Pin className="w-3.5 h-3.5 text-primary fill-primary" />
+									<Pin className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 fill-indigo-600 dark:fill-indigo-400" />
 								</div>
 							)}
 
@@ -137,15 +137,15 @@ export function LuxuryView({ tasks, onToggle, onDelete, onPin }: LuxuryViewProps
 								<h3
 									className={cn(
 										"text-sm font-medium mb-2 line-clamp-2 transition-colors",
-										"group-hover:text-primary",
-										task.completed && "line-through text-muted-foreground"
+										"group-hover:text-indigo-600 dark:group-hover:text-indigo-400",
+										task.completed && "line-through text-slate-400 dark:text-slate-500"
 									)}
 								>
 									{task.title}
 								</h3>
 
 								{task.description && (
-									<p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+									<p className="text-xs text-slate-600 dark:text-slate-400 mb-3 line-clamp-2">
 										{task.description}
 									</p>
 								)}
@@ -156,13 +156,13 @@ export function LuxuryView({ tasks, onToggle, onDelete, onPin }: LuxuryViewProps
 										{task.tags.slice(0, 3).map((tag: Tag) => (
 											<span
 												key={tag.id}
-												className="px-2 py-0.5 rounded text-[10px] font-medium bg-muted border border-border"
+												className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600"
 											>
 												{tag.name}
 											</span>
 										))}
 										{task.tags.length > 3 && (
-											<span className="text-[10px] text-muted-foreground">
+											<span className="text-[10px] text-slate-500 dark:text-slate-500">
 												+{task.tags.length - 3} more
 											</span>
 										)}
@@ -171,9 +171,9 @@ export function LuxuryView({ tasks, onToggle, onDelete, onPin }: LuxuryViewProps
 							</div>
 
 							{/* Footer */}
-							<div className="mt-auto pt-3 border-t border-border/50">
+							<div className="mt-auto pt-3 border-t border-slate-200 dark:border-slate-700/50">
 								<div className="flex items-center justify-between">
-									<div className="flex items-center gap-3 text-xs text-muted-foreground">
+									<div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
 										<CalendarIcon className="h-3.5 w-3.5" />
 										<span>{new Date(task.created_at).toLocaleDateString()}</span>
 									</div>
@@ -199,7 +199,7 @@ export function LuxuryView({ tasks, onToggle, onDelete, onPin }: LuxuryViewProps
 								size="sm"
 								className={cn(
 									"w-full mt-3 font-medium text-xs transition-all duration-200",
-									task.completed && "hover:bg-muted"
+									task.completed && "hover:bg-slate-100 dark:hover:bg-slate-700/50"
 								)}
 							>
 								{task.completed ? (

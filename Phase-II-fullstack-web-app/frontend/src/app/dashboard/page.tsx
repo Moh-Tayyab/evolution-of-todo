@@ -54,7 +54,7 @@ import { cn } from "@/lib/utils";
 
 // API & Auth
 import { apiClient } from "@/lib/api";
-import { getCurrentUserId, signOut } from "@/lib/auth";
+import { getCurrentUserId, signOut, getToken } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 
 type ViewMode = "dashboard" | "tasks" | "list" | "board" | "luxury" | "calendar" | "analytics" | "templates" | "settings";
@@ -179,22 +179,36 @@ export default function DashboardPage() {
     }
   }, [isLoading]);
 
-  // Load user ID on mount
+  // Load user ID on mount and verify JWT token exists
   React.useEffect(() => {
     const loadUserId = async () => {
       const currentUserId = await getCurrentUserId();
-      if (currentUserId) {
+      const token = await getToken();
+
+      if (currentUserId && token) {
+        // Both user ID and JWT token exist
         setUserId(currentUserId);
+      } else if (currentUserId && !token) {
+        // User ID exists but JWT token is missing (Better Auth session without FastAPI JWT)
+        toast({
+          title: "Session Incomplete",
+          description: "Please sign in again to refresh your session.",
+          variant: "destructive",
+        });
+        // Redirect to sign-in to get a fresh JWT
+        router.push("/signin");
       } else {
+        // No authentication at all
         toast({
           title: "Authentication Error",
           description: "Please sign in to view your tasks.",
           variant: "destructive",
         });
+        router.push("/signin");
       }
     };
     loadUserId();
-  }, [toast]);
+  }, [toast, router]);
 
   // Load tasks
   const loadTasks = React.useCallback(async () => {
@@ -392,7 +406,26 @@ export default function DashboardPage() {
   };
 
   const handleTaskSubmit = async (data: Record<string, unknown>) => {
-    if (!userId) return;
+    if (!userId) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be signed in to create tasks.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Verify JWT token exists before attempting API call
+    const token = await getToken();
+    if (!token) {
+      toast({
+        title: "Session Expired",
+        description: "Your session has expired. Please sign in again.",
+        variant: "destructive",
+      });
+      router.push("/signin");
+      return;
+    }
 
     try {
       if (editingTask) {
@@ -421,9 +454,10 @@ export default function DashboardPage() {
       setEditingTask(undefined);
     } catch (error) {
       console.error("Failed to save task:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast({
         title: "Error",
-        description: "Failed to save task. Please try again.",
+        description: `Failed to save task: ${errorMessage}`,
         variant: "destructive",
       });
     }

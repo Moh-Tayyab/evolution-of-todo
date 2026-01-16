@@ -66,13 +66,13 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
 		<motion.div
 			initial={{ opacity: 0, y: 10 }}
 			animate={{ opacity: 1, y: 0 }}
-			className="rounded-xl bg-card border border-border shadow-sm p-6"
+			className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm p-6"
 		>
 			{/* Header */}
 			<div className="flex items-center justify-between mb-6">
 				<div className="flex items-center gap-3">
-					<div className="p-2.5 rounded-lg bg-muted">
-						<CalendarIcon className="w-5 h-5 text-foreground" />
+					<div className="p-2.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/30">
+						<CalendarIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
 					</div>
 					<div>
 						<h2 className="text-xl font-semibold text-foreground">{monthName}</h2>
@@ -115,7 +115,7 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
 			{/* Calendar grid */}
 			<div className="grid grid-cols-7 gap-2">
 				{blanks.map((_, i) => (
-					<div key={`blank-${i}`} className="aspect-square rounded-lg bg-muted/30" />
+					<div key={`blank-${i}`} className="aspect-square rounded-lg bg-slate-100 dark:bg-slate-800/50" />
 				))}
 
 				<AnimatePresence mode="popLayout">
@@ -131,14 +131,14 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
 								transition={{ delay: day * 0.01, duration: 0.2 }}
 								className={cn(
 									"aspect-square p-2 rounded-lg cursor-pointer transition-colors duration-150 relative",
-									"border border-transparent hover:border-primary-500/30",
-									"bg-card hover:bg-muted/50",
-									isToday(day) && "ring-2 ring-primary-500/50 bg-primary-500/5"
+									"border border-transparent hover:border-indigo-500/30",
+									"bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50",
+									isToday(day) && "ring-2 ring-indigo-500 bg-indigo-50 dark:bg-indigo-950/30"
 								)}
 							>
 								<div className={cn(
 									"text-xs font-medium mb-1",
-									isToday(day) ? "text-primary-600 dark:text-primary-400" : "text-foreground"
+									isToday(day) ? "text-indigo-600 dark:text-indigo-400" : "text-slate-900 dark:text-slate-100"
 								)}>
 									{day}
 								</div>
@@ -181,7 +181,7 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
 			</div>
 
 			{/* Legend */}
-			<div className="flex items-center justify-center gap-6 mt-6 pt-4 border-t border-border">
+			<div className="flex items-center justify-center gap-6 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
 				<div className="flex items-center gap-2 text-xs text-muted-foreground">
 					<div className="w-2.5 h-2.5 rounded-full bg-red-500 dark:bg-red-400" />
 					<span>High Priority</span>

@@ -68,7 +68,7 @@ export function StatCard({
 			<div
 				className={cn(
 					"rounded-xl p-5",
-					"bg-card border border-border",
+					"bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700",
 					"shadow-sm hover:shadow-md",
 					"transition-all duration-200"
 				)}
@@ -103,11 +103,11 @@ export function StatCard({
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						transition={{ delay: delay + 0.1 }}
-						className="text-2xl font-semibold text-foreground"
+						className="text-2xl font-semibold text-slate-900 dark:text-slate-100"
 					>
 						{value}
 					</motion.div>
-					<p className="text-sm text-muted-foreground mt-0.5">{label}</p>
+					<p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">{label}</p>
 				</div>
 			</div>
 		</motion.div>

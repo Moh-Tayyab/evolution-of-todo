@@ -86,11 +86,11 @@ export function BoardView({ tasks, onToggle, onEdit }: BoardViewProps) {
 				animate={{ opacity: 1 }}
 				className="flex flex-col items-center justify-center py-20"
 			>
-				<div className="p-6 rounded-full bg-muted mb-6">
-					<LayoutGrid className="w-12 h-12 text-muted-foreground" />
+				<div className="p-6 rounded-full bg-slate-100 dark:bg-slate-800 mb-6">
+					<LayoutGrid className="w-12 h-12 text-slate-400 dark:text-slate-500" />
 				</div>
-				<h3 className="text-xl font-semibold text-foreground mb-2">No tasks yet</h3>
-				<p className="text-muted-foreground">Create your first task to use the board</p>
+				<h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">No tasks yet</h3>
+				<p className="text-slate-600 dark:text-slate-400">Create your first task to use the board</p>
 			</motion.div>
 		);
 	}
@@ -107,14 +107,14 @@ export function BoardView({ tasks, onToggle, onEdit }: BoardViewProps) {
 						className="flex-1 min-w-[320px] max-w-[400px]"
 					>
 						{/* Column Header */}
-						<div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
+						<div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200 dark:border-slate-700">
 							<div className="flex items-center gap-3">
-								<div className={cn("p-2 rounded-lg bg-muted", column.color)}>
+								<div className={cn("p-2 rounded-lg bg-slate-100 dark:bg-slate-800", column.color)}>
 									{column.icon}
 								</div>
 								<div>
-									<h3 className="font-semibold text-base text-foreground">{column.title}</h3>
-									<p className="text-xs text-muted-foreground">{column.tasks.length} tasks</p>
+									<h3 className="font-semibold text-base text-slate-900 dark:text-slate-100">{column.title}</h3>
+									<p className="text-xs text-slate-600 dark:text-slate-400">{column.tasks.length} tasks</p>
 								</div>
 							</div>
 
@@ -134,9 +134,9 @@ export function BoardView({ tasks, onToggle, onEdit }: BoardViewProps) {
 									ref={provided.innerRef}
 									className={cn(
 										"min-h-[400px] rounded-xl p-3 transition-colors duration-200",
-										"bg-card border border-border",
+										"bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700",
 										snapshot.isDraggingOver
-											? "border-primary-500/50 bg-primary-500/5"
+											? "border-indigo-500/50 bg-indigo-500/5"
 											: ""
 									)}
 								>
@@ -155,7 +155,7 @@ export function BoardView({ tasks, onToggle, onEdit }: BoardViewProps) {
 															onClick={() => onEdit?.(task)}
 															className={cn(
 																"group relative rounded-lg p-4 cursor-grab active:cursor-grabbing",
-																"bg-card border border-border",
+																"bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700",
 																"shadow-sm hover:shadow-md",
 																"transition-all duration-200",
 																snapshot.isDragging && "shadow-lg scale-[1.02]"
@@ -166,7 +166,7 @@ export function BoardView({ tasks, onToggle, onEdit }: BoardViewProps) {
 																{...provided.dragHandleProps}
 																className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
 															>
-																<GripVertical className="w-4 h-4 text-muted-foreground" />
+																<GripVertical className="w-4 h-4 text-slate-400 dark:text-slate-500" />
 															</div>
 
 															{/* Priority Indicator */}
@@ -180,7 +180,7 @@ export function BoardView({ tasks, onToggle, onEdit }: BoardViewProps) {
 																<div className="flex items-start justify-between gap-2 mb-2">
 																	<span className={cn(
 																		"font-medium text-sm line-clamp-2",
-																		task.completed && "line-through text-muted-foreground"
+																		task.completed && "line-through text-slate-400 dark:text-slate-500"
 																	)}>
 																		{task.title}
 																	</span>
@@ -193,12 +193,12 @@ export function BoardView({ tasks, onToggle, onEdit }: BoardViewProps) {
 																</div>
 
 																{task.description && (
-																	<p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+																	<p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 mb-3">
 																		{task.description}
 																	</p>
 																)}
 
-																<div className="flex items-center gap-2 text-xs text-muted-foreground">
+																<div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
 																	<Clock className="w-3 h-3" />
 																	<span>{new Date(task.created_at).toLocaleDateString()}</span>
 																</div>
@@ -209,7 +209,7 @@ export function BoardView({ tasks, onToggle, onEdit }: BoardViewProps) {
 																		{task.tags.map((tag: Tag) => (
 																			<span
 																				key={tag.id}
-																				className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted border border-border"
+																				className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600"
 																			>
 																				{tag.name}
 																			</span>
@@ -227,7 +227,7 @@ export function BoardView({ tasks, onToggle, onEdit }: BoardViewProps) {
 
 									{/* Empty state */}
 									{column.tasks.length === 0 && (
-										<div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+										<div className="flex flex-col items-center justify-center h-32 text-slate-400 dark:text-slate-500">
 											<p className="text-sm">Drop tasks here</p>
 										</div>
 									)}

@@ -168,8 +168,8 @@ export function ProfessionalDashboard({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
             className={cn(
-              "rounded-xl p-5 border border-border bg-card",
-              "hover:shadow-md transition-shadow duration-200"
+              "rounded-xl p-5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm",
+              "hover:shadow-lg transition-all duration-200"
             )}
           >
             <div className="flex items-start justify-between">
@@ -206,9 +206,9 @@ export function ProfessionalDashboard({
           transition={{ delay: 0.2 }}
           className="lg:col-span-2 xl:col-span-3"
         >
-          <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
               <div className="flex items-center gap-2">
                 <Target className="w-5 h-5 text-primary" />
                 <h2 className="text-lg font-semibold text-foreground">
@@ -221,7 +221,7 @@ export function ProfessionalDashboard({
             </div>
 
             {/* Task List */}
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-slate-200 dark:divide-slate-700">
               {todayTasks.length === 0 ? (
                 <div className="px-6 py-12 text-center">
                   <CheckCircle2 className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
@@ -243,7 +243,7 @@ export function ProfessionalDashboard({
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 + index * 0.05 }}
                     onClick={() => onTaskClick?.(task)}
-                    className="px-6 py-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                    className="px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
                   >
                     <div className="flex items-start gap-3">
                       <div
@@ -295,7 +295,7 @@ export function ProfessionalDashboard({
             </div>
 
             {todayTasks.length > 5 && (
-              <div className="px-6 py-3 border-t border-border bg-muted/30">
+              <div className="px-6 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -317,9 +317,9 @@ export function ProfessionalDashboard({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="rounded-xl border border-border bg-card overflow-hidden"
+            className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden"
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-primary" />
                 <h3 className="text-sm font-semibold text-foreground">
@@ -330,7 +330,7 @@ export function ProfessionalDashboard({
                 7 days
               </Badge>
             </div>
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-slate-200 dark:divide-slate-700">
               {recentlyCreated.length === 0 ? (
                 <div className="px-5 py-8 text-center text-sm text-muted-foreground">
                   No recent tasks
@@ -340,7 +340,7 @@ export function ProfessionalDashboard({
                   <div
                     key={task.id}
                     onClick={() => onTaskClick?.(task)}
-                    className="px-5 py-3 hover:bg-muted/50 cursor-pointer transition-colors"
+                    className="px-5 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex-1 min-w-0">
@@ -371,9 +371,9 @@ export function ProfessionalDashboard({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35 }}
-            className="rounded-xl border border-border bg-card overflow-hidden"
+            className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden"
           >
-            <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
+            <div className="flex items-center gap-2 px-5 py-4 border-b border-slate-200 dark:border-slate-700">
               <BarChart3 className="w-4 h-4 text-primary" />
               <h3 className="text-sm font-semibold text-foreground">
                 By Category
@@ -414,7 +414,7 @@ export function ProfessionalDashboard({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="rounded-xl border border-border bg-card p-5"
+            className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm p-5"
           >
             <h3 className="text-sm font-semibold text-foreground mb-4">
               Priority Breakdown
@@ -453,7 +453,7 @@ export function ProfessionalDashboard({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.45 }}
-        className="rounded-xl border border-border bg-card p-6"
+        className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm p-6"
       >
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-foreground">Weekly Progress</h3>
@@ -482,8 +482,8 @@ export function ProfessionalDashboard({
                 className={cn(
                   "text-center p-3 rounded-lg border",
                   isToday
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-muted/30 border-border hover:bg-muted/50 transition-colors"
+                    ? "bg-indigo-500 text-white border-indigo-500"
+                    : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                 )}
               >
                 <div className="text-xs mb-1 opacity-80">{dayName}</div>
