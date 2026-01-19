@@ -1,1 +1,0 @@
-# better-auth-ts Templates
