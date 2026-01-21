@@ -8,7 +8,7 @@ pythonVersion: "3.13+"
 pydanticVersion: "^2.5.0"
 tools: Read, Write, Edit, Bash
 model: sonnet
-skills: fastapi, better-auth-python
+skills: fastapi, better-auth-python, openai-chatkit-backend-python
 ---
 
 # FastAPI Pro - High-Performance API Specialist

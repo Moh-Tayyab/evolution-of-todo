@@ -1,4 +1,5 @@
 // @spec: specs/002-fullstack-web-app/data-model.md
+// @spec: specs/003-ai-chatbot/spec.md
 // TypeScript types for Todo application
 
 export type Priority = "high" | "medium" | "low";
@@ -26,7 +27,7 @@ export interface TagUpdate {
 }
 
 export interface Task {
-  id: string; // UUID
+  id: number; // Integer ID
   user_id: string; // UUID
   title: string; // max 200 chars
   description: string | null; // max 2000 chars
@@ -70,3 +71,23 @@ export interface TaskListParams {
   sort?: "created_at" | "priority" | "title";
   order?: "asc" | "desc";
 }
+
+// Re-export chat types for convenience
+export type {
+  ChatMessage,
+  ChatResponse,
+  ChatRequest,
+  Conversation,
+  ConversationsListResponse,
+  ChatError,
+  ChatState,
+  ChatActions,
+  MessageListProps,
+  MessageBubbleProps,
+  TypingIndicatorProps,
+  ChatInputProps,
+  ConversationSidebarProps,
+  ChatWidgetProps,
+  SendMessageState,
+  RateLimitInfo
+} from "./chat";

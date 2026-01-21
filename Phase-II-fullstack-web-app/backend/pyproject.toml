@@ -1,12 +1,14 @@
 # @spec: specs/002-fullstack-web-app/plan.md
-# Backend project configuration for FastAPI Todo application
+# @spec: specs/003-ai-chatbot/research.md (Technology Stack Summary)
+# Backend project configuration for FastAPI Todo application with AI chatbot
 
 [project]
 name = "todo-backend"
-version = "0.1.0"
-description = "FastAPI backend for Todo application"
+version = "0.2.0"
+description = "FastAPI backend for Todo application with AI chatbot"
 requires-python = ">=3.13"
 dependencies = [
+    # Phase II dependencies
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
     "sqlmodel>=0.0.22",
@@ -23,6 +25,15 @@ dependencies = [
     "pytest-cov>=7.0.0",
     "pyjwt>=2.10.1",
     "bcrypt>=5.0.0",
+    # Database migrations
+    "alembic>=1.14.0",
+    # Phase III dependencies (AI chatbot)
+    # OpenAI Agents SDK (installed from official GitHub repo)
+    "openai-agents>=0.1.0",
+    "openai>=1.60.0",
+    "slowapi>=0.1.9",
+    "aiosqlite>=0.20.0",  # For async SQLite support
+    "asyncpg>=0.31.0",
 ]
 
 [build-system]

@@ -207,11 +207,11 @@ export function TaskTemplates({
         className="flex items-center justify-between"
       >
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-monza-900 dark:text-white flex items-center gap-2">
             <Sparkles className="w-6 h-6 text-blue-500" />
             Task Templates
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-monza-500 dark:text-monza-400">
             Pre-made templates to boost your productivity
           </p>
         </div>
@@ -259,7 +259,7 @@ export function TaskTemplates({
               "px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all",
               filter === category
                 ? "bg-indigo-500 text-white shadow-md"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                : "bg-slate-100 dark:bg-slate-800 text-monza-600 dark:text-monza-400 hover:bg-slate-200 dark:hover:bg-slate-700"
             )}
           >
             {category.charAt(0).toUpperCase() + category.slice(1)}
@@ -288,21 +288,21 @@ export function TaskTemplates({
                   >
                     <Icon className="w-5 h-5" style={{ color: template.color }} />
                   </div>
-                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                  <span className="text-xs font-medium text-monza-500 dark:text-monza-400 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
                     {template.category}
                   </span>
                 </div>
 
                 {/* Content */}
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                <h3 className="text-lg font-semibold text-monza-900 dark:text-white mb-2">
                   {template.name}
                 </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">
+                <p className="text-sm text-monza-500 dark:text-monza-400 mb-4 line-clamp-2">
                   {template.description}
                 </p>
 
                 {/* Task count */}
-                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-4">
+                <div className="flex items-center gap-2 text-sm text-monza-600 dark:text-monza-400 mb-4">
                   <CheckSquare className="w-4 h-4" />
                   <span>{template.tasks.length} tasks included</span>
                 </div>
@@ -321,13 +321,13 @@ export function TaskTemplates({
                             : "bg-emerald-500"
                         )}
                       />
-                      <span className="text-slate-600 dark:text-slate-400 truncate">
+                      <span className="text-monza-600 dark:text-monza-400 truncate">
                         {task.title}
                       </span>
                     </div>
                   ))}
                   {template.tasks.length > 2 && (
-                    <p className="text-xs text-slate-500 dark:text-slate-500">
+                    <p className="text-xs text-monza-500 dark:text-monza-500">
                       +{template.tasks.length - 2} more tasks
                     </p>
                   )}
@@ -350,7 +350,7 @@ export function TaskTemplates({
                     }}
                     className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                   >
-                    <Eye className="w-4 h-4 text-slate-500" />
+                    <Eye className="w-4 h-4 text-monza-500" />
                   </button>
                 </div>
               </div>
@@ -369,7 +369,7 @@ export function TaskTemplates({
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Repeat className="w-5 h-5 text-indigo-500" />
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+            <h3 className="text-lg font-semibold text-monza-900 dark:text-white">
               Recurring Tasks
             </h3>
           </div>
@@ -386,10 +386,10 @@ export function TaskTemplates({
               className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <Clock className="w-4 h-4 text-slate-400" />
+                <Clock className="w-4 h-4 text-monza-400" />
                 <div>
-                  <p className="font-medium text-slate-900 dark:text-white">{task.title}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="font-medium text-monza-900 dark:text-white">{task.title}</p>
+                  <p className="text-xs text-monza-500 dark:text-monza-400">
                     <span className="capitalize">{task.frequency}</span> • {task.nextDue}
                   </p>
                 </div>
@@ -474,7 +474,7 @@ function TemplatePreviewModal({ template, onClose, onUse }: TemplatePreviewModal
 
         {/* Tasks List */}
         <div className="p-6 overflow-y-auto max-h-[50vh]">
-          <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
+          <h4 className="text-sm font-semibold text-monza-900 dark:text-white mb-4">
             Tasks ({template.tasks.length})
           </h4>
           <div className="space-y-3">
@@ -494,16 +494,16 @@ function TemplatePreviewModal({ template, onClose, onUse }: TemplatePreviewModal
                   )}
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-slate-900 dark:text-white text-sm">
+                  <p className="font-medium text-monza-900 dark:text-white text-sm">
                     {task.title}
                   </p>
                   {task.description && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    <p className="text-xs text-monza-500 dark:text-monza-400 mt-1">
                       {task.description}
                     </p>
                   )}
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="text-xs capitalize px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
+                    <span className="text-xs capitalize px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-monza-600 dark:text-monza-400">
                       {task.priority}
                     </span>
                     {task.tag && (

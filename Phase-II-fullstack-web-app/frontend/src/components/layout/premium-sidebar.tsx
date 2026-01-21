@@ -1,5 +1,6 @@
 // @spec: specs/002-fullstack-web-app/plan.md
 // Premium Sidebar Component - Collapsible with Categories, Tags, Filters, Analytics
+// User data fetched from real API - NO MOCK DATA
 
 "use client";
 
@@ -26,11 +27,15 @@ import {
   X,
   Plus,
   Menu,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { getCurrentUser } from "@/lib/auth";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Project {
   id: string;
@@ -66,7 +71,7 @@ const navItems = [
   { id: "calendar", label: "Calendar", icon: Calendar, color: "text-purple-500" },
   { id: "analytics", label: "Analytics", icon: BarChart3, color: "text-emerald-500" },
   { id: "templates", label: "Templates", icon: Sparkles, color: "text-blue-500" },
-  { id: "settings", label: "Settings", icon: Settings, color: "text-slate-500" },
+  { id: "settings", label: "Settings", icon: Settings, color: "text-monza-500" },
 ];
 
 // Quick filters
@@ -102,8 +107,62 @@ export function PremiumSidebar({
 }: PremiumSidebarProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
+  const [user, setUser] = React.useState<{ name?: string; email?: string } | null>(null);
+
+  const router = useRouter();
+  const { toast } = useToast();
+
+  // Fetch current user data on mount
+  React.useEffect(() => {
+    getCurrentUser().then(userData => {
+      if (userData) {
+        setUser(userData);
+      }
+    }).catch(err => {
+      console.error("Failed to fetch user:", err);
+    });
+  }, []);
 
   const sidebarWidth = isCollapsed ? "w-20" : "w-72";
+
+  // Generate initials from user name or email
+  const getInitials = () => {
+    if (user?.name) {
+      const parts = user.name.split(" ").filter(Boolean);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return (parts[0][0] + (parts[0][1] || "")).toUpperCase();
+    }
+    if (user?.email) {
+      return (user.email[0] + user.email[1]).toUpperCase();
+    }
+    return "JD"; // Fallback
+  };
+
+  // Get display name
+  const getDisplayName = () => {
+    return user?.name || user?.email?.split("@")[0] || "User";
+  };
+
+  // Handle sign out
+  const handleSignOut = async () => {
+    try {
+      // Sign out using better-auth
+      await fetch("/api/auth/signout", { method: "POST" });
+      // Clear localStorage
+      localStorage.removeItem("fastapi_jwt_token");
+      localStorage.removeItem("fastapi_user_id");
+      // Redirect to sign in
+      router.push("/signin");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleNavClick = (itemId: string) => {
     onNavigate?.(itemId);
@@ -154,10 +213,10 @@ export function PremiumSidebar({
                     <Target className="w-5 h-5 text-white" />
                   </div>
                   <div className="overflow-hidden">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                    <h2 className="text-lg font-bold text-monza-900 dark:text-white">
                       TaskFlow Pro
                     </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-monza-500 dark:text-monza-400">
                       Premium Edition
                     </p>
                   </div>
@@ -205,7 +264,7 @@ export function PremiumSidebar({
             {/* Main Navigation */}
             <div className="space-y-1">
               {!isCollapsed && (
-                <p className="px-2 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                <p className="px-2 text-xs font-semibold text-monza-500 dark:text-monza-400 uppercase tracking-wider mb-2">
                   Menu
                 </p>
               )}
@@ -221,7 +280,7 @@ export function PremiumSidebar({
                       "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative overflow-hidden",
                       isActive
                         ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/25"
-                        : "hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300"
+                        : "hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-monza-700 dark:text-slate-300"
                     )}
                   >
                     <div className={cn(
@@ -258,7 +317,7 @@ export function PremiumSidebar({
             {/* Quick Filters */}
             {!isCollapsed && (
               <div className="space-y-2">
-                <p className="px-2 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <p className="px-2 text-xs font-semibold text-monza-500 dark:text-monza-400 uppercase tracking-wider">
                   Quick Filters
                 </p>
                 {quickFilters.map((filter) => {
@@ -279,11 +338,11 @@ export function PremiumSidebar({
                       <div className="flex items-center gap-3">
                         <Icon className={cn(
                           "w-4 h-4",
-                          isActive ? "text-indigo-500" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300"
+                          isActive ? "text-indigo-500" : "text-monza-400 group-hover:text-monza-600 dark:group-hover:text-slate-300"
                         )} />
                         <span className={cn(
                           "text-sm font-medium",
-                          isActive ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400"
+                          isActive ? "text-monza-900 dark:text-white" : "text-monza-600 dark:text-monza-400"
                         )}>
                           {filter.label}
                         </span>
@@ -294,7 +353,7 @@ export function PremiumSidebar({
                           "text-xs",
                           isActive
                             ? "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                            : "bg-slate-100 dark:bg-slate-800 text-monza-500"
                         )}
                       >
                         {filter.count}
@@ -309,7 +368,7 @@ export function PremiumSidebar({
             {!isCollapsed && projects.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between px-2">
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <p className="text-xs font-semibold text-monza-500 dark:text-monza-400 uppercase tracking-wider">
                     Projects
                   </p>
                   <Button variant="ghost" size="icon" className="h-6 w-6">
@@ -332,13 +391,13 @@ export function PremiumSidebar({
                         className="w-3 h-3 rounded-full ring-2 ring-white dark:ring-slate-900"
                         style={{ backgroundColor: project.color }}
                       />
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <span className="text-sm font-medium text-monza-700 dark:text-slate-300">
                         {project.name}
                       </span>
                     </div>
                     <Badge
                       variant="secondary"
-                      className="bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs"
+                      className="bg-slate-100 dark:bg-slate-800 text-monza-500 text-xs"
                     >
                       {project.taskCount}
                     </Badge>
@@ -351,7 +410,7 @@ export function PremiumSidebar({
             {!isCollapsed && tags.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between px-2">
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <p className="text-xs font-semibold text-monza-500 dark:text-monza-400 uppercase tracking-wider">
                     Tags
                   </p>
                   <Button variant="ghost" size="icon" className="h-6 w-6">
@@ -400,29 +459,32 @@ export function PremiumSidebar({
             {!isCollapsed ? (
               <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-slate-100 to-slate-200/50 dark:from-slate-800 dark:to-slate-800/50">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md">
-                  JD
+                  {getInitials()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                    John Doe
+                  <p className="text-sm font-semibold text-monza-900 dark:text-white truncate">
+                    {getDisplayName()}
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                    Premium User
+                  <p className="text-xs text-monza-500 dark:text-monza-400 truncate">
+                    {user?.email || "Guest"}
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
                   <ThemeToggle />
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Settings className="w-4 h-4" />
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleSignOut}>
+                    <LogOut className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md">
-                  JD
+                  {getInitials()}
                 </div>
                 <ThemeToggle />
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4" />
+                </Button>
               </div>
             )}
           </div>

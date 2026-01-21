@@ -1,5 +1,5 @@
 // @spec: specs/002-fullstack-web-app/plan.md
-// Tailwind CSS configuration - Professional SaaS Theme | Neutral Slate + Indigo
+// Tailwind CSS configuration - Monza Palette Theme
 
 import type { Config } from "tailwindcss";
 
@@ -13,111 +13,82 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // CSS variable colors for theming
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
+        // Monza Color Palette - Monza-inspired theme with earthy, warm tones
+        monza: {
+          50: '#fff1f3',     /* Light Cream - Background */
+          100: '#ffe0e4',    /* Light Yellow - Highlights */
+          200: '#ffc6cd',    /* Light Salmon - Card headers */
+          300: '#ff9ea9',    /* Light Orange - Important items */
+          400: '#ff6678',    /* Coral - Default alerts */
+          500: '#fd364d',    /* Medium Salmon - Active elements */
+          600: '#eb1730',    /* Terra Cotta - Sections */
+          700: '#ce1026',    /* Medium Terracotta - Borders */
+          800: '#a31122',    /* Dark Terra Cotta - Text */
+          900: '#871522',    /* Burnt Orange - Headers */
+          950: '#4a050d',    /* Dark Brown - Footers */
+        },
+        // Semantic Colors - Updated with Monza-inspired tones
+        background: '#fff1f3',
+        foreground: '#871522',
         card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
+          DEFAULT: '#ffffff',
+          foreground: '#871522',
         },
         popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
+          DEFAULT: '#ffffff',
+          foreground: '#871522',
         },
         primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          200: '#c7d2fe',
-          300: '#a5b4fc',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
-          950: '#1e1b4b',
+          DEFAULT: '#871522',
+          foreground: '#fff1f3',
         },
         secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
+          DEFAULT: '#eb1730',
+          foreground: '#fff1f3',
         },
         muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
+          DEFAULT: '#ce1026',
+          foreground: '#871522',
         },
         accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
+          DEFAULT: '#ff9ea9',
+          foreground: '#fff1f3',
         },
         destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
+          DEFAULT: '#fd364d',
+          foreground: '#fff1f3',
         },
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        // Priority colors - refined professional tones
+        border: '#eb1730',
+        input: '#fff1f3',
+        ring: '#871522',
+        // Priority colors - Monza tones
         priority: {
-          high: '#dc2626',   /* red-600 */
-          medium: '#2563eb', /* blue-600 */
-          low: '#059669',    /* emerald-600 */
+          high: '#fd364d',
+          medium: '#ce1026',
+          low: '#a31122',
         },
-        // Dark theme colors - slate based
+        // Updated primary scale with Monza colors
+        primary: {
+          50: '#fff1f3',
+          100: '#ffe0e4',
+          200: '#ffc6cd',
+          300: '#ff9ea9',
+          400: '#ff6678',
+          500: '#fd364d',
+          600: '#eb1730',
+          700: '#ce1026',
+          800: '#a31122',
+          900: '#871522',
+          950: '#4a050d',
+        },
+        // Dark theme - Monza Dark (warm terra cotta)
         dark: {
-          bg: '#020617',     /* slate-950 */
-          card: '#0f172a',   /* slate-900 */
-          border: '#334155', /* slate-700 */
-          muted: '#64748b',  /* slate-500 */
+          background: '#2a1a1a',  /* Very dark brown */
+          card: '#4a050d',     /* Dark brown */
+          border: '#eb1730',    /* Medium terra cotta */
+          muted: '#871522',     /* Burnt orange */
+          foreground: '#fff1f3',    /* Light cream text */
         },
-      },
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-        'hero-gradient': 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-        'premium-gradient': 'linear-gradient(135deg, #818cf8 0%, #6366f1 100%)',
-        'dark-gradient': 'linear-gradient(to bottom right, #020617, #0f172a, #1e293b)',
-        'glass-gradient': 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-      },
-      boxShadow: {
-        'glow': '0 0 20px rgba(99, 102, 241, 0.25)',
-        'glow-lg': '0 0 40px rgba(99, 102, 241, 0.35)',
-        'premium': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-        'card-hover': '0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1)',
-      },
-      animation: {
-        'float': 'float 6s ease-in-out infinite',
-        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'shimmer': 'shimmer 2s linear infinite',
-        'gradient': 'gradient 8s linear infinite',
-        'spotlight': 'spotlight 2s ease .75s 1 forwards',
-        'border-beam': 'border-beam calc(var(--duration)*1s) infinite linear',
-      },
-      keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-20px)' },
-        },
-        shimmer: {
-          '0%': { backgroundPosition: '-200% 0' },
-          '100%': { backgroundPosition: '200% 0' },
-        },
-        gradient: {
-          '0%, 100%': { backgroundPosition: '0% 50%' },
-          '50%': { backgroundPosition: '100% 50%' },
-        },
-        spotlight: {
-          '0%': { opacity: '0', transform: 'translate(-72%, -62%) scale(0.5)' },
-          '100%': { opacity: '1', transform: 'translate(-50%,-40%) scale(1)' },
-        },
-        'border-beam': {
-          '100%': { 'offset-distance': '100%' },
-        },
-      },
-      fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Cal Sans', 'Inter', 'sans-serif'],
       },
     },
   },

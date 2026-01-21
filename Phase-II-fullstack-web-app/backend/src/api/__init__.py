@@ -1,10 +1,17 @@
+# @spec: specs/002-fullstack-web-app/plan.md
+# @spec: specs/003-ai-chatbot/spec.md
+# API router configuration for all endpoints
+
 from fastapi import APIRouter
-from .routes import tasks, tags, health, auth
+from .routes import tasks, tags, health, auth, chat
 
 api_router = APIRouter()
 
 # Include authentication routes (signup, login, me)
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+
+# Chatbot endpoint (Phase III)
+api_router.include_router(chat.router, tags=["chat"])
 
 # Task and tag management endpoints
 api_router.include_router(tasks.router, tags=["tasks"])

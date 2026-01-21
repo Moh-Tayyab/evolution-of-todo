@@ -1,5 +1,6 @@
 // @spec: specs/002-fullstack-web-app/plan.md
 // Analytics Dashboard - Charts, Progress Tracking, Productivity Insights
+// All analytics calculated from real task data - NO MOCK DATA
 
 "use client";
 
@@ -19,6 +20,7 @@ import {
   Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Task } from "@/types";
 
 export interface AnalyticsData {
   totalTasks: number;
@@ -53,49 +55,229 @@ export interface CategoryData {
 }
 
 interface AnalyticsDashboardProps {
-  data?: AnalyticsData;
+  tasks: Task[];
   className?: string;
 }
 
-// Mock data generator
-function generateMockData(): AnalyticsData {
+// Calculate real analytics from task data
+function calculateAnalytics(tasks: Task[]): AnalyticsData {
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter(t => t.completed).length;
+  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  // Calculate streak (consecutive days with completed tasks)
+  const streak = calculateStreak(tasks);
+
+  // Calculate average tasks per day
+  const avgTasksPerDay = calculateAvgTasksPerDay(tasks);
+
+  // Calculate weekly data (last 7 days)
+  const weeklyData = calculateWeeklyData(tasks);
+
+  // Calculate priority distribution
+  const priorityDistribution = calculatePriorityDistribution(tasks);
+
+  // Calculate category distribution (from tags)
+  const categoryDistribution = calculateCategoryDistribution(tasks);
+
+  // Calculate productivity score
+  const productivityScore = calculateProductivityScore(
+    completionRate,
+    streak,
+    avgTasksPerDay
+  );
+
   return {
-    totalTasks: 47,
-    completedTasks: 32,
-    completionRate: 68,
-    avgTasksPerDay: 4.2,
-    streak: 7,
-    weeklyData: [
-      { day: "Mon", completed: 5, created: 3 },
-      { day: "Tue", completed: 4, created: 6 },
-      { day: "Wed", completed: 7, created: 4 },
-      { day: "Thu", completed: 3, created: 5 },
-      { day: "Fri", completed: 6, created: 4 },
-      { day: "Sat", completed: 4, created: 3 },
-      { day: "Sun", completed: 3, created: 2 },
-    ],
-    priorityDistribution: [
-      { priority: "high", count: 8, completed: 6, color: "#ef4444" },
-      { priority: "medium", count: 18, completed: 12, color: "#3b82f6" },
-      { priority: "low", count: 21, completed: 14, color: "#22c55e" },
-    ],
-    categoryDistribution: [
-      { category: "Work", count: 18, completed: 14, color: "#d6675d" },
-      { category: "Personal", count: 12, completed: 8, color: "#6B9BD1" },
-      { category: "Learning", count: 10, completed: 6, color: "#a855f7" },
-      { category: "Health", count: 7, completed: 4, color: "#22c55e" },
-    ],
-    productivityScore: 85,
+    totalTasks,
+    completedTasks,
+    completionRate,
+    avgTasksPerDay,
+    streak,
+    weeklyData,
+    priorityDistribution,
+    categoryDistribution,
+    productivityScore,
   };
 }
 
+function calculateStreak(tasks: Task[]): number {
+  if (tasks.length === 0) return 0;
+
+  const completedDates = new Set<string>();
+  tasks.forEach(task => {
+    if (task.completed && task.updated_at) {
+      const date = new Date(task.updated_at).toDateString();
+      completedDates.add(date);
+    }
+  });
+
+  if (completedDates.size === 0) return 0;
+
+  const sortedDates = Array.from(completedDates).sort().reverse();
+  let streak = 0;
+  const today = new Date().toDateString();
+
+  for (let i = 0; i < sortedDates.length; i++) {
+    const checkDate = new Date();
+    checkDate.setDate(checkDate.getDate() - i);
+    if (sortedDates[i] === checkDate.toDateString() || sortedDates[i] === today) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
+
+function calculateAvgTasksPerDay(tasks: Task[]): number {
+  if (tasks.length === 0) return 0;
+
+  const dates = new Set<string>();
+  tasks.forEach(task => {
+    if (task.created_at) {
+      dates.add(new Date(task.created_at).toDateString());
+    }
+  });
+
+  const days = Math.max(dates.size, 1);
+  return Math.round((tasks.length / days) * 10) / 10;
+}
+
+function calculateWeeklyData(tasks: Task[]): WeeklyData[] {
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const today = new Date();
+  const weeklyData: WeeklyData[] = [];
+
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    const dateStr = date.toDateString();
+
+    const completed = tasks.filter(t => {
+      if (!t.completed || !t.updated_at) return false;
+      return new Date(t.updated_at).toDateString() === dateStr;
+    }).length;
+
+    const created = tasks.filter(t => {
+      if (!t.created_at) return false;
+      return new Date(t.created_at).toDateString() === dateStr;
+    }).length;
+
+    weeklyData.push({
+      day: days[date.getDay()],
+      completed,
+      created,
+    });
+  }
+
+  return weeklyData;
+}
+
+function calculatePriorityDistribution(tasks: Task[]): PriorityData[] {
+  const priorities: PriorityData[] = [
+    { priority: "high", count: 0, completed: 0, color: "#ef4444" },
+    { priority: "medium", count: 0, completed: 0, color: "#3b82f6" },
+    { priority: "low", count: 0, completed: 0, color: "#22c55e" },
+  ];
+
+  tasks.forEach(task => {
+    const priority = priorities.find(p => p.priority === task.priority);
+    if (priority) {
+      priority.count++;
+      if (task.completed) {
+        priority.completed++;
+      }
+    }
+  });
+
+  return priorities;
+}
+
+function calculateCategoryDistribution(tasks: Task[]): CategoryData[] {
+  const categoryColors: { [key: string]: string } = {
+    "Work": "#d6675d",
+    "Personal": "#6B9BD1",
+    "Learning": "#a855f7",
+    "Health": "#22c55e",
+    "Finance": "#f59e0b",
+    "Shopping": "#ec4899",
+  };
+
+  const categories = new Map<string, { count: number; completed: number }>();
+
+  tasks.forEach(task => {
+    if (task.tags && task.tags.length > 0) {
+      task.tags.forEach(tag => {
+        const existing = categories.get(tag.name) || { count: 0, completed: 0 };
+        categories.set(tag.name, {
+          count: existing.count + 1,
+          completed: existing.completed + (task.completed ? 1 : 0),
+        });
+      });
+    }
+  });
+
+  // Convert to array and add colors
+  const distribution: CategoryData[] = Array.from(categories.entries())
+    .map(([category, data]) => ({
+      category,
+      count: data.count,
+      completed: data.completed,
+      color: categoryColors[category] || "#6b7280",
+    }))
+    .slice(0, 4); // Limit to top 4 categories
+
+  // If no categories exist, return empty data
+  if (distribution.length === 0) {
+    return [];
+  }
+
+  return distribution;
+}
+
+function calculateProductivityScore(
+  completionRate: number,
+  streak: number,
+  avgTasksPerDay: number
+): number {
+  const score =
+    Math.round(completionRate * 0.5 + streak * 5 + avgTasksPerDay * 5);
+
+  return Math.min(Math.max(score, 0), 100);
+}
+
 export function AnalyticsDashboard({
-  data = generateMockData(),
+  tasks,
   className,
 }: AnalyticsDashboardProps) {
-  // Calculate trends (mock)
-  const completionTrend = data.completionRate > 65 ? "up" : "down";
-  const productivityTrend = data.avgTasksPerDay > 4 ? "up" : "down";
+  // Calculate real analytics from tasks
+  const data = React.useMemo(() => calculateAnalytics(tasks), [tasks]);
+
+  // Calculate trends
+  const completionTrend = data.completionRate > 50 ? "up" : "down";
+  const productivityTrend = data.avgTasksPerDay > 1 ? "up" : "down";
+
+  // Show empty state if no tasks
+  if (tasks.length === 0) {
+    return (
+      <div className={cn("space-y-6", className)}>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center py-16"
+        >
+          <BarChart3 className="w-16 h-16 text-slate-300 dark:text-monza-700 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-monza-900 dark:text-white mb-2">
+            No Analytics Yet
+          </h2>
+          <p className="text-monza-500 dark:text-monza-400">
+            Create some tasks to see your productivity analytics
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("space-y-6", className)}>
@@ -106,10 +288,10 @@ export function AnalyticsDashboard({
         className="flex items-center justify-between"
       >
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h2 className="text-2xl font-bold text-monza-900 dark:text-white">
             Analytics Dashboard
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-monza-500 dark:text-monza-400">
             Track your productivity and task completion trends
           </p>
         </div>
@@ -131,7 +313,7 @@ export function AnalyticsDashboard({
           value={`${data.completionRate}%`}
           icon={Target}
           trend={completionTrend}
-          trendValue="+5%"
+          trendValue={completionTrend === "up" ? "Great!" : "Keep going"}
           color="indigo"
           delay={0}
         />
@@ -149,7 +331,7 @@ export function AnalyticsDashboard({
           value={`${data.streak} days`}
           icon={Flame}
           trend="up"
-          trendValue="Personal best!"
+          trendValue={data.streak > 0 ? "Active!" : "Start now"}
           color="orange"
           delay={0.2}
         />
@@ -158,7 +340,7 @@ export function AnalyticsDashboard({
           value={`${data.productivityScore}`}
           icon={Award}
           trend="up"
-          trendValue="Top 15%"
+          trendValue="Based on activity"
           color="purple"
           delay={0.3}
         />
@@ -175,65 +357,72 @@ export function AnalyticsDashboard({
         >
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+              <h3 className="text-lg font-semibold text-monza-900 dark:text-white">
                 Weekly Activity
               </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-monza-500 dark:text-monza-400">
                 Tasks created vs completed
               </p>
             </div>
             <BarChart3 className="w-5 h-5 text-indigo-500" />
           </div>
 
-          <div className="space-y-4">
-            {data.weeklyData.map((day, index) => {
-              const maxVal = Math.max(...data.weeklyData.map((d) => d.completed), ...data.weeklyData.map((d) => d.created));
-              const completedHeight = (day.completed / maxVal) * 100;
-              const createdHeight = (day.created / maxVal) * 100;
+          {data.weeklyData.some(d => d.completed > 0 || d.created > 0) ? (
+            <div className="space-y-4">
+              {data.weeklyData.map((day, index) => {
+                const maxVal = Math.max(
+                  ...data.weeklyData.map((d) => d.completed),
+                  ...data.weeklyData.map((d) => d.created),
+                  1
+                );
+                const completedHeight = (day.completed / maxVal) * 100;
+                const createdHeight = (day.created / maxVal) * 100;
 
-              return (
-                <div key={day.day} className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                    <span className="font-medium">{day.day}</span>
-                    <span className="flex items-center gap-2">
-                      <span className="text-emerald-500">{day.completed} done</span>
-                      <span className="text-indigo-500">{day.created} new</span>
-                    </span>
+                return (
+                  <div key={day.day} className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-monza-500 dark:text-monza-400">
+                      <span className="font-medium">{day.day}</span>
+                      <span className="flex items-center gap-2">
+                        <span className="text-emerald-500">{day.completed} done</span>
+                        <span className="text-indigo-500">{day.created} new</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 h-16">
+                      <motion.div
+                        initial={{ height: 0 }}
+                        animate={{ height: `${completedHeight}%` }}
+                        transition={{ delay: index * 0.05 + 0.3, duration: 0.5 }}
+                        className="flex-1 bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-lg relative group"
+                      >
+                        <div className="absolute inset-0 bg-emerald-300 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </motion.div>
+                      <motion.div
+                        initial={{ height: 0 }}
+                        animate={{ height: `${createdHeight}%` }}
+                        transition={{ delay: index * 0.05 + 0.35, duration: 0.5 }}
+                        className="flex-1 bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-lg relative group"
+                      >
+                        <div className="absolute inset-0 bg-indigo-300 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </motion.div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 h-16">
-                    {/* Completed bar */}
-                    <motion.div
-                      initial={{ height: 0 }}
-                      animate={{ height: `${completedHeight}%` }}
-                      transition={{ delay: index * 0.05 + 0.3, duration: 0.5 }}
-                      className="flex-1 bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-lg relative group"
-                    >
-                      <div className="absolute inset-0 bg-emerald-300 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </motion.div>
-                    {/* Created bar */}
-                    <motion.div
-                      initial={{ height: 0 }}
-                      animate={{ height: `${createdHeight}%` }}
-                      transition={{ delay: index * 0.05 + 0.35, duration: 0.5 }}
-                      className="flex-1 bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-lg relative group"
-                    >
-                      <div className="absolute inset-0 bg-indigo-300 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </motion.div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-monza-400">
+              No activity this week
+            </div>
+          )}
 
-          {/* Legend */}
           <div className="flex items-center justify-center gap-6 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-emerald-500" />
-              <span className="text-sm text-slate-600 dark:text-slate-400">Completed</span>
+              <span className="text-sm text-monza-600 dark:text-monza-400">Completed</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-indigo-500" />
-              <span className="text-sm text-slate-600 dark:text-slate-400">Created</span>
+              <span className="text-sm text-monza-600 dark:text-monza-400">Created</span>
             </div>
           </div>
         </motion.div>
@@ -247,10 +436,10 @@ export function AnalyticsDashboard({
         >
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+              <h3 className="text-lg font-semibold text-monza-900 dark:text-white">
                 Priority Distribution
               </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-monza-500 dark:text-monza-400">
                 Task breakdown by priority
               </p>
             </div>
@@ -259,8 +448,11 @@ export function AnalyticsDashboard({
 
           <div className="space-y-4">
             {data.priorityDistribution.map((priority) => {
+              if (priority.count === 0) return null;
               const percentage = Math.round((priority.count / data.totalTasks) * 100);
-              const completedPercentage = Math.round((priority.completed / priority.count) * 100);
+              const completedPercentage = priority.count > 0
+                ? Math.round((priority.completed / priority.count) * 100)
+                : 0;
 
               return (
                 <div key={priority.priority} className="space-y-2">
@@ -270,16 +462,15 @@ export function AnalyticsDashboard({
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: priority.color }}
                       />
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300 capitalize">
+                      <span className="text-sm font-medium text-monza-700 dark:text-slate-300 capitalize">
                         {priority.priority}
                       </span>
                     </div>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">
+                    <span className="text-sm text-monza-500 dark:text-monza-400">
                       {priority.completed}/{priority.count} completed
                     </span>
                   </div>
                   <div className="h-8 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden relative">
-                    {/* Total bar */}
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${percentage}%` }}
@@ -287,7 +478,6 @@ export function AnalyticsDashboard({
                       className="h-full absolute top-0 left-0 opacity-30"
                       style={{ backgroundColor: priority.color }}
                     />
-                    {/* Completed bar */}
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${(percentage * completedPercentage) / 100}%` }}
@@ -295,8 +485,7 @@ export function AnalyticsDashboard({
                       className="h-full absolute top-0 left-0"
                       style={{ backgroundColor: priority.color }}
                     />
-                    {/* Percentage label */}
-                    <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-slate-700 dark:text-slate-300 mix-blend-difference">
+                    <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-monza-700 dark:text-slate-300 mix-blend-difference">
                       {percentage}% ({completedPercentage}% done)
                     </span>
                   </div>
@@ -308,70 +497,74 @@ export function AnalyticsDashboard({
       </div>
 
       {/* Category Progress */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-              Category Progress
-            </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Track completion by category
-            </p>
+      {data.categoryDistribution.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-semibold text-monza-900 dark:text-white">
+                Category Progress
+              </h3>
+              <p className="text-sm text-monza-500 dark:text-monza-400">
+                Track completion by category
+              </p>
+            </div>
+            <Target className="w-5 h-5 text-indigo-500" />
           </div>
-          <Target className="w-5 h-5 text-indigo-500" />
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {data.categoryDistribution.map((category, index) => {
-            const progress = Math.round((category.completed / category.count) * 100);
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {data.categoryDistribution.map((category, index) => {
+              const progress = category.count > 0
+                ? Math.round((category.completed / category.count) * 100)
+                : 0;
 
-            return (
-              <motion.div
-                key={category.category}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 + 0.5 }}
-                className="relative p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <div
-                    className="w-4 h-4 rounded-lg"
-                    style={{ backgroundColor: category.color }}
-                  />
-                  <h4 className="font-semibold text-slate-900 dark:text-white">
-                    {category.category}
-                  </h4>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-2xl font-bold text-slate-900 dark:text-white">
-                      {progress}%
-                    </span>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">
-                      {category.completed}/{category.count}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${progress}%` }}
-                      transition={{ delay: index * 0.05 + 0.6, duration: 0.8 }}
-                      className="h-full rounded-full"
+              return (
+                <motion.div
+                  key={category.category}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.05 + 0.5 }}
+                  className="relative p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <div
+                      className="w-4 h-4 rounded-lg"
                       style={{ backgroundColor: category.color }}
                     />
+                    <h4 className="font-semibold text-monza-900 dark:text-white">
+                      {category.category}
+                    </h4>
                   </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      </motion.div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-2xl font-bold text-monza-900 dark:text-white">
+                        {progress}%
+                      </span>
+                      <span className="text-sm text-monza-500 dark:text-monza-400">
+                        {category.completed}/{category.count}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress}%` }}
+                        transition={{ delay: index * 0.05 + 0.6, duration: 0.8 }}
+                        className="h-full rounded-full"
+                        style={{ backgroundColor: category.color }}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
 
       {/* Productivity Insights */}
       <motion.div
@@ -387,9 +580,13 @@ export function AnalyticsDashboard({
           <div className="flex-1">
             <h3 className="text-lg font-semibold mb-2">Productivity Insight</h3>
             <p className="text-white/90 text-sm leading-relaxed">
-              You're on a {data.streak}-day streak! Your most productive day is Wednesday with an average
-              of {data.weeklyData[2].completed} tasks completed. Consider scheduling important tasks
-              mid-week for optimal productivity.
+              {data.streak > 0
+                ? `You're on a ${data.streak}-day streak! Keep up the momentum.`
+                : "Start completing tasks daily to build your streak!"}
+              {" "}Your completion rate is {data.completionRate}%.
+              {data.productivityScore > 70
+                ? " Great work maintaining high productivity!"
+                : " Keep going to improve your score!"}
             </p>
           </div>
           <div className="hidden sm:block">
@@ -450,10 +647,10 @@ function MetricCard({
         </div>
       </div>
       <div>
-        <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+        <p className="text-2xl font-bold text-monza-900 dark:text-white mb-1">
           {value}
         </p>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-sm text-monza-500 dark:text-monza-400">
           {label}
         </p>
       </div>
@@ -478,7 +675,7 @@ function Button({
       className={cn(
         "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
         variant === "outline"
-          ? "border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+          ? "border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-monza-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
           : "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700",
         size === "sm" && "px-3 py-1.5 text-xs",
         className

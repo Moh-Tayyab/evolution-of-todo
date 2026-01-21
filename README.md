@@ -62,7 +62,7 @@ This repository contains the Evolution of Todo project, moving from a Phase I Co
 1. Navigate to `frontend/`.
 2. Install dependencies:
    ```bash
-   npm install
+   pnpm install
    ```
 3. Copy `.env.local.example` to `.env.local` and configure.
 4. Run the development server:

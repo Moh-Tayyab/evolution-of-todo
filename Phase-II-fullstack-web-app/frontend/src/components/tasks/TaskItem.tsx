@@ -58,7 +58,7 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemP
         <div className="flex-1 min-w-0">
           <div className="flex flex-col gap-1">
             <h3
-              className={`text-lg font-bold transition-all duration-300 ${task.completed ? "text-slate-400 dark:text-slate-500 line-through decoration-2" : "text-slate-900 dark:text-slate-100"
+              className={`text-lg font-bold transition-all duration-300 ${task.completed ? "text-monza-400 dark:text-monza-500 line-through decoration-2" : "text-monza-900 dark:text-slate-100"
                 }`}
             >
               {task.title}
@@ -99,7 +99,7 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemP
 
           {task.description && (
             <p
-              className={`mt-3 text-sm leading-relaxed ${task.completed ? "text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-slate-300"
+              className={`mt-3 text-sm leading-relaxed ${task.completed ? "text-monza-400 dark:text-monza-500" : "text-monza-700 dark:text-slate-300"
                 }`}
             >
               {task.description}
@@ -111,7 +111,7 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemP
         <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <button
             onClick={() => onEdit(task)}
-            className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
+            className="text-monza-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
             title="Edit task"
           >
             <svg
@@ -130,7 +130,7 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemP
           </button>
           <button
             onClick={() => onDelete(task.id)}
-            className="text-slate-400 hover:text-red-500 p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+            className="text-monza-400 hover:text-red-500 p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
             title="Delete task"
           >
             <svg

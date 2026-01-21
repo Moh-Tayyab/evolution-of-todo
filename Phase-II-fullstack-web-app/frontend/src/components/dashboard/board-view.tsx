@@ -1,242 +1,206 @@
+// @spec: specs/002-fullstack-web-app/plan.md
+// Board View - Kanban-style board layout for tasks
+
 "use client";
 
 import * as React from "react";
-import {
-	DragDropContext,
-	Droppable,
-	Draggable,
-	type DropResult,
-	type DroppableProvided,
-	type DroppableStateSnapshot,
-	type DraggableProvided,
-	type DraggableStateSnapshot
-} from "@hello-pangea/dnd";
 import { motion, AnimatePresence } from "framer-motion";
 import { type Task } from "@/components/tasks";
 import { Badge } from "@/components/ui/badge";
-import { Clock, GripVertical, CheckCircle2, Circle, LayoutGrid } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+	Check,
+	X,
+	Edit2,
+	Pin,
+	MoreVertical,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BoardViewProps {
 	tasks: Task[];
-	onToggle: (id: string) => void;
+	onToggle: (id: number) => void;
 	onEdit?: (task: Task) => void;
+	onDelete?: (id: number) => void;
+	onPin?: (id: number) => void;
 }
 
-interface Column {
-	id: string;
-	title: string;
-	icon: React.ReactNode;
-	tasks: Task[];
-	color: string;
-}
+type Column = "todo" | "in-progress" | "done";
 
-interface Tag {
-	id: string;
-	name: string;
-	color: string;
-}
+const columns: { id: Column; title: string; bgColor: string; borderColor: string }[] = [
+	{
+		id: "todo",
+		title: "To Do",
+		bgColor: "bg-slate-50 dark:bg-slate-900/50",
+		borderColor: "border-slate-200 dark:border-slate-700"
+	},
+	{
+		id: "in-progress",
+		title: "In Progress",
+		bgColor: "bg-blue-50 dark:bg-blue-950/20",
+		borderColor: "border-blue-200 dark:border-blue-800"
+	},
+	{
+		id: "done",
+		title: "Done",
+		bgColor: "bg-emerald-50 dark:bg-emerald-950/20",
+		borderColor: "border-emerald-200 dark:border-emerald-800"
+	},
+];
 
-export function BoardView({ tasks, onToggle, onEdit }: BoardViewProps) {
-	const columns: Column[] = [
-		{
-			id: "pending",
-			title: "To Do",
-			icon: <Circle className="w-5 h-5" />,
-			tasks: tasks.filter(t => !t.completed),
-			color: "text-blue-600 dark:text-blue-400",
-		},
-		{
-			id: "completed",
-			title: "Completed",
-			icon: <CheckCircle2 className="w-5 h-5" />,
-			tasks: tasks.filter(t => t.completed),
-			color: "text-emerald-600 dark:text-emerald-400",
-		},
-	];
+const priorityStyles: Record<string, string> = {
+	high: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+	medium: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+	low: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400",
+};
 
-	const onDragEnd = (result: DropResult) => {
-		const { destination, source, draggableId } = result;
+const getColumnForTask = (task: Task): Column => {
+	if (task.completed) return "done";
+	// For this demo, treat high priority as "in progress"
+	if (task.priority === "high") return "in-progress";
+	return "todo";
+};
 
-		if (!destination) return;
+export function BoardView({ tasks, onToggle, onEdit, onDelete, onPin }: BoardViewProps) {
+	const [selectedTask, setSelectedTask] = React.useState<Task | null>(null);
 
-		if (
-			destination.droppableId === source.droppableId &&
-			destination.index === source.index
-		) {
-			return;
-		}
-
-		// Toggle task status if moved between columns
-		if (destination.droppableId !== source.droppableId) {
-			onToggle(draggableId);
-		}
+	const tasksByColumn: Record<Column, Task[]> = {
+		"todo": [],
+		"in-progress": [],
+		"done": [],
 	};
 
-	const priorityStyles: Record<string, string> = {
-		high: "bg-red-600 dark:bg-red-500",
-		medium: "bg-blue-600 dark:bg-blue-500",
-		low: "bg-emerald-600 dark:bg-emerald-500",
-	};
-
-	if (tasks.length === 0) {
-		return (
-			<motion.div
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				className="flex flex-col items-center justify-center py-20"
-			>
-				<div className="p-6 rounded-full bg-slate-100 dark:bg-slate-800 mb-6">
-					<LayoutGrid className="w-12 h-12 text-slate-400 dark:text-slate-500" />
-				</div>
-				<h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">No tasks yet</h3>
-				<p className="text-slate-600 dark:text-slate-400">Create your first task to use the board</p>
-			</motion.div>
-		);
-	}
+	tasks.forEach(task => {
+		const column = getColumnForTask(task);
+		tasksByColumn[column].push(task);
+	});
 
 	return (
-		<DragDropContext onDragEnd={onDragEnd}>
-			<div className="flex gap-6 overflow-x-auto pb-4 min-h-[500px]">
-				{columns.map((column, columnIndex) => (
-					<motion.div
-						key={column.id}
-						initial={{ opacity: 0, x: -10 }}
-						animate={{ opacity: 1, x: 0 }}
-						transition={{ delay: columnIndex * 0.05, duration: 0.2 }}
-						className="flex-1 min-w-[320px] max-w-[400px]"
-					>
-						{/* Column Header */}
-						<div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200 dark:border-slate-700">
-							<div className="flex items-center gap-3">
-								<div className={cn("p-2 rounded-lg bg-slate-100 dark:bg-slate-800", column.color)}>
-									{column.icon}
+		<div className="h-full">
+			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+				{columns.map((column) => {
+					const columnTasks = tasksByColumn[column.id];
+					const completedCount = columnTasks.filter(t => t.completed).length;
+
+					return (
+						<motion.div
+							key={column.id}
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.3 }}
+							className={cn(
+								"rounded-xl border p-4 flex flex-col",
+								column.bgColor,
+								column.borderColor
+							)}
+						>
+							{/* Column Header */}
+							<div className="flex items-center justify-between mb-4">
+								<div className="flex items-center gap-2">
+									<div className={cn(
+										"w-3 h-3 rounded-full",
+										column.id === "todo" && "bg-slate-400",
+										column.id === "in-progress" && "bg-blue-500",
+										column.id === "done" && "bg-emerald-500"
+									)} />
+									<h3 className="font-semibold text-sm text-monza-900 dark:text-white">
+										{column.title}
+									</h3>
 								</div>
-								<div>
-									<h3 className="font-semibold text-base text-slate-900 dark:text-slate-100">{column.title}</h3>
-									<p className="text-xs text-slate-600 dark:text-slate-400">{column.tasks.length} tasks</p>
-								</div>
+								<Badge variant="secondary" className="text-xs">
+									{completedCount}/{columnTasks.length}
+								</Badge>
 							</div>
 
-							<Badge
-								variant="secondary"
-								className="text-sm font-medium px-2.5 py-0.5"
-							>
-								{column.tasks.length}
-							</Badge>
-						</div>
+							{/* Task Cards */}
+							<div className="flex-1 space-y-3 overflow-y-auto">
+								<AnimatePresence>
+									{columnTasks.map((task) => (
+										<motion.div
+											key={task.id}
+											initial={{ opacity: 0, scale: 0.95 }}
+											animate={{ opacity: 1, scale: 1 }}
+											exit={{ opacity: 0, scale: 0.95 }}
+											whileHover={{ y: -2, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+											className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700 shadow-sm cursor-pointer transition-all"
+											onClick={() => setSelectedTask(task)}
+										>
+											<div className="flex items-start justify-between gap-2 mb-2">
+												<h4 className={cn(
+													"text-sm font-medium line-clamp-2",
+													task.completed ? "line-through text-monza-400" : "text-monza-900 dark:text-white"
+												)}>
+													{task.title}
+												</h4>
+											</div>
 
-						{/* Drop Zone */}
-						<Droppable droppableId={column.id}>
-							{(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
-								<div
-									{...provided.droppableProps}
-									ref={provided.innerRef}
-									className={cn(
-										"min-h-[400px] rounded-xl p-3 transition-colors duration-200",
-										"bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700",
-										snapshot.isDraggingOver
-											? "border-indigo-500/50 bg-indigo-500/5"
-											: ""
-									)}
-								>
-									<AnimatePresence mode="popLayout">
-										<div className="space-y-3">
-											{column.tasks.map((task, index) => (
-												<Draggable key={task.id} draggableId={task.id} index={index}>
-													{(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
-														<motion.div
-															ref={provided.innerRef}
-															{...provided.draggableProps}
-															initial={{ opacity: 0, y: 5 }}
-															animate={{ opacity: 1, y: 0 }}
-															exit={{ opacity: 0, scale: 0.95 }}
-															transition={{ delay: index * 0.03, duration: 0.2 }}
-															onClick={() => onEdit?.(task)}
-															className={cn(
-																"group relative rounded-lg p-4 cursor-grab active:cursor-grabbing",
-																"bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700",
-																"shadow-sm hover:shadow-md",
-																"transition-all duration-200",
-																snapshot.isDragging && "shadow-lg scale-[1.02]"
-															)}
-														>
-															{/* Drag Handle */}
-															<div
-																{...provided.dragHandleProps}
-																className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
-															>
-																<GripVertical className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-															</div>
+											{task.description && (
+												<p className="text-xs text-monza-500 dark:text-monza-400 line-clamp-2 mb-2">
+													{task.description}
+												</p>
+											)}
 
-															{/* Priority Indicator */}
-															<div className={cn(
-																"absolute top-0 left-0 w-1 h-full rounded-l-lg",
-																priorityStyles[task.priority || "medium"]
-															)} />
-
-															{/* Content */}
-															<div className="pl-4">
-																<div className="flex items-start justify-between gap-2 mb-2">
-																	<span className={cn(
-																		"font-medium text-sm line-clamp-2",
-																		task.completed && "line-through text-slate-400 dark:text-slate-500"
-																	)}>
-																		{task.title}
-																	</span>
-																	<Badge
-																		variant="outline"
-																		className="text-[10px] shrink-0 capitalize"
-																	>
-																		{task.priority || "medium"}
-																	</Badge>
-																</div>
-
-																{task.description && (
-																	<p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 mb-3">
-																		{task.description}
-																	</p>
-																)}
-
-																<div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-																	<Clock className="w-3 h-3" />
-																	<span>{new Date(task.created_at).toLocaleDateString()}</span>
-																</div>
-
-																{/* Tags */}
-																{task.tags && task.tags.length > 0 && (
-																	<div className="flex flex-wrap gap-1.5 mt-2">
-																		{task.tags.map((tag: Tag) => (
-																			<span
-																				key={tag.id}
-																				className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600"
-																			>
-																				{tag.name}
-																			</span>
-																		))}
-																	</div>
-																)}
-															</div>
-														</motion.div>
+											<div className="flex items-center justify-between">
+												<div className="flex items-center gap-2">
+													{task.priority && (
+														<Badge variant="outline" className={cn("text-[10px]", priorityStyles[task.priority])}>
+															{task.priority}
+														</Badge>
 													)}
-												</Draggable>
-											))}
-										</div>
-									</AnimatePresence>
-									{provided.placeholder}
+												</div>
 
-									{/* Empty state */}
-									{column.tasks.length === 0 && (
-										<div className="flex flex-col items-center justify-center h-32 text-slate-400 dark:text-slate-500">
-											<p className="text-sm">Drop tasks here</p>
-										</div>
-									)}
-								</div>
-							)}
-						</Droppable>
-					</motion.div>
-				))}
+												<div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+													<Button
+														variant="ghost"
+														size="icon"
+														className="h-6 w-6"
+														onClick={(e) => {
+															e.stopPropagation();
+															onToggle(task.id);
+														}}
+													>
+														<Check className="w-3 h-3" />
+													</Button>
+													<Button
+														variant="ghost"
+														size="icon"
+														className="h-6 w-6"
+														onClick={(e) => {
+															e.stopPropagation();
+															onEdit?.(task);
+														}}
+													>
+														<Edit2 className="w-3 h-3" />
+													</Button>
+													<Button
+														variant="ghost"
+														size="icon"
+														className="h-6 w-6 hover:text-red-600"
+														onClick={(e) => {
+															e.stopPropagation();
+															onDelete?.(task.id);
+														}}
+													>
+														<X className="w-3 h-3" />
+													</Button>
+												</div>
+											</div>
+										</motion.div>
+									))}
+								</AnimatePresence>
+
+								{columnTasks.length === 0 && (
+									<div className="text-center py-8">
+										<p className="text-sm text-monza-400 dark:text-monza-500">
+											No tasks
+										</p>
+									</div>
+								)}
+							</div>
+						</motion.div>
+					);
+				})}
 			</div>
-		</DragDropContext>
+		</div>
 	);
 }

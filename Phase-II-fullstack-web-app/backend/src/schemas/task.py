@@ -30,7 +30,7 @@ class TaskUpdate(SQLModel):
 
 class TaskRead(SQLModel):
     """Schema for reading a task"""
-    id: UUID
+    id: int
     user_id: UUID
     title: str
     description: Optional[str] = None

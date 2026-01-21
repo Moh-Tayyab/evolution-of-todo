@@ -1,10 +1,11 @@
 # @spec: specs/002-fullstack-web-app/plan.md
 # @spec: specs/002-fullstack-web-app/spec.md
+# @spec: specs/003-ai-chatbot/spec.md (FR-001 to FR-004)
 # API dependencies (JWT authentication)
 
 from typing import Annotated, Optional
-from fastapi import Depends, HTTPException, Request, status, Header
-from sqlmodel import Session
+from fastapi import Depends, HTTPException, status, Header
+from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt, JWTError, ExpiredSignatureError
 
 from src.database import get_session
@@ -15,14 +16,12 @@ settings = get_settings()
 
 async def get_current_user_id(
     authorization: Annotated[Optional[str], Header()] = None,
-    session: Session = Depends(get_session)
 ) -> str:
     """
     Get current user ID from JWT token.
 
     Args:
         authorization: Authorization header with Bearer token
-        session: Database session
 
     Returns:
         User ID (UUID string)

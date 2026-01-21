@@ -29,15 +29,18 @@ import {
 	Check,
 	X,
 	Pin,
+	List,
+	AlertCircle,
+	Edit,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface LuxuryViewProps {
-	tasks: Task[];
-	onToggle: (id: string) => void;
-	onEdit?: (task: Task) => void;
-	onDelete?: (id: string) => void;
-	onPin?: (id: string) => void;
+  tasks: Task[];
+  onToggle: (id: number) => void;
+  onEdit?: (task: Task) => void;
+  onDelete?: (id: number) => void;
+  onPin?: (id: number) => void;
 }
 
 interface Tag {
@@ -48,174 +51,213 @@ interface Tag {
 
 // Professional, subtle priority styling - matching sidebar quality
 const priorityStyles: Record<string, { badge: string; text: string }> = {
-	high: {
-		badge: "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/50",
-		text: "text-red-700 dark:text-red-400",
-	},
-	medium: {
-		badge: "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50",
-		text: "text-blue-700 dark:text-blue-400",
-	},
-	low: {
-		badge: "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50",
-		text: "text-emerald-700 dark:text-emerald-400",
-	},
+  high: { badge: "bg-red-100 text-red-700", text: "text-red-700" },
+  medium: { badge: "bg-blue-100 text-blue-700", text: "text-blue-700" },
+  low: { badge: "bg-green-100 text-green-700", text: "text-green-700" },
 };
 
-export function LuxuryView({ tasks, onToggle, onDelete, onPin }: LuxuryViewProps) {
-	if (tasks.length === 0) {
-		return (
-			<motion.div
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				className="flex flex-col items-center justify-center py-20"
-			>
-				<div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-800/50 mb-4">
-					<Plus className="w-10 h-10 text-slate-400 dark:text-slate-500" />
-				</div>
-				<h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-1">No tasks yet</h3>
-				<p className="text-sm text-slate-600 dark:text-slate-400">Create your first task to get started</p>
-			</motion.div>
-		);
-	}
+export function LuxuryView({ tasks, onToggle, onEdit, onDelete, onPin }: LuxuryViewProps) {
+  const priorityGroups = {
+    high: tasks.filter(t => t.priority === "high"),
+    medium: tasks.filter(t => t.priority === "medium"),
+    low: tasks.filter(t => t.priority === "low"),
+  };
 
-	return (
-		<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-			{tasks.map((task, index) => {
-				const priority = task.priority as keyof typeof priorityStyles;
-				const styles = priorityStyles[priority] || priorityStyles.medium;
+  const getTaskCount = (priority: string) => {
+    return priorityGroups[priority]?.length || 0;
+  };
 
-				return (
-					<motion.div
-						key={task.id}
-						initial={{ opacity: 0, y: 10 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{
-							delay: index * 0.03,
-							duration: 0.25,
-						}}
-						className="group"
-					>
-						<div className="h-full flex flex-col rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 backdrop-blur-sm p-4 hover:shadow-sm transition-all duration-200">
-							{/* Header */}
-							<div className="flex items-center justify-between mb-3">
-								<Badge className={cn("text-xs font-medium", styles.badge)} variant="outline">
-									{task.priority}
-								</Badge>
+  const getCompletedCount = (priority: string) => {
+    return priorityGroups[priority]?.filter(t => t.completed).length || 0;
+  };
 
-								<div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-									{onPin && (
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-7 w-7 hover:bg-slate-100 dark:hover:bg-slate-700/50"
-											onClick={() => onPin(task.id)}
-										>
-											<Pin className={cn("h-3.5 w-3.5", task.is_pinned && "text-indigo-600 dark:text-indigo-400 fill-indigo-600 dark:fill-indigo-400")} />
-										</Button>
-									)}
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-7 w-7 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600"
-										onClick={() => onDelete?.(task.id)}
-									>
-										<X className="h-3.5 w-3.5" />
-									</Button>
-								</div>
-							</div>
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-							{/* Pinned indicator */}
-							{task.is_pinned && (
-								<div className="absolute top-2 right-2">
-									<Pin className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 fill-indigo-600 dark:fill-indigo-400" />
-								</div>
-							)}
+  const todayTasks = tasks.filter(t => {
+    const taskDate = new Date(t.created_at);
+    return taskDate >= today && !t.completed;
+  });
 
-							{/* Content */}
-							<div className="flex-1 min-h-0">
-								<h3
-									className={cn(
-										"text-sm font-medium mb-2 line-clamp-2 transition-colors",
-										"group-hover:text-indigo-600 dark:group-hover:text-indigo-400",
-										task.completed && "line-through text-slate-400 dark:text-slate-500"
-									)}
-								>
-									{task.title}
-								</h3>
+  const completedToday = tasks.filter(t => {
+    const taskDate = new Date(t.updated_at);
+    return taskDate >= today && t.completed;
+  });
 
-								{task.description && (
-									<p className="text-xs text-slate-600 dark:text-slate-400 mb-3 line-clamp-2">
-										{task.description}
-									</p>
-								)}
+  return (
+    <div className="space-y-8">
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <StatCard
+          title="Total Tasks"
+          value={tasks.length}
+          icon={List}
+          color="blue"
+          trend={tasks.length > 0 ? "up" : "neutral"}
+        />
+        <StatCard
+          title="Today's Tasks"
+          value={todayTasks.length}
+          icon={Clock}
+          color="green"
+          trend={todayTasks.length > 0 ? "up" : "neutral"}
+        />
+        <StatCard
+          title="Completed Today"
+          value={completedToday.length}
+          icon={Check}
+          color="emerald"
+          trend={completedToday.length > 0 ? "up" : "neutral"}
+        />
+        <StatCard
+          title="Overdue Tasks"
+          value={tasks.filter(t => !t.completed && new Date(t.created_at) < new Date(Date.now() - 86400000)).length}
+          icon={AlertCircle}
+          color="red"
+          trend="neutral"
+        />
+      </div>
 
-								{/* Tags */}
-								{task.tags && task.tags.length > 0 && (
-									<div className="flex flex-wrap gap-1.5 mb-3">
-										{task.tags.slice(0, 3).map((tag: Tag) => (
-											<span
-												key={tag.id}
-												className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600"
-											>
-												{tag.name}
-											</span>
-										))}
-										{task.tags.length > 3 && (
-											<span className="text-[10px] text-slate-500 dark:text-slate-500">
-												+{task.tags.length - 3} more
-											</span>
-										)}
-									</div>
-								)}
-							</div>
+      {/* Priority Groups */}
+      <div className="space-y-6">
+        {["high", "medium", "low"].map((priority) => {
+          const groupTasks = priorityGroups[priority];
+          if (!groupTasks || groupTasks.length === 0) return null;
 
-							{/* Footer */}
-							<div className="mt-auto pt-3 border-t border-slate-200 dark:border-slate-700/50">
-								<div className="flex items-center justify-between">
-									<div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-										<CalendarIcon className="h-3.5 w-3.5" />
-										<span>{new Date(task.created_at).toLocaleDateString()}</span>
-									</div>
+          const completed = getCompletedCount(priority);
 
-									{task.due_date && (
-										<div className={cn(
-											"flex items-center gap-1.5 px-2 py-1 rounded-md text-xs",
-											new Date(task.due_date) < new Date()
-												? "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"
-												: "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
-										)}>
-											<Clock className="h-3.5 w-3.5" />
-											<span>{new Date(task.due_date).toLocaleDateString()}</span>
-										</div>
-									)}
-								</div>
-							</div>
+          return (
+            <motion.div
+              key={priority}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className={`w-3 h-3 rounded-full ${priorityStyles[priority].badge}`}>
+                    <span className="text-xs font-medium">{priority.toUpperCase()}</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-monza-900 dark:text-white">{priority.toUpperCase()} TASKS</h3>
+                </div>
+                <Badge
+                  variant="secondary"
+                  className={`${priorityStyles[priority].text}`}
+                >
+                  {getCompletedCount(priority)}/{getTaskCount(priority)} completed
+                </Badge>
+              </div>
 
-							{/* Action Button */}
-							<Button
-								onClick={() => onToggle(task.id)}
-								variant={task.completed ? "outline" : "default"}
-								size="sm"
-								className={cn(
-									"w-full mt-3 font-medium text-xs transition-all duration-200",
-									task.completed && "hover:bg-slate-100 dark:hover:bg-slate-700/50"
-								)}
-							>
-								{task.completed ? (
-									<>
-										<span className="mr-1.5">↩</span> Restore
-									</>
-								) : (
-									<>
-										<Check className="w-3 h-3 mr-1.5" /> Complete
-									</>
-								)}
-							</Button>
-						</div>
-					</motion.div>
-				);
-			})}
-		</div>
-	);
+              <div className="space-y-3">
+                {groupTasks.map((task) => (
+                  <motion.div
+                    key={task.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="group relative p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 to-slate-800 transition-all hover:shadow-md hover:border-slate-300"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+                          <span className="text-sm font-medium text-monza-600 dark:text-monza-400">#{task.id}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className={`text-sm font-medium ${task.completed ? "line-through text-monza-400" : "text-monza-900 dark:text-white"} truncate`}>
+                            {task.title}
+                          </h4>
+                          <p className="text-xs text-monza-500 dark:text-monza-400">
+                            {task.description?.slice(0, 50)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {task.priority && (
+                          <Badge variant="outline" size="sm" className={`${priorityStyles[task.priority].badge} text-xs`}>
+                            {task.priority}
+                          </Badge>
+                        )}
+                        <span className="text-xs text-monza-400">
+                          {new Date(task.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-monza-400 hover:text-monza-600"
+                        onClick={() => onToggle(task.id)}
+                      >
+                        <Check className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-monza-400 hover:text-monza-600"
+                        onClick={() => onEdit(task)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-monza-400 hover:text-red-600"
+                        onClick={() => onDelete(task.id)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-monza-400 hover:text-blue-600"
+                        onClick={() => onPin(task.id)}
+                      >
+                        <Pin className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Stat Card Component
+interface StatCardProps {
+  title: string;
+  value: number;
+  icon: React.ElementType;
+  color: "blue" | "green" | "emerald" | "red";
+  trend: "up" | "neutral" | "down";
+}
+
+function StatCard({ title, value, icon: Icon, color, trend }: StatCardProps) {
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className={`p-3 rounded-xl ${color === "blue" ? "bg-blue-100 text-blue-600" : color === "green" ? "bg-green-100 text-green-600" : color === "emerald" ? "bg-emerald-100 text-emerald-600" : color === "red" ? "bg-red-100 text-red-600" : "bg-slate-100 text-monza-600"} `}>
+            <Icon className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h4 className="text-2xl font-bold text-monza-900 dark:text-white">{value}</h4>
+            <p className="text-xs text-monza-500 dark:text-monza-400">{title}</p>
+          </div>
+        </div>
+        {trend !== "neutral" && (
+          <div className={`text-xs font-medium ${trend === "up" ? "text-emerald-600" : "text-red-600"}`}>
+            {trend === "up" ? "↑ 12%" : "↓ 8%"}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

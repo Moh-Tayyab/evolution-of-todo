@@ -6,7 +6,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional, List
 from uuid import UUID, uuid4
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import SQLModel, Field, Relationship, Column, Integer
+from sqlalchemy import Sequence
 
 
 class Priority(str, Enum):
@@ -30,7 +31,7 @@ class Task(TaskBase, table=True):
     """Database model for tasks table"""
     __tablename__ = "tasks"
 
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    id: Optional[int] = Field(default=None, primary_key=True)
     user_id: UUID = Field(index=True, nullable=False)
     completed: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)

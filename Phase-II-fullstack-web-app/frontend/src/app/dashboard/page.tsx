@@ -54,7 +54,7 @@ import { cn } from "@/lib/utils";
 
 // API & Auth
 import { apiClient } from "@/lib/api";
-import { getCurrentUserId, signOut, getToken } from "@/lib/auth";
+import { getCurrentUserId, signOut, getToken, getCurrentUser } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 
 type ViewMode = "dashboard" | "tasks" | "list" | "board" | "luxury" | "calendar" | "analytics" | "templates" | "settings";
@@ -128,7 +128,7 @@ export default function DashboardPage() {
   });
 
   // Dialog State
-  const [deleteId, setDeleteId] = React.useState<string | null>(null);
+  const [deleteId, setDeleteId] = React.useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   // Refs
@@ -188,6 +188,19 @@ export default function DashboardPage() {
       if (currentUserId && token) {
         // Both user ID and JWT token exist
         setUserId(currentUserId);
+
+        // Fetch user data
+        try {
+          const userData = await getCurrentUser();
+          if (userData?.name) {
+            setUserName(userData.name);
+          } else if (userData?.email) {
+            // Use email username part as fallback
+            setUserName(userData.email.split("@")[0]);
+          }
+        } catch (error) {
+          console.error("Failed to fetch user name:", error);
+        }
       } else if (currentUserId && !token) {
         // User ID exists but JWT token is missing (Better Auth session without FastAPI JWT)
         toast({
@@ -224,12 +237,6 @@ export default function DashboardPage() {
         order: filters.sortDirection as "asc" | "desc",
       });
       setTasks(fetchedTasks);
-
-      // Try to get user name from the first task's user data or set default
-      if (fetchedTasks.length > 0) {
-        // We'll use the user's name if available, otherwise use "User"
-        setUserName("User");
-      }
     } catch (error) {
       console.error("Failed to load tasks:", error);
       toast({
@@ -242,22 +249,9 @@ export default function DashboardPage() {
     }
   }, [userId, filters, toast]);
 
-  // Load user data
-  const loadUserData = React.useCallback(async () => {
-    if (!userId) return;
-
-    try {
-      // For now, use a default name. In production, you'd fetch from API
-      setUserName("User");
-    } catch (error) {
-      console.error("Failed to load user data:", error);
-    }
-  }, [userId]);
-
   React.useEffect(() => {
     if (userId) {
       loadTasks();
-      loadUserData();
     }
   }, [userId]);
 
@@ -294,7 +288,7 @@ export default function DashboardPage() {
   }, [tasks, searchQuery, filters]);
 
   // Task handlers
-  const handleToggle = async (taskId: string) => {
+  const handleToggle = async (taskId: number) => {
     if (!userId) return;
 
     // Optimistic update
@@ -326,7 +320,7 @@ export default function DashboardPage() {
     }
   };
 
-  const confirmDelete = (taskId: string) => {
+  const confirmDelete = (taskId: number) => {
     setDeleteId(taskId);
     setShowDeleteConfirm(true);
   };
@@ -352,7 +346,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handlePin = (taskId: string) => {
+  const handlePin = (taskId: number) => {
     // Pin functionality is not implemented in the backend API
     // This is a UI-only placeholder for future implementation
     setTasks((prev) =>
@@ -360,7 +354,7 @@ export default function DashboardPage() {
     );
   };
 
-  const handleArchive = (taskId: string) => {
+  const handleArchive = (taskId: number) => {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
   };
 
@@ -499,7 +493,7 @@ export default function DashboardPage() {
         );
 
       case "analytics":
-        return <AnalyticsDashboard />;
+        return <AnalyticsDashboard tasks={tasks} />;
 
       case "templates":
         return (
@@ -757,16 +751,16 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between gap-2">
               {/* Page Title */}
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-monza-900 dark:text-white flex items-center gap-2">
                   {currentView === "analytics" && <BarChart3 className="w-6 h-6 text-indigo-500" />}
                   {currentView === "templates" && <Sparkles className="w-6 h-6 text-blue-500" />}
-                  {currentView === "settings" && <SettingsIcon className="w-6 h-6 text-slate-500" />}
+                  {currentView === "settings" && <SettingsIcon className="w-6 h-6 text-monza-500" />}
                   {(!currentView || currentView === "dashboard" || currentView === "tasks") && <Target className="w-6 h-6 text-indigo-500" />}
                   {currentView === "dashboard" || currentView === "tasks" || !currentView
                     ? "Dashboard"
                     : currentView.charAt(0).toUpperCase() + currentView.slice(1)}
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 hidden md:block">
+                <p className="text-xs sm:text-sm text-monza-500 dark:text-monza-400 hidden md:block">
                   {currentView === "analytics" && "Track your productivity and insights"}
                   {currentView === "templates" && "Quick-start with pre-made templates"}
                   {currentView === "settings" && "Customize your experience"}
@@ -779,7 +773,7 @@ export default function DashboardPage() {
                 {/* Search */}
                 {currentView !== "analytics" && currentView !== "templates" && (
                   <div className="relative hidden sm:block">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-monza-400" />
                     <input
                       type="text"
                       placeholder="Search tasks..."

@@ -5,7 +5,7 @@
 from datetime import datetime
 from typing import Optional, List
 from uuid import UUID, uuid4
-from sqlmodel import SQLModel, Field, Relationship, Column, Text
+from sqlmodel import SQLModel, Field, Relationship, Column, Text, Index
 
 
 class ConversationBase(SQLModel):
@@ -29,3 +29,8 @@ class Conversation(ConversationBase, table=True):
 
     # Relationships
     messages: List["Message"] = Relationship(back_populates="conversation")
+
+
+# Indexes defined in SQLModel (PostgreSQL will create these)
+# CREATE INDEX idx_conversations_user ON conversations(user_id DESC, updated_at DESC);
+# CREATE INDEX idx_conversations_created ON conversations(created_at DESC);

@@ -3,7 +3,7 @@
 import React from "react";
 
 export interface Task {
-  id: string;
+  id: number;  // Changed from string to number for integer task IDs
   title: string;
   description?: string;
   completed: boolean;
@@ -17,12 +17,12 @@ export interface Task {
 
 export interface TaskListProps {
   tasks: Task[];
-  onTaskDelete?: (id: string) => void;
-  onTaskToggle?: (id: string) => void;
-  onToggle?: (id: string) => Promise<void>;
-  onDelete?: (id: string) => void;
-  onPin?: (id: string) => void;
-  onArchive?: (id: string) => void;
+  onTaskDelete?: (id: number) => void;
+  onTaskToggle?: (id: number) => void;
+  onToggle?: (id: number) => Promise<void>;
+  onDelete?: (id: number) => void;
+  onPin?: (id: number) => void;
+  onArchive?: (id: number) => void;
   onEdit?: (task: Task) => void;
 }
 

@@ -38,3 +38,8 @@ class Message(MessageBase, table=True):
 
     # Relationships
     conversation: Optional["Conversation"] = Relationship(back_populates="messages")
+
+
+# Indexes defined in SQLModel (PostgreSQL will create these)
+# CREATE INDEX idx_messages_conversation ON messages(conversation_id, created_at DESC);
+# CREATE INDEX idx_messages_role ON messages(role, created_at DESC);

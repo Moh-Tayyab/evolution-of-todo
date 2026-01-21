@@ -42,7 +42,7 @@ const colorStyles: Record<string, { bg: string; icon: string; border: string }> 
 	},
 	gray: {
 		bg: "bg-slate-50 dark:bg-slate-900/50",
-		icon: "text-slate-600 dark:text-slate-400",
+		icon: "text-monza-600 dark:text-monza-400",
 		border: "border-slate-200 dark:border-slate-800",
 	},
 };
@@ -88,7 +88,7 @@ export function StatCard({
 									? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400"
 									: trend < 0
 										? "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"
-										: "bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400"
+										: "bg-slate-50 dark:bg-slate-900/50 text-monza-600 dark:text-monza-400"
 							)}
 						>
 							{trend > 0 ? "+" : ""}
@@ -103,11 +103,11 @@ export function StatCard({
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						transition={{ delay: delay + 0.1 }}
-						className="text-2xl font-semibold text-slate-900 dark:text-slate-100"
+						className="text-2xl font-semibold text-monza-900 dark:text-slate-100"
 					>
 						{value}
 					</motion.div>
-					<p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">{label}</p>
+					<p className="text-sm text-monza-600 dark:text-monza-400 mt-0.5">{label}</p>
 				</div>
 			</div>
 		</motion.div>
