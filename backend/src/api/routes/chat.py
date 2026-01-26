@@ -167,6 +167,11 @@ async def chat_endpoint(
             {"tool_calls": tool_calls} if tool_calls else None,
         )
 
+        # Store message details before commit (to avoid lazy-loading issues)
+        message_id = str(ai_message.id)
+        message_created_at = ai_message.created_at.isoformat()
+        conversation_id = str(conversation.id)
+
         # Update conversation title based on first exchange if still "New Chat"
         if conversation.title == "New Chat":
             # Generate title from first few words of user message
@@ -178,13 +183,16 @@ async def chat_endpoint(
                 session, conversation.id, new_title
             )
 
+        # Commit the transaction to persist all changes
+        await session.commit()
+
         return ChatResponse(
-            conversation_id=str(conversation.id),
+            conversation_id=conversation_id,
             message=ChatMessage(
-                id=str(ai_message.id),
+                id=message_id,
                 role="assistant",
                 content=ai_response_text,
-                created_at=ai_message.created_at.isoformat(),
+                created_at=message_created_at,
             ),
             tool_calls=tool_calls if tool_calls else None,
         )

@@ -64,17 +64,11 @@ def create_agent(session, user_id: UUID) -> Agent:
         # Set context for this request
         mcp_server.set_session_context(session, user_id)
 
-        # Call the MCP tool
-        result = await mcp_server.call_tool("add_task", {
-            "title": title,
-            "description": description,
-            "priority": priority,
-        })
+        # Get the tool and call it
+        tool = await mcp_server.get_tool("add_task")
+        result = await tool.fn(title=title, description=description, priority=priority)
 
-        # Extract and return the text content
-        if hasattr(result, 'content'):
-            return result.content[0].text if result.content else str(result)
-        return str(result)
+        return result
 
     async def list_tasks_wrapper(completed: bool = None) -> str:
         """List all tasks for the user.
@@ -88,15 +82,11 @@ def create_agent(session, user_id: UUID) -> Agent:
         # Set context for this request
         mcp_server.set_session_context(session, user_id)
 
-        # Call the MCP tool
-        result = await mcp_server.call_tool("list_tasks", {
-            "completed": completed,
-        })
+        # Get the tool and call it
+        tool = await mcp_server.get_tool("list_tasks")
+        result = await tool.fn(completed=completed)
 
-        # Extract and return the text content
-        if hasattr(result, 'content'):
-            return result.content[0].text if result.content else str(result)
-        return str(result)
+        return result
 
     async def update_task_wrapper(task_id: int, title: str = None, description: str = None, priority: str = None) -> str:
         """Update an existing task.
@@ -113,22 +103,11 @@ def create_agent(session, user_id: UUID) -> Agent:
         # Set context for this request
         mcp_server.set_session_context(session, user_id)
 
-        # Build arguments (only include non-None values)
-        args = {"task_id": task_id}
-        if title is not None:
-            args["title"] = title
-        if description is not None:
-            args["description"] = description
-        if priority is not None:
-            args["priority"] = priority
+        # Get the tool and call it
+        tool = await mcp_server.get_tool("update_task")
+        result = await tool.fn(task_id=task_id, title=title, description=description, priority=priority)
 
-        # Call the MCP tool
-        result = await mcp_server.call_tool("update_task", args)
-
-        # Extract and return the text content
-        if hasattr(result, 'content'):
-            return result.content[0].text if result.content else str(result)
-        return str(result)
+        return result
 
     async def delete_task_wrapper(task_id: int) -> str:
         """Delete a task.
@@ -142,15 +121,11 @@ def create_agent(session, user_id: UUID) -> Agent:
         # Set context for this request
         mcp_server.set_session_context(session, user_id)
 
-        # Call the MCP tool
-        result = await mcp_server.call_tool("delete_task", {
-            "task_id": task_id,
-        })
+        # Get the tool and call it
+        tool = await mcp_server.get_tool("delete_task")
+        result = await tool.fn(task_id=task_id)
 
-        # Extract and return the text content
-        if hasattr(result, 'content'):
-            return result.content[0].text if result.content else str(result)
-        return str(result)
+        return result
 
     async def complete_task_wrapper(task_id: int, completed: bool = True) -> str:
         """Mark a task as complete or incomplete.
@@ -165,16 +140,11 @@ def create_agent(session, user_id: UUID) -> Agent:
         # Set context for this request
         mcp_server.set_session_context(session, user_id)
 
-        # Call the MCP tool
-        result = await mcp_server.call_tool("complete_task", {
-            "task_id": task_id,
-            "completed": completed,
-        })
+        # Get the tool and call it
+        tool = await mcp_server.get_tool("complete_task")
+        result = await tool.fn(task_id=task_id, completed=completed)
 
-        # Extract and return the text content
-        if hasattr(result, 'content'):
-            return result.content[0].text if result.content else str(result)
-        return str(result)
+        return result
 
     # Create the agent with MCP tools wrapped as function_tool
     return Agent(

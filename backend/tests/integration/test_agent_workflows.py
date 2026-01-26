@@ -67,11 +67,11 @@ class TestAgentTaskWorkflows:
 
         # Verify tools have the correct names
         tool_names = [tool.name for tool in agent.tools]
-        assert "add_task_tool" in tool_names
-        assert "list_tasks_tool" in tool_names
-        assert "update_task_tool" in tool_names
-        assert "delete_task_tool" in tool_names
-        assert "complete_task_tool" in tool_names
+        assert "add_task_wrapper" in tool_names
+        assert "list_tasks_wrapper" in tool_names
+        assert "update_task_wrapper" in tool_names
+        assert "delete_task_wrapper" in tool_names
+        assert "complete_task_wrapper" in tool_names
 
     async def test_ti002_agent_returns_task_list_when_user_says_show_my_tasks(
         self, agent_session, test_user_uuid

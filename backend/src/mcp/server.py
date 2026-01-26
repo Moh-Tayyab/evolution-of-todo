@@ -22,7 +22,8 @@ Usage:
 
 from typing import Optional
 from uuid import UUID
-from sqlmodel import Session, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 from fastmcp import FastMCP
 
 from ..models.task import Task, Priority
@@ -54,12 +55,12 @@ def create_mcp_server(name: str = "todo-tools") -> FastMCP:
     # This is a simplified approach - in production, use proper context management
     _session_context = {}
 
-    def set_session_context(session: Session, user_id: UUID):
+    def set_session_context(session: AsyncSession, user_id: UUID):
         """Set the database session and user ID for the current request."""
         _session_context["session"] = session
         _session_context["user_id"] = user_id
 
-    def get_session() -> Session:
+    def get_session() -> AsyncSession:
         """Get the database session for the current request."""
         return _session_context.get("session")
 
@@ -118,7 +119,7 @@ def create_mcp_server(name: str = "todo-tools") -> FastMCP:
             completed=False,
         )
         session.add(task)
-        await session.commit()
+        await session.flush()
         await session.refresh(task)
 
         return (
@@ -257,7 +258,7 @@ def create_mcp_server(name: str = "todo-tools") -> FastMCP:
         from datetime import datetime
         task.updated_at = datetime.utcnow()
 
-        await session.commit()
+        await session.flush()
         await session.refresh(task)
 
         return (
@@ -303,7 +304,7 @@ def create_mcp_server(name: str = "todo-tools") -> FastMCP:
 
         # Delete task
         await session.delete(task)
-        await session.commit()
+        await session.flush()
 
         return f"Task '{task_title}' (ID: {task_id}) has been deleted."
 
@@ -346,7 +347,7 @@ def create_mcp_server(name: str = "todo-tools") -> FastMCP:
         from datetime import datetime
         task.updated_at = datetime.utcnow()
 
-        await session.commit()
+        await session.flush()
         await session.refresh(task)
 
         status = "completed" if completed else "marked as incomplete"

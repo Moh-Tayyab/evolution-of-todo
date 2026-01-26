@@ -179,6 +179,9 @@ async def chatkit_endpoint(
             user_message,
         )
 
+        # Commit the user message before starting the stream
+        await session.commit()
+
         # Create async generator for streaming response
         async def stream_response() -> AsyncGenerator[str, None]:
             """Stream ChatKit protocol events."""
@@ -214,6 +217,9 @@ async def chatkit_endpoint(
                     await conversation_service.update_conversation_title(
                         session, conversation.id, new_title
                     )
+
+                # Commit AI message and title update
+                await session.commit()
 
                 # Stream ChatKit protocol events
                 # Event format: "event: <type>\ndata: <json>\n\n"

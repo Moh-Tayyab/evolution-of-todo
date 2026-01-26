@@ -2,7 +2,7 @@
 # @spec: specs/003-ai-chatbot/data-model.md
 # Conversation service for chatbot history persistence
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from uuid import UUID
 
@@ -54,7 +54,7 @@ class ConversationService:
                 is_active=True,
             )
             session.add(placeholder_user)
-            await session.commit()
+            await session.flush()  # Use flush instead of commit to avoid transaction issues
 
     async def get_or_create_conversation(
         self,
@@ -108,15 +108,16 @@ class ConversationService:
         # Ensure user exists before creating conversation
         await self._ensure_user_exists(session, user_id)
 
-        # Create new conversation
+        # Create new conversation (use naive UTC datetime for database compatibility)
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         conversation = Conversation(
             user_id=user_id,
             title="New Chat",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=now,
+            updated_at=now,
         )
         session.add(conversation)
-        await session.commit()
+        await session.flush()
         await session.refresh(conversation)
 
         return conversation
@@ -141,24 +142,27 @@ class ConversationService:
         Returns:
             Created Message instance
         """
+        # Use naive UTC datetime for database compatibility
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         message = Message(
             conversation_id=conversation_id,
             role=role,
             content=content,
             tool_calls=tool_calls,
-            created_at=datetime.utcnow(),
+            created_at=now,
         )
         session.add(message)
 
-        # Update conversation timestamp
-        query = select(Conversation).where(Conversation.id == conversation_id)
-        result = await session.execute(query)
-        conversation = result.scalar_one_or_none()
+        # Update conversation timestamp using bulk update to avoid autoflush issues
+        from sqlalchemy import update
+        stmt = (
+            update(Conversation)
+            .where(Conversation.id == conversation_id)
+            .values(updated_at=now)
+        )
+        await session.execute(stmt)
 
-        if conversation:
-            conversation.updated_at = datetime.utcnow()
-
-        await session.commit()
+        await session.flush()
         await session.refresh(message)
 
         return message
@@ -185,6 +189,42 @@ class ConversationService:
 
         result = await session.execute(query)
         return list(result.scalars().all())
+
+    async def get_messages(
+        self,
+        session: AsyncSession,
+        conversation_id: UUID,
+        limit: int = 1000,
+    ) -> List[Message]:
+        """Convenience alias for get_conversation_messages.
+
+        Args:
+            session: Async database session
+            conversation_id: Conversation UUID
+            limit: Maximum messages to return (default 1000)
+
+        Returns:
+            List of messages ordered by created_at ASC
+        """
+        return await self.get_conversation_messages(session, conversation_id, limit)
+
+    async def get_conversation(
+        self,
+        session: AsyncSession,
+        conversation_id: UUID,
+    ) -> Optional[Conversation]:
+        """Get a conversation by ID.
+
+        Args:
+            session: Async database session
+            conversation_id: Conversation UUID
+
+        Returns:
+            Conversation instance or None if not found
+        """
+        query = select(Conversation).where(Conversation.id == conversation_id)
+        result = await session.execute(query)
+        return result.scalar_one_or_none()
 
     async def get_user_conversations(
         self,
@@ -231,8 +271,9 @@ class ConversationService:
 
         if conversation:
             conversation.title = title[:255]  # Max length
-            conversation.updated_at = datetime.utcnow()
-            await session.commit()
+            # Use naive UTC datetime for database compatibility
+            conversation.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            await session.flush()
             await session.refresh(conversation)
 
         return conversation
