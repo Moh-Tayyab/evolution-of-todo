@@ -24,7 +24,34 @@
         "-y",
         "aceternityui-mcp"
       ]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "playwright-mcp"
+      ],
+      "env": {
+        "PLAYWRIGHT_CHROMIUM_SANDBOX": "false"
+      }
+    },
+    "vercel": {
+      "command": "python",
+      "args": [
+        ".claude/skills/vercel-deployment/mcp-server.py"
+      ],
+      "env": {
+        "VERCEL_TOKEN": "VERCEL_TOKEN"
+      }
+    },
+    "huggingface": {
+      "command": "python",
+      "args": [
+        ".claude/skills/huggingface-deployment/mcp-server.py"
+      ],
+      "env": {
+        "HF_TOKEN": "HF_TOKEN"
+      }
     }
-    
   }
 }

@@ -23,6 +23,7 @@ interface BoardViewProps {
 	onEdit?: (task: Task) => void;
 	onDelete?: (id: number) => void;
 	onPin?: (id: number) => void;
+	onMoveToColumn?: (taskId: number, column: Column) => void;
 }
 
 type Column = "todo" | "in-progress" | "done";
@@ -100,7 +101,7 @@ const getColumnForTask = (task: Task): Column => {
 	return "todo";
 };
 
-export function BoardView({ tasks, onToggle, onEdit, onDelete, onPin }: BoardViewProps) {
+export function BoardView({ tasks, onToggle, onEdit, onDelete, onPin, onMoveToColumn }: BoardViewProps) {
 	const [selectedTask, setSelectedTask] = React.useState<Task | null>(null);
 	const prefersReducedMotion = useReducedMotion();
 
@@ -119,12 +120,25 @@ export function BoardView({ tasks, onToggle, onEdit, onDelete, onPin }: BoardVie
 		? { hidden: {}, visible: {}, exit: {} }
 		: cardVariants;
 
-	const handleDragEnd = (event: { active: { id: string }; over: { id: string } | null }) => {
-		const { active, over } = event;
-		if (over && active.id !== over.id) {
-			// Handle drag and drop reordering
-			console.log('Dragged', active.id, 'to', over.id);
+	const [draggedOverColumn, setDraggedOverColumn] = React.useState<Column | null>(null);
+
+	const handleDragEnd = (
+		event: any,
+		taskId: number,
+		sourceColumn: Column
+	) => {
+		const targetColumn = draggedOverColumn || sourceColumn;
+
+		// If dropped on a different column, update task state
+		if (targetColumn !== sourceColumn && onMoveToColumn) {
+			onMoveToColumn(taskId, targetColumn);
 		}
+
+		setDraggedOverColumn(null);
+	};
+
+	const handleDragEnter = (column: Column) => {
+		setDraggedOverColumn(column);
 	};
 
 	return (
@@ -141,10 +155,12 @@ export function BoardView({ tasks, onToggle, onEdit, onDelete, onPin }: BoardVie
 							variants={columnVariants}
 							initial="hidden"
 							animate="visible"
+							onDragEnter={() => handleDragEnter(column.id)}
 							className={cn(
 								"rounded-xl border p-4 flex flex-col",
 								column.bgColor,
-								column.borderColor
+								column.borderColor,
+								draggedOverColumn === column.id && "ring-2 ring-indigo-500 ring-opacity-50"
 							)}
 						>
 							{/* Column Header */}
@@ -167,7 +183,7 @@ export function BoardView({ tasks, onToggle, onEdit, onDelete, onPin }: BoardVie
 											repeatDelay: 3,
 										}}
 									/>
-									<h3 className="font-semibold text-sm text-monza-900 dark:text-white">
+									<h3 className="font-semibold text-sm text-foreground dark:text-white">
 										{column.title}
 									</h3>
 								</div>
@@ -198,21 +214,21 @@ export function BoardView({ tasks, onToggle, onEdit, onDelete, onPin }: BoardVie
 											drag={prefersReducedMotion ? false : true}
 											dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
 											dragElastic={0.1}
-											onDragEnd={handleDragEnd}
+											onDragEnd={(e) => handleDragEnd(e, task.id, column.id)}
 											className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700 shadow-sm cursor-pointer transition-all"
 											onClick={() => setSelectedTask(task)}
 										>
 											<div className="flex items-start justify-between gap-2 mb-2">
 												<h4 className={cn(
 													"text-sm font-medium line-clamp-2",
-													task.completed ? "line-through text-monza-400" : "text-monza-900 dark:text-white"
+													task.completed ? "line-through text-muted-foreground" : "text-foreground dark:text-white"
 												)}>
 													{task.title}
 												</h4>
 											</div>
 
 											{task.description && (
-												<p className="text-xs text-monza-500 dark:text-monza-400 line-clamp-2 mb-2">
+												<p className="text-xs text-muted-foreground dark:text-muted-foreground line-clamp-2 mb-2">
 													{task.description}
 												</p>
 											)}
@@ -287,7 +303,7 @@ export function BoardView({ tasks, onToggle, onEdit, onDelete, onPin }: BoardVie
 										animate={{ opacity: 0.5 }}
 										transition={{ duration: 0.3 }}
 									>
-										<p className="text-sm text-monza-400 dark:text-monza-500">
+										<p className="text-sm text-muted-foreground dark:text-muted-foreground">
 											No tasks
 										</p>
 									</motion.div>

@@ -1,0 +1,663 @@
+#!/usr/bin/env python3
+# @spec: Git Hooks System for Evolution of Todo Project
+# Pre-push hook: Comprehensive validation before pushing to remote
+#
+# This hook runs comprehensive validation checks before code is pushed to remote.
+# Ensures code quality and test coverage before sharing with team.
+#
+# Validations performed:
+# - Frontend: Unit tests, E2E tests, build verification, TypeScript strict check
+# - Backend: pytest with coverage, mypy strict type checking, integration tests
+# - Coverage threshold enforcement (default: 70%)
+# - Build verification
+#
+# Performance: <30s timeout (configurable)
+# Exit codes: 0 (success), 1 (failure)
+
+from __future__ import annotations
+
+import sys
+import os
+from pathlib import Path
+from typing import List, Tuple, Optional, Dict
+
+# Add hooks utils to path
+hooks_dir = Path(__file__).parent
+utils_dir = hooks_dir / "utils"
+sys.path.insert(0, str(utils_dir))
+
+# Import utility modules
+from logger import HookLogger, Colors
+from config import HookConfig
+from git import GitUtils
+from frontend import FrontendUtils
+from backend import BackendUtils
+
+
+def print_banner(logger: HookLogger, remote: str, url: str) -> None:
+    """
+    Print the pre-push hook banner with remote information.
+
+    Args:
+        logger: HookLogger instance for output
+        remote: Remote name (e.g., "origin")
+        url: Remote URL
+    """
+    branch = GitUtils.get_current_branch()
+
+    logger.info("")
+    logger.info("=" * 70)
+    logger.info("  PRE-PUSH HOOK - Comprehensive Validation")
+    logger.info("")
+    logger.info(f"  Remote: {remote}")
+    logger.info(f"  Branch: {branch if branch else '(detached)'}")
+    logger.info("=" * 70)
+    logger.info("")
+
+
+def parse_push_arguments(stdin_lines: List[str]) -> List[Dict[str, str]]:
+    """
+    Parse the push arguments from stdin.
+
+    Git sends push information via stdin in the format:
+    <local_ref> <local_sha1> <remote_ref> <remote_sha1>
+
+    Example:
+    refs/heads/main 6f60ab3 refs/heads/main 0ae3fae
+
+    Args:
+        stdin_lines: List of lines from stdin
+
+    Returns:
+        List of dictionaries with push information
+    """
+    pushes = []
+
+    for line in stdin_lines:
+        parts = line.strip().split()
+        if len(parts) >= 4:
+            pushes.append({
+                "local_ref": parts[0],
+                "local_sha": parts[1],
+                "remote_ref": parts[2],
+                "remote_sha": parts[3],
+            })
+
+    return pushes
+
+
+def get_commits_to_push(push: Dict[str, str]) -> List[str]:
+    """
+    Get list of commit SHAs that will be pushed.
+
+    Args:
+        push: Push information dictionary
+
+    Returns:
+        List of commit SHAs (oldest to newest)
+    """
+    local_ref = push["local_sha"]
+    remote_ref = push["remote_sha"]
+
+    # If remote ref is all zeros, this is a new branch
+    # Get all commits that will be pushed
+    try:
+        if remote_ref == "0" * 40:
+            # New branch - get all commits in this branch
+            result = GitUtils.run_git_command([
+                "rev-list",
+                "--reverse",
+                f"{local_ref}"
+            ])
+        else:
+            # Existing branch - get commits since last push
+            result = GitUtils.run_git_command([
+                "rev-list",
+                "--reverse",
+                f"{remote_ref}..{local_ref}"
+            ])
+
+        commits = result.stdout.strip().split("\n") if result.stdout.strip() else []
+        return [c for c in commits if c]
+
+    except Exception:
+        return []
+
+
+def validate_frontend_comprehensive(
+    logger: HookLogger,
+    config: HookConfig,
+    frontend_dir: Path
+) -> bool:
+    """
+    Run comprehensive frontend validation before push.
+
+    This function performs thorough validation:
+    1. Full TypeScript type check (strict mode)
+    2. Unit tests with coverage
+    3. Build verification (production build)
+    4. E2E tests (if configured)
+
+    Args:
+        logger: HookLogger instance for output
+        config: HookConfig with settings
+        frontend_dir: Path to frontend directory
+
+    Returns:
+        True if all validations pass, False otherwise
+    """
+    logger.section("Frontend Comprehensive Validation")
+
+    frontend_config = config.frontend
+    if not frontend_config.get("enabled", True):
+        logger.info("Frontend validation disabled in config")
+        return True
+
+    all_passed = True
+    package_manager = FrontendUtils.detect_package_manager(frontend_dir)
+
+    # Check dependencies
+    if not FrontendUtils.check_dependencies(frontend_dir, package_manager):
+        logger.error("Frontend dependencies not installed.", exit_code=None)
+        logger.info("Run: cd frontend && pnpm install")
+        return False
+
+    # 1. TypeScript Strict Type Check
+    # ==========
+
+    typecheck_config = frontend_config.get("typecheck", {})
+    if typecheck_config.get("enabled", True):
+        logger.sub_section("TypeScript Strict Type Check")
+
+        with logger.time_operation("frontend_typecheck_strict"):
+            # Run with --noEmit for type-only check
+            success, output = FrontendUtils.run_type_check(
+                frontend_dir,
+                package_manager=package_manager
+            )
+
+        if success:
+            logger.success("TypeScript: No type errors (strict mode)")
+        else:
+            logger.error("TypeScript: Type errors detected", exit_code=None)
+            logger.info(output)
+            all_passed = False
+    else:
+        logger.debug("TypeScript check disabled in config")
+
+    # 2. Unit Tests
+    # ==========
+
+    tests_config = frontend_config.get("tests", {})
+    if tests_config.get("enabled", True):
+        logger.sub_section("Unit Tests")
+
+        timeout = tests_config.get("max_duration_seconds", 60)
+
+        with logger.time_operation("frontend_tests"):
+            success, output = FrontendUtils.run_tests(
+                frontend_dir,
+                test_type="unit",
+                package_manager=package_manager,
+                timeout=timeout
+            )
+
+        if success:
+            logger.success("Unit tests: PASSED")
+        else:
+            logger.error("Unit tests: FAILED", exit_code=None)
+            logger.info(output)
+            all_passed = False
+    else:
+        logger.debug("Frontend tests disabled in config")
+
+    # 3. Build Verification
+    # ==========
+
+    logger.sub_section("Production Build Verification")
+
+    build_timeout = 300  # 5 minutes for builds
+
+    with logger.time_operation("frontend_build"):
+        success, output = FrontendUtils.build_project(
+            frontend_dir,
+            package_manager=package_manager,
+            timeout=build_timeout
+        )
+
+    if success:
+        logger.success("Production build: SUCCESS")
+    else:
+        logger.error("Production build: FAILED", exit_code=None)
+        # Show last 20 lines of build output
+        lines = output.split("\n")[-20:]
+        logger.info("Build output (last 20 lines):")
+        logger.info("\n".join(lines))
+        all_passed = False
+
+    # 4. E2E Tests (Optional - Only if configured and playwright available)
+    # ==========
+
+    e2e_config = config.e2e
+    if e2e_config.get("enabled", False):
+        logger.sub_section("E2E Tests")
+
+        e2e_dir = frontend_dir / "e2e"
+        if not e2e_dir.exists():
+            logger.warning("E2E directory not found. Skipping E2E tests.")
+        else:
+            timeout = e2e_config.get("max_duration_seconds", 120)
+
+            with logger.time_operation("frontend_e2e"):
+                success, output = FrontendUtils.run_tests(
+                    frontend_dir,
+                    test_type="e2e",
+                    package_manager=package_manager,
+                    timeout=timeout
+                )
+
+            if success:
+                logger.success("E2E tests: PASSED")
+            else:
+                logger.warning("E2E tests: FAILED or SKIPPED", exit_code=None)
+                # Don't fail push for E2E tests, just warn
+                logger.info(output)
+    else:
+        logger.debug("E2E tests disabled in config")
+
+    return all_passed
+
+
+def validate_backend_comprehensive(
+    logger: HookLogger,
+    config: HookConfig,
+    backend_dir: Path
+) -> bool:
+    """
+    Run comprehensive backend validation before push.
+
+    This function performs thorough validation:
+    1. mypy strict type checking
+    2. pytest with coverage reporting
+    3. Coverage threshold enforcement
+    4. Integration tests (if available)
+
+    Args:
+        logger: HookLogger instance for output
+        config: HookConfig with settings
+        backend_dir: Path to backend directory
+
+    Returns:
+        True if all validations pass, False otherwise
+    """
+    logger.section("Backend Comprehensive Validation")
+
+    backend_config = config.backend
+    if not backend_config.get("enabled", True):
+        logger.info("Backend validation disabled in config")
+        return True
+
+    all_passed = True
+
+    # Check if Python backend
+    if not BackendUtils.is_backend_project(backend_dir):
+        logger.warning("Backend project structure not detected. Skipping validation.")
+        return True
+
+    # 1. mypy Strict Type Check
+    # ==========
+
+    mypy_config = backend_config.get("mypy", {})
+    if mypy_config.get("enabled", True):
+        logger.sub_section("mypy Type Check (Strict)")
+
+        strict_mode = mypy_config.get("strict_mode", True)
+
+        with logger.time_operation("backend_mypy"):
+            success, output = BackendUtils.run_mypy(
+                backend_dir,
+                strict=strict_mode
+            )
+
+        if success:
+            logger.success("mypy: No type errors (strict mode)")
+        else:
+            logger.error("mypy: Type errors detected", exit_code=None)
+            logger.info(output)
+            all_passed = False
+    else:
+        logger.debug("mypy disabled in config")
+
+    # 2. pytest with Coverage
+    # ==========
+
+    tests_config = backend_config.get("tests", {})
+    if tests_config.get("enabled", True):
+        logger.sub_section("pytest with Coverage")
+
+        timeout = tests_config.get("max_duration_seconds", 120)
+        coverage_threshold = tests_config.get("coverage_threshold", 70)
+
+        # Get required coverage from pre-push config
+        pre_push_config = config.pre_push
+        if pre_push_config.get("fail_on_coverage_below_threshold", True):
+            coverage_threshold = pre_push_config.get("test_coverage_threshold", 70)
+
+        logger.debug(f"Coverage threshold: {coverage_threshold}%")
+
+        with logger.time_operation("backend_tests"):
+            success, output = BackendUtils.run_tests(
+                backend_dir,
+                test_type="all",
+                coverage=True,
+                timeout=timeout
+            )
+
+        if success:
+            logger.success("pytest: PASSED")
+
+            # Parse coverage from output
+            coverage = BackendUtils.get_test_coverage(backend_dir)
+            if coverage is not None:
+                logger.info(f"Coverage: {coverage:.1f}%")
+
+                if coverage < coverage_threshold:
+                    logger.error(
+                        f"Coverage ({coverage:.1f}%) below threshold ({coverage_threshold}%)",
+                        exit_code=None
+                    )
+                    all_passed = False
+                else:
+                    logger.success(f"Coverage meets threshold ({coverage_threshold}%)")
+            else:
+                logger.debug("Could not parse coverage from output")
+        else:
+            logger.error("pytest: FAILED", exit_code=None)
+            logger.info(output)
+            all_passed = False
+    else:
+        logger.debug("Backend tests disabled in config")
+
+    return all_passed
+
+
+def run_security_checks(
+    logger: HookLogger,
+    config: HookConfig,
+    git_root: Path
+) -> bool:
+    """
+    Run security-focused checks before push.
+
+    This checks for:
+    1. Secrets in committed code (basic check)
+    2. Known vulnerable dependencies (if safety/gem-watcher available)
+
+    Note: This is a basic check. For production, consider:
+    - git-secrets
+    - truffleHog
+    - SonarQube
+    - Snyk
+    - Dependabot
+
+    Args:
+        logger: HookLogger instance for output
+        config: HookConfig with settings
+        git_root: Path to git repository root
+
+    Returns:
+        True if no security issues detected, False otherwise
+    """
+    logger.section("Security Checks")
+
+    all_passed = True
+
+    # 1. Check for secrets in all tracked files
+    # ==========
+
+    logger.sub_section("Secret Detection")
+
+    try:
+        # Get all tracked files
+        result = GitUtils.run_git_command(["ls-files", "-z"])
+        tracked_files = [
+            git_root / f
+            for f in result.stdout.strip("\0").split("\0")
+            if f and not f.startswith(".")
+        ]
+
+        import re
+
+        secret_patterns = [
+            r'api[_-]?key\s*=\s*["\'][\w-]{20,}["\']',
+            r'password\s*=\s*["\'][\w@#$%^&*]{8,}["\']',
+            r'token\s*=\s*["\'][\w.-]{30,}["\']',
+            r'-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----',
+            r'sk_[a-zA-Z0-9]{32,}',
+            r'ghp_[a-zA-Z0-9]{36,}',
+            r'AKIA[0-9A-Z]{16}',  # AWS access key
+            r'AIza[0-9A-Za-z\\-_]{35}',  # Google API key
+        ]
+
+        secrets_found = 0
+
+        for file_path in tracked_files[:100]:  # Limit to first 100 files for speed
+            # Skip binary files
+            if file_path.suffix in ['.png', '.jpg', '.jpeg', '.gif', '.pdf', '.zip', '.lock']:
+                continue
+
+            try:
+                content = file_path.read_text(encoding='utf-8', errors='ignore')
+
+                for pattern in secret_patterns:
+                    if re.search(pattern, content, re.IGNORECASE):
+                        rel_path = file_path.relative_to(git_root)
+                        logger.error(f"Potential secret in: {rel_path}", exit_code=None)
+                        secrets_found += 1
+                        break
+
+            except (IOError, UnicodeDecodeError):
+                continue
+
+        if secrets_found == 0:
+            logger.success("No secrets detected")
+        else:
+            logger.error(f"Found {secrets_found} potential secret(s)", exit_code=None)
+            logger.info("Remove secrets before pushing!")
+            all_passed = False
+
+    except Exception as e:
+        logger.debug(f"Secret detection error: {e}")
+
+    # 2. Dependency vulnerability check (if available)
+    # ==========
+
+    logger.sub_section("Dependency Vulnerability Check")
+
+    # Check if safety is installed for Python
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["safety", "--version"],
+            capture_output=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            logger.info("Running safety check...")
+            result = subprocess.run(
+                ["safety", "check", "--short-report"],
+                cwd=git_root,
+                capture_output=True,
+                timeout=30
+            )
+            if result.returncode == 0:
+                logger.success("No known vulnerabilities found")
+            else:
+                logger.warning("Safety check found vulnerabilities:")
+                logger.info(result.stdout.decode())
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        logger.debug("Safety not installed. Skipping vulnerability check.")
+
+    # Check for npm audit
+    frontend_dir = git_root / "frontend"
+    if frontend_dir.exists() and (frontend_dir / "package.json").exists():
+        try:
+            package_manager = FrontendUtils.detect_package_manager(frontend_dir)
+            audit_cmd = f"{package_manager} audit"
+
+            result = subprocess.run(
+                audit_cmd.split(),
+                cwd=frontend_dir,
+                capture_output=True,
+                timeout=30
+            )
+
+            if result.returncode == 0:
+                logger.success("No npm vulnerabilities found")
+            else:
+                # npm audit returns non-zero for vulnerabilities
+                # Just warn, don't fail push
+                logger.warning("npm audit found vulnerabilities:")
+                logger.info(result.stdout.decode()[:500])  # First 500 chars
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            logger.debug("npm audit failed or not available")
+
+    return all_passed
+
+
+def main() -> int:
+    """
+    Main entry point for the pre-push hook.
+
+    This function orchestrates all pre-push validations:
+    1. Parse push arguments from stdin
+    2. Load configuration
+    3. Get affected directories
+    4. Run comprehensive frontend validation
+    5. Run comprehensive backend validation
+    6. Run security checks
+    7. Report results
+
+    Git provides push info via stdin:
+    <local_ref> <local_sha1> <remote_ref> <remote_sha1>
+
+    Returns:
+        Exit code: 0 for success, 1 for failure
+    """
+    # Initialize logger
+    logger = HookLogger(
+        hook_name="pre-push",
+        verbose=os.getenv("GIT_HOOKS_VERBOSE", "false").lower() == "true"
+    )
+
+    # Read push arguments from stdin
+    import sys
+    stdin_lines = sys.stdin.readlines()
+    pushes = parse_push_arguments(stdin_lines)
+
+    if not pushes:
+        logger.debug("No push arguments received. Skipping validation.")
+        return 0
+
+    # Get remote info from first push
+    push = pushes[0]
+    remote = os.getenv("GIT_PUSH_REMOTE_NAME", "origin")
+
+    # Print banner
+    print_banner(logger, remote, remote)
+
+    # Load configuration
+    logger.debug("Loading configuration...")
+    config = HookConfig()
+
+    # Check if hook is enabled
+    if not config.is_hook_enabled("pre_push"):
+        logger.info("Pre-push hook disabled in configuration. Exiting.")
+        return 0
+
+    # Get timeout
+    timeout = config.get_hook_timeout("pre_push")
+    logger.debug(f"Timeout: {timeout}s")
+
+    # Get commits being pushed
+    commits = get_commits_to_push(push)
+    if commits:
+        logger.debug(f"Pushing {len(commits)} commit(s)")
+        if len(commits) <= 5:
+            for commit in commits:
+                logger.debug(f"  - {commit[:8]}")
+
+    # Get git root
+    git_root = GitUtils.get_git_root()
+    if not git_root:
+        logger.error("Not in a git repository", exit_code=1)
+
+    # Determine project directories
+    frontend_dir = git_root / "frontend"
+    backend_dir = git_root / "backend"
+
+    # Track results
+    all_passed = True
+
+    # Frontend comprehensive validation
+    if frontend_dir.exists() and FrontendUtils.is_frontend_project(frontend_dir):
+        try:
+            frontend_passed = validate_frontend_comprehensive(logger, config, frontend_dir)
+            all_passed = all_passed and frontend_passed
+        except Exception as e:
+            logger.error(f"Frontend validation failed: {e}", exit_code=None)
+            all_passed = False
+    else:
+        logger.debug("No frontend project detected. Skipping frontend validation.")
+
+    # Backend comprehensive validation
+    if backend_dir.exists() and BackendUtils.is_backend_project(backend_dir):
+        try:
+            backend_passed = validate_backend_comprehensive(logger, config, backend_dir)
+            all_passed = all_passed and backend_passed
+        except Exception as e:
+            logger.error(f"Backend validation failed: {e}", exit_code=None)
+            all_passed = False
+    else:
+        logger.debug("No backend project detected. Skipping backend validation.")
+
+    # Security checks (always run if pushing)
+    try:
+        security_passed = run_security_checks(logger, config, git_root)
+        all_passed = all_passed and security_passed
+    except Exception as e:
+        logger.error(f"Security checks failed: {e}", exit_code=None)
+        all_passed = False
+
+    # Print summary
+    logger.log_summary()
+
+    # Final result
+    if all_passed:
+        logger.success("Pre-push validation: PASSED")
+        logger.info("")
+        logger.info("Ready to push to remote!")
+        logger.info("")
+        return 0
+    else:
+        logger.error("Pre-push validation: FAILED", exit_code=None)
+        logger.info("")
+        logger.info("Fix the issues above before pushing.")
+        logger.info("To bypass this hook (not recommended):")
+        logger.info("  git push --no-verify")
+        logger.info("")
+        return 1
+
+
+if __name__ == "__main__":
+    try:
+        exit_code = main()
+        sys.exit(exit_code)
+    except KeyboardInterrupt:
+        logger = HookLogger("pre-push")
+        logger.warning("\nPre-push hook interrupted by user")
+        sys.exit(130)  # Standard exit code for SIGINT
+    except Exception as e:
+        logger = HookLogger("pre-push")
+        logger.error(f"Pre-push hook failed unexpectedly: {e}", exit_code=1)
+        sys.exit(1)

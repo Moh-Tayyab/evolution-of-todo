@@ -1,9 +1,9 @@
 # Claude Code Agents Catalog
 
-**Version:** 1.1.0
-**Last Updated:** 2025-01-18
+**Version:** 1.2.0
+**Last Updated:** 2025-02-02
 
-This directory contains 17 specialized production-grade agents for the Evolution of Todo project. Each agent is designed to handle specific development tasks with deep domain expertise, following industry best practices and maintaining consistency with the project constitution.
+This directory contains 19 specialized production-grade agents for the Evolution of Todo project. Each agent is designed to handle specific development tasks with deep domain expertise, following industry best practices and maintaining consistency with the project constitution.
 
 ## Table of Contents
 
@@ -37,7 +37,9 @@ This directory contains 17 specialized production-grade agents for the Evolution
 | [security-specialist](./security-specialist.md) | OWASP Top 10 mitigation, authentication security, and vulnerability scanning | sonnet | fastapi, better-auth-python, tech-stack-constraints |
 | [testing-qa-specialist](./testing-qa-specialist.md) | Unit, integration, E2E, and visual regression testing with TDD workflows | sonnet | vitest-expert, playwright-testing, cypress-testing, tdd-workflow |
 | [ui-ux-designer](./ui-ux-designer.md) | Component design, accessibility, shadcn/ui integration, and animations | sonnet | shadcn, framer-motion, tailwind-ccs, acternity-ui, gsap-animations |
+| [vercel-deployment](./vercel-deployment.md) | Vercel platform deployment, environment management, health checks, and rollback operations | sonnet | vercel-deployment |
 | [voice-task](./voice-task.md) | Speech recognition, voice commands, and text-to-speech integration | sonnet | tech-stack-constraints |
+| [playwright-automation-engineer](./playwright-automation-engineer.md) | Playwright browser automation, console monitoring, network inspection, and debugging via MCP | sonnet | playwright-mcp |
 
 ## Agent Architecture
 
@@ -110,6 +112,7 @@ You are a **production-grade [specialization] specialist** with deep expertise i
 | Need | Agent | Description |
 |------|-------|-------------|
 | Kubernetes | [kubernetes-architect](./kubernetes-architect.md) | Helm, manifests, GitOps |
+| Vercel Deployment | [vercel-deployment](./vercel-deployment.md) | Vercel deployments, env management, health checks |
 | Monorepo | [monorepo-architect](./monorepo-architect.md) | pnpm workspaces, Turborepo |
 | Git Workflow | Use git-workflow skill | Branching, PRs, commits |
 
@@ -118,6 +121,7 @@ You are a **production-grade [specialization] specialist** with deep expertise i
 | Need | Agent | Description |
 |------|-------|-------------|
 | Testing Strategy | [testing-qa-specialist](./testing-qa-specialist.md) | Unit, integration, E2E |
+| Browser Automation | [playwright-automation-engineer](./playwright-automation-engineer.md) | Console monitoring, network inspection, screenshots |
 | Performance | [performance-optimization](./performance-optimization.md) | Bundle size, caching |
 | Security | [security-specialist](./security-specialist.md) | Vulnerability scanning |
 
@@ -208,10 +212,15 @@ performance-optimization (lead)
 
 **Production Deployment:**
 ```
-kubernetes-architect (infrastructure)
+kubernetes-architect (K8s infrastructure)
 ├── security-specialist (security hardening)
 ├── monorepo-architect (build optimization)
 └── testing-qa-specialist (pre-deployment tests)
+
+vercel-deployment (Vercel infrastructure)
+├── nextjs-engineer (frontend build config)
+├── security-specialist (security headers)
+└── testing-qa-specialist (pre-deployment E2E tests)
 ```
 
 ### Agent Skills Reference
@@ -234,6 +243,7 @@ Agents leverage skills for detailed implementation patterns:
 | shadcn | shadcn/ui components | ui-ux-designer |
 | helm-charts-scffolding | Helm chart creation | kubernetes-architect |
 | k8s-manifest-generator | Kubernetes manifests | kubernetes-architect |
+| vercel-deployment | Vercel platform deployment automation | vercel-deployment |
 
 ## Agent File Conventions
 

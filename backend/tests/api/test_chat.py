@@ -4,11 +4,16 @@
 
 import pytest
 import time
+import os
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from uuid import uuid4, UUID
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlmodel import SQLModel
+
+# Set test environment before any imports from src
+os.environ["ENVIRONMENT"] = "test"
+os.environ["OPENAI_API_KEY"] = "sk-test-key-for-unit-tests-only"
 
 from src.main import app
 from src.security import create_access_token
@@ -21,6 +26,19 @@ test_engine = create_async_engine(
     echo=False,
     connect_args={"check_same_thread": False}
 )
+
+
+@pytest.fixture(autouse=True)
+async def set_test_env():
+    """Set test environment for all tests."""
+    original_env = os.environ.get("ENVIRONMENT")
+    os.environ["ENVIRONMENT"] = "test"
+    os.environ["OPENAI_API_KEY"] = "sk-test-key-for-unit-tests-only"
+    yield
+    if original_env is None:
+        os.environ.pop("ENVIRONMENT", None)
+    else:
+        os.environ["ENVIRONMENT"] = original_env
 
 
 @pytest.fixture
@@ -57,30 +75,27 @@ def test_client_with_db(test_api_session):
 # Mock Agent Classes
 # ============================================================================
 
-class MockChatResult:
-    """Mock agent result for testing."""
-    def __init__(self, response_text: str = "I've added that task to your list."):
-        self.final_output = response_text
-        self.events = []
-
-
 class MockAgentOrchestrator:
-    """Mock agent orchestrator for testing."""
-    def __init__(self, response_text: str = "Test response"):
+    """Mock agent orchestrator for testing.
+
+    Matches the actual AgentOrchestrator.process_message return format:
+    {
+        "response": str,        # AI response text
+        "tool_calls": [],       # List of tool calls made
+        "tool_results": []      # Results from tool executions
+    }
+    """
+
+    def __init__(self, response_text: str = "I've added that task to your list."):
         self.response_text = response_text
-        self.mock_result = MockChatResult(response_text)
 
-    async def process_message(self, user_message, conversation_history, user_id, session):
-        """Mock process message that returns a mock result."""
-        return self.mock_result
-
-    def get_response_text(self, result):
-        """Return the mock response text."""
-        return result.final_output
-
-    def get_tool_calls(self, result):
-        """Return empty tool calls list."""
-        return []
+    async def process_message(self, user_message, conversation_history, user_id, session, dashboard_context=None):
+        """Mock process message that returns a dict matching actual implementation."""
+        return {
+            "response": self.response_text,
+            "tool_calls": [],
+            "tool_results": []
+        }
 
 
 # ============================================================================

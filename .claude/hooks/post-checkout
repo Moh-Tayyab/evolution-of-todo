@@ -1,0 +1,486 @@
+#!/usr/bin/env python3
+# @spec: Git Hooks System for Evolution of Todo Project
+# Post-checkout hook: Actions after checking out a branch
+#
+# This hook runs after git checkout (branch switch) completes.
+# Useful for environment synchronization and developer information.
+#
+# Actions performed:
+# - Display branch information
+# - Auto-install dependencies if package files changed
+# - Clear build caches if needed
+# - Notify of significant changes
+#
+# Performance: <10s for operations, async for installs
+# Exit codes: 0 (success, always)
+
+from __future__ import annotations
+
+import sys
+import os
+from pathlib import Path
+from typing import Optional, List
+
+# Add hooks utils to path
+hooks_dir = Path(__file__).parent
+utils_dir = hooks_dir / "utils"
+sys.path.insert(0, str(utils_dir))
+
+# Import utility modules
+from logger import HookLogger, Colors
+from config import HookConfig
+from git import GitUtils
+from frontend import FrontendUtils
+from backend import BackendUtils
+
+
+def print_banner(logger: HookLogger, previous_head: str, new_head: str, is_branch_checkout: int) -> None:
+    """
+    Print the post-checkout hook banner.
+
+    Args:
+        logger: HookLogger instance for output
+        previous_head: Previous HEAD ref
+        new_head: New HEAD ref
+        is_branch_checkout: 1 if branch checkout, 0 if file checkout
+    """
+    checkout_type = "Branch Checkout" if is_branch_checkout == 1 else "File Checkout"
+    branch = GitUtils.get_current_branch()
+    branch_info = f"Branch: {branch}" if branch else "Branch: (detached)"
+
+    logger.info("")
+    logger.info("=" * 70)
+    logger.info(f"  POST-CHECKOUT HOOK - {checkout_type}")
+    logger.info("")
+    logger.info(f"  {branch_info}")
+    logger.info("=" * 70)
+    logger.info("")
+
+
+def get_package_file_changes(previous_ref: str, new_ref: str) -> List[Path]:
+    """
+    Get list of package/requirement files that changed between refs.
+
+    This helps determine if dependencies need to be reinstalled.
+
+    Args:
+        previous_ref: Previous git reference
+        new_ref: New git reference
+
+    Returns:
+        List of changed package file paths
+    """
+    import re
+
+    # Files that indicate dependency changes
+    package_patterns = [
+        r'package\.json',
+        r'pnpm-lock\.yaml',
+        r'yarn\.lock',
+        r'package-lock\.json',
+        r'requirements\.txt',
+        r'pyproject\.toml',
+        r'poetry\.lock',
+        r'Pipfile',
+        r'Pipfile\.lock',
+    ]
+
+    try:
+        # Get diff between refs
+        result = GitUtils.run_git_command([
+            "diff",
+            "--name-only",
+            f"{previous_ref}..{new_ref}"
+        ])
+
+        changed_files = []
+        for line in result.stdout.strip().split("\n"):
+            if not line:
+                continue
+            file_path = Path(line)
+
+            # Check if file matches package pattern
+            for pattern in package_patterns:
+                if re.match(pattern, file_path.name):
+                    changed_files.append(file_path)
+                    break
+
+        return changed_files
+
+    except Exception:
+        return []
+
+
+def display_branch_info(logger: HookLogger, git_root: Path) -> None:
+    """
+    Display useful information about the current branch.
+
+    Args:
+        logger: HookLogger instance for output
+        git_root: Path to git repository root
+    """
+    logger.sub_section("Branch Information")
+
+    # Get current branch
+    branch = GitUtils.get_current_branch()
+    if branch:
+        logger.info(f"Current branch: {Colors.BOLD}{branch}{Colors.RESET}")
+    else:
+        logger.warning("Detached HEAD state")
+
+    # Get latest commit
+    try:
+        result = GitUtils.run_git_command(["log", "-1", "--oneline"])
+        latest_commit = result.stdout.strip()
+        logger.info(f"Latest commit: {latest_commit}")
+    except Exception:
+        pass
+
+    # Get branch status
+    try:
+        result = GitUtils.run_git_command(["status", "--short"])
+        status_lines = [line for line in result.stdout.strip().split("\n") if line]
+
+        if status_lines:
+            logger.info(f"Working directory: {len(status_lines)} file(s) changed")
+        else:
+            logger.info("Working directory: clean")
+    except Exception:
+        pass
+
+    # Show untracked files count
+    try:
+        result = GitUtils.run_git_command(["ls-files", "--others", "--exclude-standard"])
+        untracked = [f for f in result.stdout.strip().split("\n") if f]
+        if untracked:
+            logger.info(f"Untracked files: {len(untracked)}")
+    except Exception:
+        pass
+
+
+def install_frontend_dependencies(
+    logger: HookLogger,
+    frontend_dir: Path,
+    force: bool = False
+) -> bool:
+    """
+    Install frontend dependencies if needed.
+
+    Args:
+        logger: HookLogger instance for output
+        frontend_dir: Path to frontend directory
+        force: Force reinstall regardless of node_modules state
+
+    Returns:
+        True if installation succeeded or was not needed, False otherwise
+    """
+    logger.sub_section("Frontend Dependencies")
+
+    if not frontend_dir.exists():
+        logger.debug("Frontend directory not found")
+        return True
+
+    if not FrontendUtils.is_frontend_project(frontend_dir):
+        logger.debug("Not a frontend project")
+        return True
+
+    package_manager = FrontendUtils.detect_package_manager(frontend_dir)
+
+    # Check if dependencies are already installed
+    if not force and FrontendUtils.check_dependencies(frontend_dir, package_manager):
+        logger.info(f"Dependencies already installed ({package_manager})")
+        return True
+
+    logger.info(f"Installing dependencies with {package_manager}...")
+
+    try:
+        success = FrontendUtils.install_dependencies(
+            frontend_dir,
+            package_manager=package_manager,
+            ci_mode=True  # Use frozen lockfile for speed
+        )
+
+        if success:
+            logger.success("Dependencies installed successfully")
+            return True
+        else:
+            logger.warning("Dependency installation failed")
+            logger.info("You may need to install manually:")
+            logger.info(f"  cd {frontend_dir.relative_to(Path.cwd())}")
+            logger.info(f"  {package_manager} install")
+            return False
+
+    except Exception as e:
+        logger.warning(f"Dependency installation error: {e}")
+        return False
+
+
+def install_backend_dependencies(
+    logger: HookLogger,
+    backend_dir: Path,
+    force: bool = False
+) -> bool:
+    """
+    Install backend dependencies if needed.
+
+    Args:
+        logger: HookLogger instance for output
+        backend_dir: Path to backend directory
+        force: Force reinstall regardless of venv state
+
+    Returns:
+        True if installation succeeded or was not needed, False otherwise
+    """
+    logger.sub_section("Backend Dependencies")
+
+    if not backend_dir.exists():
+        logger.debug("Backend directory not found")
+        return True
+
+    if not BackendUtils.is_backend_project(backend_dir):
+        logger.debug("Not a backend project")
+        return True
+
+    # Check if venv exists
+    if not force and BackendUtils.check_venv(backend_dir):
+        logger.info("Virtual environment already exists")
+        return True
+
+    logger.info("Virtual environment not found or missing dependencies")
+    logger.info("You may need to create/activate venv:")
+    logger.info(f"  cd {backend_dir.relative_to(Path.cwd())}")
+    logger.info("  python -m venv .venv")
+    logger.info("  source .venv/bin/activate  # or .venv\\Scripts\\activate on Windows")
+    logger.info("  pip install -r requirements.txt")
+
+    return True  # Don't block checkout, just inform
+
+
+def clear_build_caches(logger: HookLogger, git_root: Path) -> None:
+    """
+    Clear build caches and artifacts that might cause issues after branch switch.
+
+    Args:
+        logger: HookLogger instance for output
+        git_root: Path to git repository root
+    """
+    logger.sub_section("Cache Cleanup")
+
+    caches_to_clear = [
+        git_root / "frontend" / ".next",
+        git_root / "frontend" / "node_modules" / ".cache",
+        git_root / "backend" / "__pycache__",
+        git_root / "backend" / ".pytest_cache",
+        git_root / "backend" / ".ruff_cache",
+        git_root / "backend" / ".mypy_cache",
+    ]
+
+    cleared = 0
+
+    for cache_path in caches_to_clear:
+        if cache_path.exists():
+            try:
+                import shutil
+                if cache_path.is_dir():
+                    shutil.rmtree(cache_path)
+                    logger.debug(f"Removed: {cache_path.relative_to(git_root)}")
+                    cleared += 1
+            except Exception:
+                pass
+
+    if cleared > 0:
+        logger.info(f"Cleared {cleared} cache directory(s)")
+    else:
+        logger.debug("No caches to clear")
+
+
+def notify_branch_changes(
+    logger: HookLogger,
+    previous_ref: str,
+    new_ref: str,
+    git_root: Path
+) -> None:
+    """
+    Notify user of significant changes between branches.
+
+    Args:
+        logger: HookLogger instance for output
+        previous_ref: Previous git reference
+        new_ref: New git reference
+        git_root: Path to git repository root
+    """
+    logger.sub_section("Changes Summary")
+
+    try:
+        # Get list of changed files
+        result = GitUtils.run_git_command([
+            "diff",
+            "--stat",
+            f"{previous_ref}..{new_ref}"
+        ])
+
+        if result.stdout.strip():
+            # Show summary of changes
+            lines = result.stdout.strip().split("\n")
+            # Show first 5 lines
+            for line in lines[:5]:
+                logger.info(f"  {line}")
+            if len(lines) > 5:
+                logger.info(f"  ... and {len(lines) - 5} more")
+        else:
+            logger.info("No file changes between refs")
+
+    except Exception as e:
+        logger.debug(f"Could not get changes summary: {e}")
+
+
+def main() -> int:
+    """
+    Main entry point for the post-checkout hook.
+
+    Git passes three arguments to post-checkout:
+    1. previous_ref: The ref of the previous HEAD
+    2. new_ref: The ref of the new HEAD
+    3. branch_checkout_flag: 1 for branch checkout, 0 for file checkout
+
+    Returns:
+        Exit code: 0 (always success, don't block checkout)
+    """
+    # Parse git arguments
+    if len(sys.argv) < 4:
+        return 0  # Not enough args, just exit
+
+    previous_ref = sys.argv[1]
+    new_ref = sys.argv[2]
+    is_branch_checkout = int(sys.argv[3])
+
+    # Initialize logger
+    logger = HookLogger(
+        hook_name="post-checkout",
+        verbose=os.getenv("GIT_HOOKS_VERBOSE", "false").lower() == "true"
+    )
+
+    # Only run for branch checkouts, not file checkouts
+    if is_branch_checkout != 1:
+        return 0
+
+    # Print banner
+    print_banner(logger, previous_ref, new_ref, is_branch_checkout)
+
+    # Load configuration
+    logger.debug("Loading configuration...")
+    config = HookConfig()
+
+    # Check if hook is enabled
+    if not config.is_hook_enabled("post_checkout"):
+        logger.debug("Post-checkout hook disabled in configuration")
+        return 0
+
+    # Get git root
+    git_root = GitUtils.get_git_root()
+    if not git_root:
+        return 0
+
+    # Track results
+    all_success = True
+
+    # 1. Display branch information
+    # ==========
+
+    if config.post_checkout.get("show_branch_info", True):
+        try:
+            display_branch_info(logger, git_root)
+        except Exception as e:
+            logger.debug(f"Branch info display error: {e}")
+
+    # 2. Check for package file changes
+    # ==========
+
+    package_changes = get_package_file_changes(previous_ref, new_ref)
+
+    if package_changes:
+        logger.sub_section("Dependency Changes Detected")
+        logger.info("The following package files changed:")
+        for file_path in package_changes:
+            logger.info(f"  • {file_path}")
+
+        # Determine if we should auto-install
+        auto_install = config.post_checkout.get("run_install", True)
+
+        if auto_install:
+            logger.info("Auto-installing dependencies...")
+
+            # Frontend dependencies
+            frontend_dir = git_root / "frontend"
+            frontend_package_changed = any(
+                "frontend" in str(p) or p.name in ["package.json", "pnpm-lock.yaml", "yarn.lock", "package-lock.json"]
+                for p in package_changes
+            )
+
+            if frontend_package_changed:
+                try:
+                    install_frontend_dependencies(logger, frontend_dir, force=True)
+                except Exception as e:
+                    logger.debug(f"Frontend install error: {e}")
+
+            # Backend dependencies
+            backend_dir = git_root / "backend"
+            backend_package_changed = any(
+                "backend" in str(p) or p.name in ["requirements.txt", "pyproject.toml", "poetry.lock", "Pipfile", "Pipfile.lock"]
+                for p in package_changes
+            )
+
+            if backend_package_changed:
+                try:
+                    install_backend_dependencies(logger, backend_dir, force=True)
+                except Exception as e:
+                    logger.debug(f"Backend install error: {e}")
+        else:
+            logger.info("Auto-install disabled in config")
+            logger.info("Install manually if needed")
+    else:
+        logger.debug("No package file changes detected")
+
+    # 3. Clear build caches
+    # ==========
+
+    try:
+        clear_build_caches(logger, git_root)
+    except Exception as e:
+        logger.debug(f"Cache cleanup error: {e}")
+
+    # 4. Show changes summary (if verbose)
+    # ==========
+
+    if logger.verbose:
+        try:
+            notify_branch_changes(logger, previous_ref, new_ref, git_root)
+        except Exception as e:
+            logger.debug(f"Changes summary error: {e}")
+
+    # Print summary
+    logger.log_summary()
+
+    logger.success("Branch checkout complete!")
+    logger.info("")
+
+    # Show helpful commands
+    logger.info("Quick commands:")
+    logger.info("  git status           - Show working directory status")
+    logger.info("  git log --oneline    - Show recent commits")
+    logger.info("  git diff             - Show uncommitted changes")
+    logger.info("")
+
+    return 0  # Always succeed, don't block checkout
+
+
+if __name__ == "__main__":
+    try:
+        exit_code = main()
+        sys.exit(exit_code)
+    except KeyboardInterrupt:
+        sys.exit(130)  # Standard exit code for SIGINT
+    except Exception as e:
+        logger = HookLogger("post-checkout")
+        logger.debug(f"Post-checkout hook error: {e}")
+        sys.exit(0)  # Always succeed, don't block checkout

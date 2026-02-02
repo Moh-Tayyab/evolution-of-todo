@@ -30,7 +30,7 @@ async def signup(
     user_in: UserCreate,
     session: AsyncSession = Depends(get_session)
 ):
-    """Register a new user."""
+    """Register a new user and return JWT token."""
     # Check if email exists
     statement = select(User).where(User.email == user_in.email)
     result = await session.execute(statement)
@@ -55,6 +55,12 @@ async def signup(
     await session.commit()
     await session.refresh(user_data)
 
+    # Generate JWT token for the new user
+    access_token_expires = timedelta(minutes=30)
+    access_token = create_access_token(
+        data={"sub": str(user_data.id)}, expires_delta=access_token_expires
+    )
+
     return {
         "id": str(user_data.id),
         "email": user_data.email,
@@ -63,6 +69,8 @@ async def signup(
         "is_active": user_data.is_active,
         "created_at": user_data.created_at.isoformat(),
         "updated_at": user_data.updated_at.isoformat(),
+        "access_token": access_token,
+        "token_type": "bearer",
     }
 
 

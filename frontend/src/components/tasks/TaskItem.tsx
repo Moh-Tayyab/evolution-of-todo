@@ -6,18 +6,18 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import type { Task } from "@/types";
+import type { Task } from "@/components/tasks";
 
 interface TaskItemProps {
   task: Task;
-  onToggle: (taskId: string) => void;
+  onToggle: (taskId: number) => void;
   onEdit: (task: Task) => void;
-  onDelete: (taskId: string) => void;
+  onDelete: (taskId: number) => void;
 }
 
 export default function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemProps) {
   const [isToggling, setIsToggling] = useState(false);
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotion() ?? false;
 
   // Animation variants
   const checkboxVariants = {
@@ -96,6 +96,7 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemP
   return (
     <AnimatePresence>
       <motion.div
+        data-testid={`task-item-${task.id}`}
         className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 hover:border-slate-300 dark:hover:border-slate-600 transition-colors duration-300 group"
         variants={prefersReducedMotion ? {} : cardVariants}
         initial="hidden"
@@ -109,6 +110,8 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemP
           <motion.button
             onClick={handleToggle}
             disabled={isToggling}
+            data-testid={`task-checkbox-${task.id}`}
+            aria-checked={task.completed}
             className={getCheckboxClassName()}
             variants={checkboxVariants}
             initial={task.completed ? "checked" : "unchecked"}
@@ -147,7 +150,7 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemP
           >
             <div className="flex flex-col gap-1">
               <motion.h3
-                className={`text-lg font-bold ${task.completed ? "text-monza-400 dark:text-monza-500 line-through" : "text-monza-900 dark:text-slate-100"
+                className={`text-lg font-bold ${task.completed ? "text-muted-foreground dark:text-muted-foreground line-through" : "text-foreground dark:text-slate-100"
                   }`}
                 layout
               >
@@ -157,6 +160,7 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemP
               <div className="flex flex-wrap items-center gap-2 mt-1">
                 {/* Priority indicator */}
                 <motion.span
+                  data-testid={`priority-badge-${task.id}`}
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border ${task.priority === "high"
                       ? "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50"
                       : task.priority === "medium"
@@ -200,7 +204,7 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemP
 
             {task.description && (
               <motion.p
-                className={`mt-3 text-sm leading-relaxed ${task.completed ? "text-monza-400 dark:text-monza-500" : "text-monza-700 dark:text-slate-300"
+                className={`mt-3 text-sm leading-relaxed ${task.completed ? "text-muted-foreground dark:text-muted-foreground" : "text-foreground dark:text-slate-300"
                   }`}
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
@@ -219,7 +223,7 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemP
           >
             <motion.button
               onClick={() => onEdit(task)}
-              className="text-monza-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
+              className="text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
               title="Edit task"
               whileHover={{ scale: 1.1, rotate: 5 }}
               whileTap={{ scale: 0.9 }}
@@ -240,7 +244,7 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemP
             </motion.button>
             <motion.button
               onClick={() => onDelete(task.id)}
-              className="text-monza-400 hover:text-red-500 p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+              className="text-muted-foreground hover:text-red-500 p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
               title="Delete task"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}

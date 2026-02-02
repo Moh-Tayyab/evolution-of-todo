@@ -20,13 +20,15 @@ import {
   Bell,
   Target,
   LogOut,
+  Brain,
 } from "lucide-react";
 
 // Layout - Premium Sidebar
 import { PremiumSidebar, type Project, type SidebarTag } from "@/components/layout/premium-sidebar";
 
 // Tasks
-import { TaskList, type Task as ComponentTask } from "@/components/tasks";
+import TaskList from "@/components/tasks/TaskList";
+import { type Task as ComponentTask } from "@/components/tasks";
 import { TaskForm, TaskModal } from "@/components/tasks/task-form";
 import { type Task } from "@/types";
 
@@ -48,16 +50,21 @@ import { AnalyticsDashboard } from "@/components/dashboard/analytics-dashboard";
 import { TaskTemplates } from "@/components/dashboard/task-templates";
 import { ProfessionalDashboard } from "@/components/dashboard/professional-dashboard";
 
+// Chatbot
+import { FloatingChatButton } from "@/components/chat/floating-chat-button";
+import { AIDashboardSection } from "@/components/ai/ai-dashboard-section";
+
 // Hooks & Utils
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useTaskSync } from "@/components/tasks/task-sync-context";
 
 // API & Auth
 import { apiClient } from "@/lib/api";
 import { getCurrentUserId, signOut, getToken, getCurrentUser } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 
-type ViewMode = "dashboard" | "tasks" | "list" | "board" | "luxury" | "calendar" | "analytics" | "templates" | "settings";
+type ViewMode = "dashboard" | "tasks" | "list" | "board" | "luxury" | "calendar" | "analytics" | "templates" | "ai" | "settings";
 
 // Convert API Task type to Component Task type
 function toComponentTask(task: Task): ComponentTask {
@@ -120,6 +127,7 @@ export default function DashboardPage() {
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = React.useState("");
   const [filters, setFilters] = React.useState<FilterState>({
     search: "",
     status: "all",
@@ -129,12 +137,33 @@ export default function DashboardPage() {
     tags: [],
   });
 
+  // Debounce search input to avoid excessive API calls
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Update filters.search when debounced search changes
+  React.useEffect(() => {
+    setFilters(prev => ({ ...prev, search: debouncedSearchQuery }));
+  }, [debouncedSearchQuery]);
+
   // Dialog State
   const [deleteId, setDeleteId] = React.useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   const { toast } = useToast();
   const router = useRouter();
+
+  // Task Sync - Track all operations for chatbot awareness
+  const {
+    trackOperation,
+    updateTasks,
+    updateViewState,
+  } = useTaskSync();
 
   // Mock projects and tags for sidebar
   const projects: Project[] = React.useMemo(() => [
@@ -173,8 +202,11 @@ export default function DashboardPage() {
       const currentUserId = await getCurrentUserId();
       const token = await getToken();
 
+      console.log("[Dashboard] Auth check - userId:", currentUserId, "token:", token ? "exists" : "missing");
+
       if (currentUserId && token) {
         // Both user ID and JWT token exist
+        console.log("[Dashboard] Both userId and token exist, setting userId");
         setUserId(currentUserId);
 
         // Fetch user data
@@ -190,18 +222,19 @@ export default function DashboardPage() {
           console.error("Failed to fetch user name:", error);
         }
       } else if (currentUserId && !token) {
-        // User ID exists but JWT token is missing (Better Auth session without FastAPI JWT)
+        // User ID exists but JWT token is missing - need to re-authenticate
+        console.error("[Dashboard] userId exists but token is missing, redirecting to signin");
         toast({
-          title: "Session Incomplete",
-          description: "Please sign in again to refresh your session.",
+          title: "Session Expired",
+          description: "Please sign in again to continue.",
           variant: "destructive",
         });
-        // Redirect to sign-in to get a fresh JWT
         router.push("/signin");
       } else {
         // No authentication at all
+        console.error("[Dashboard] No authentication at all, redirecting to signin");
         toast({
-          title: "Authentication Error",
+          title: "Authentication Required",
           description: "Please sign in to view your tasks.",
           variant: "destructive",
         });
@@ -225,6 +258,8 @@ export default function DashboardPage() {
         order: filters.sortDirection as "asc" | "desc",
       });
       setTasks(fetchedTasks);
+      // Sync tasks to chatbot context
+      updateTasks(fetchedTasks);
     } catch (error) {
       console.error("Failed to load tasks:", error);
       toast({
@@ -242,6 +277,27 @@ export default function DashboardPage() {
       loadTasks();
     }
   }, [userId]);
+
+  // Calculate filter counts for sidebar
+  const filterCounts = React.useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    return {
+      all: tasks.length,
+      today: tasks.filter(task => {
+        const taskDate = new Date(task.created_at);
+        return taskDate >= today && taskDate < new Date(today.getTime() + 24 * 60 * 60 * 1000);
+      }).length,
+      upcoming: tasks.filter(task => {
+        // Tasks with due_date in the future (if task has due_date)
+        // For now, count incomplete tasks as "upcoming"
+        return !task.completed && task.id; // Placeholder: all incomplete tasks
+      }).length,
+      important: tasks.filter(task => task.priority === "high").length,
+      completed: tasks.filter(task => task.completed).length,
+    };
+  }, [tasks]);
 
   // GSAP animation for header
   React.useEffect(() => {
@@ -301,6 +357,21 @@ export default function DashboardPage() {
 
     try {
       await apiClient.toggleTaskComplete(userId, taskId);
+
+      // Track operation for chatbot awareness
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        trackOperation({
+          type: "toggle",
+          details: {
+            taskId,
+            taskTitle: task.title,
+            previousState: { completed: task.completed },
+            newState: { completed: !task.completed },
+          },
+        });
+      }
+
       toast({
         title: "Task updated",
         description: "Task status has been changed.",
@@ -329,8 +400,23 @@ export default function DashboardPage() {
   const handleConfirmedDelete = async () => {
     if (deleteId && userId) {
       try {
+        // Get task before deleting for tracking
+        const taskToDelete = tasks.find(t => t.id === deleteId);
+
         await apiClient.deleteTask(userId, deleteId);
         setTasks((prev) => prev.filter((t) => t.id !== deleteId));
+
+        // Track operation for chatbot awareness
+        if (taskToDelete) {
+          trackOperation({
+            type: "delete",
+            details: {
+              taskId: deleteId,
+              taskTitle: taskToDelete.title,
+            },
+          });
+        }
+
         toast({
           title: "Task deleted",
           description: "The task has been deleted successfully.",
@@ -357,6 +443,64 @@ export default function DashboardPage() {
 
   const handleArchive = (taskId: number) => {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
+  };
+
+  const handleMoveToColumn = async (taskId: number, column: "todo" | "in-progress" | "done") => {
+    if (!userId) return;
+
+    // Get the current task state
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    // Determine new state based on target column
+    let newCompleted = task.completed;
+    let newPriority = task.priority;
+
+    switch (column) {
+      case "done":
+        newCompleted = true;
+        break;
+      case "in-progress":
+        newCompleted = false;
+        newPriority = "high";
+        break;
+      case "todo":
+        newCompleted = false;
+        newPriority = task.priority === "high" ? "medium" : task.priority;
+        break;
+    }
+
+    // Optimistic update
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId ? { ...t, completed: newCompleted, priority: newPriority } : t
+      )
+    );
+
+    try {
+      // Update via API - use updateTask endpoint
+      await apiClient.updateTask(userId, taskId, {
+        completed: newCompleted,
+        priority: newPriority,
+      });
+      toast({
+        title: "Task moved",
+        description: `Task moved to ${column === "done" ? "Done" : column === "in-progress" ? "In Progress" : "To Do"}`,
+      });
+    } catch (error) {
+      console.error("Failed to move task:", error);
+      // Rollback on error
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId ? { ...t, completed: task.completed, priority: task.priority } : t
+        )
+      );
+      toast({
+        title: "Error",
+        description: "Failed to move task. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEdit = (task: ComponentTask) => {
@@ -386,19 +530,94 @@ export default function DashboardPage() {
     handleEdit(toComponentTask(task));
   };
 
-  // Wrapper handlers for sidebar callbacks
-  const handleSidebarNavigate = (view: string) => {
+  // Wrapper handlers for sidebar callbacks - use useCallback for stable references
+  const handleSidebarNavigate = React.useCallback((view: string) => {
     setCurrentView(view as ViewMode);
-  };
+    // Track view change for chatbot awareness
+    updateViewState(view, currentFilter);
+  }, [currentFilter, updateViewState]);
 
-  const handleSidebarFilterChange = (filter: string) => {
+  const handleSidebarFilterChange = React.useCallback((filter: string) => {
     setCurrentFilter(filter);
-  };
+    // Track filter change for chatbot awareness
+    trackOperation({
+      type: "filter",
+      details: { filter },
+    });
 
-  const handleNewTask = () => {
+    // Map sidebar quick filters to actual filter state
+    setFilters((prevFilters) => {
+      switch (filter) {
+        case "all":
+          // Reset filters to show all tasks
+          return {
+            search: prevFilters.search,
+            status: "all",
+            priority: "all",
+            tags: [],
+            sortBy: "created_at",
+            sortDirection: "desc",
+          };
+        case "today":
+          // Show today's tasks (created today)
+          return {
+            ...prevFilters,
+            status: "all",
+          };
+        case "upcoming":
+          // Show incomplete tasks
+          return {
+            ...prevFilters,
+            status: "active",
+          };
+        case "important":
+          // Show high priority tasks
+          return {
+            ...prevFilters,
+            priority: "high",
+            status: "all",
+          };
+        case "completed":
+          // Show completed tasks
+          return {
+            ...prevFilters,
+            status: "completed",
+          };
+        default:
+          return prevFilters;
+      }
+    });
+  }, []);
+
+  const handleTagFilter = React.useCallback((tagName: string) => {
+    setFilters((prevFilters) => {
+      // Find the tag ID from available tags - need to access current state
+      // For now, use a simpler approach
+      return prevFilters; // Placeholder
+    });
+    // TODO: Implement proper tag filtering with stable state access
+  }, []);
+
+  const handleProjectFilter = React.useCallback((projectId: string) => {
+    // Projects map to specific tag names
+    const projectTagMap: Record<string, string> = {
+      "1": "Work",
+      "2": "Personal",
+      "3": "Learning",
+      "4": "Health",
+    };
+
+    const tagName = projectTagMap[projectId];
+    if (tagName) {
+      handleTagFilter(tagName);
+      setCurrentProject(projectId);
+    }
+  }, [handleTagFilter]);
+
+  const handleNewTask = React.useCallback(() => {
     setEditingTask(undefined);
     setShowTaskForm(true);
-  };
+  }, []);
 
   const handleTaskSubmit = async (data: Record<string, unknown>) => {
     if (!userId) {
@@ -433,6 +652,18 @@ export default function DashboardPage() {
         setTasks((prev) =>
           prev.map((t) => (t.id === editingTask.id ? updatedTask : t))
         );
+
+        // Track operation for chatbot awareness
+        trackOperation({
+          type: "update",
+          details: {
+            taskId: editingTask.id,
+            taskTitle: data.title as string,
+            previousState: editingTask,
+            newState: updatedTask,
+          },
+        });
+
         toast({ title: "Task updated", description: "The task has been updated." });
       } else {
         // Create new task
@@ -442,6 +673,17 @@ export default function DashboardPage() {
           priority: data.priority as "high" | "medium" | "low",
         });
         setTasks((prev) => [newTask, ...prev]);
+
+        // Track operation for chatbot awareness
+        trackOperation({
+          type: "create",
+          details: {
+            taskId: newTask.id,
+            taskTitle: newTask.title,
+            description: newTask.description || undefined,
+          },
+        });
+
         toast({ title: "Task created", description: "New task has been created." });
       }
 
@@ -487,7 +729,7 @@ export default function DashboardPage() {
             onCreateTask={handleNewTask}
             onViewAllTasks={() => {
               // Switch to list view
-              setTaskViewMode("list");
+              setCurrentView("list");
             }}
             onTaskClick={handleTaskFromTypes}
           />
@@ -503,6 +745,9 @@ export default function DashboardPage() {
             onQuickAction={handleQuickAction}
           />
         );
+
+      case "ai":
+        return <AIDashboardSection />;
 
       case "list":
         return (
@@ -535,21 +780,116 @@ export default function DashboardPage() {
             tasks={componentTasks}
             onToggle={handleToggle}
             onEdit={handleEdit}
+            onMoveToColumn={handleMoveToColumn}
           />
         );
 
       case "settings":
         return (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="p-6 rounded-full bg-indigo-500/10 mb-6">
-              <SettingsIcon className="w-12 h-12 text-indigo-500" />
+          <div className="max-w-2xl mx-auto py-8">
+            <div className="space-y-6">
+              {/* User Profile Section */}
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+                <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">
+                  Profile
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-foreground dark:text-muted-foreground">
+                      Name
+                    </label>
+                    <p className="text-foreground dark:text-white mt-1">{userName}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground dark:text-muted-foreground">
+                      User ID
+                    </label>
+                    <p className="text-sm text-muted-foreground dark:text-muted-foreground mt-1 font-mono">
+                      {userId}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* App Preferences */}
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+                <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">
+                  Preferences
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-foreground dark:text-white">Dark Mode</p>
+                      <p className="text-sm text-muted-foreground dark:text-muted-foreground">
+                        Toggle between light and dark themes
+                      </p>
+                    </div>
+                    <ThemeToggle />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-foreground dark:text-white">Default View</p>
+                      <p className="text-sm text-muted-foreground dark:text-muted-foreground">
+                        Your preferred task view mode
+                      </p>
+                    </div>
+                    <span className="text-sm text-muted-foreground dark:text-muted-foreground">
+                      {taskViewMode}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Data Management */}
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+                <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">
+                  Data
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="font-medium text-foreground dark:text-white mb-1">
+                      Total Tasks
+                    </p>
+                    <p className="text-sm text-muted-foreground dark:text-muted-foreground">
+                      {tasks.length} tasks loaded
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground dark:text-white mb-1">
+                      Completed Tasks
+                    </p>
+                    <p className="text-sm text-muted-foreground dark:text-muted-foreground">
+                      {tasks.filter(t => t.completed).length} completed
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      loadTasks();
+                      toast({
+                        title: "Refreshed",
+                        description: "Task data has been refreshed.",
+                      });
+                    }}
+                  >
+                    Refresh Data
+                  </Button>
+                </div>
+              </div>
+
+              {/* Account Actions */}
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+                <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">
+                  Account
+                </h3>
+                <Button
+                  variant="destructive"
+                  onClick={handleLogout}
+                >
+                  Sign Out
+                </Button>
+              </div>
             </div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">
-              Settings
-            </h3>
-            <p className="text-muted-foreground">
-              Settings panel coming soon...
-            </p>
           </div>
         );
 
@@ -572,23 +912,28 @@ export default function DashboardPage() {
       <div className="space-y-6">
         {/* View Mode Toggle & Filters */}
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2 p-1 rounded-xl bg-white/50 dark:bg-white/5 backdrop-blur-lg border border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-premium">
             {viewModes.map((mode) => (
-              <Button
+              <motion.div
                 key={mode.id}
-                variant="ghost"
-                size="sm"
-                onClick={() => setTaskViewMode(mode.id)}
-                className={cn(
-                  "gap-2 rounded-lg transition-all duration-300",
-                  taskViewMode === mode.id
-                    ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/30"
-                    : "hover:bg-white/50 dark:hover:bg-white/10"
-                )}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <mode.icon className="w-4 h-4" />
-                <span className="hidden sm:inline">{mode.label}</span>
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setTaskViewMode(mode.id)}
+                  className={cn(
+                    "gap-2 rounded-xl transition-all duration-300",
+                    taskViewMode === mode.id
+                      ? "bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white shadow-lg"
+                      : "hover:bg-white/50 dark:hover:bg-white/10 text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <mode.icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{mode.label}</span>
+                </Button>
+              </motion.div>
             ))}
           </div>
 
@@ -645,6 +990,7 @@ export default function DashboardPage() {
                     tasks={componentTasks}
                     onToggle={handleToggle}
                     onEdit={handleEdit}
+                    onMoveToColumn={handleMoveToColumn}
                   />
                 )}
                 {taskViewMode === "calendar" && (
@@ -705,7 +1051,14 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+    <div className="flex min-h-screen bg-mesh-gradient bg-grid-premium relative overflow-hidden">
+      {/* Premium Floating Orbs */}
+      <div className="orb-container">
+        <div className="orb orb-1" />
+        <div className="orb orb-2" />
+        <div className="orb orb-3" />
+      </div>
+
       {/* Premium Sidebar */}
       <PremiumSidebar
         projects={projects}
@@ -713,9 +1066,12 @@ export default function DashboardPage() {
         currentView={currentView}
         currentFilter={currentFilter}
         currentProject={currentProject}
+        selectedTagIds={filters.tags}
+        filterCounts={filterCounts}
         onNavigate={handleSidebarNavigate}
         onFilterChange={handleSidebarFilterChange}
-        onProjectChange={setCurrentProject}
+        onProjectChange={handleProjectFilter}
+        onTagClick={handleTagFilter}
       />
 
       {/* Main Content Area */}
@@ -723,7 +1079,7 @@ export default function DashboardPage() {
         {/* Top Bar */}
         <header
           ref={headerRef}
-          className="sticky top-0 z-40 backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border-b border-slate-200/50 dark:border-slate-800/50"
+          className="sticky top-0 z-40 backdrop-blur-2xl bg-white/50 dark:bg-black/20 border-b border-white/20 dark:border-white/10"
         >
           <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 py-3 sm:py-4">
             <div className="flex items-center justify-between gap-2">
@@ -733,18 +1089,24 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <h1 className="text-xl sm:text-2xl font-bold text-monza-900 dark:text-white flex items-center gap-2">
-                  {currentView === "analytics" && <BarChart3 className="w-6 h-6 text-indigo-500" />}
-                  {currentView === "templates" && <Sparkles className="w-6 h-6 text-blue-500" />}
-                  {currentView === "settings" && <SettingsIcon className="w-6 h-6 text-monza-500" />}
-                  {(!currentView || currentView === "dashboard" || currentView === "tasks") && <Target className="w-6 h-6 text-indigo-500" />}
-                  {currentView === "dashboard" || currentView === "tasks" || !currentView
-                    ? "Dashboard"
-                    : currentView.charAt(0).toUpperCase() + currentView.slice(1)}
+                <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                  {currentView === "analytics" && <BarChart3 className="w-6 h-6 bg-gradient-to-br from-violet-500 to-fuchsia-500 bg-clip-text text-transparent" />}
+                  {currentView === "templates" && <Sparkles className="w-6 h-6 bg-gradient-to-br from-amber-500 to-orange-500 bg-clip-text text-transparent" />}
+                  {currentView === "ai" && <Brain className="w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-500 bg-clip-text text-transparent" />}
+                  {currentView === "settings" && <SettingsIcon className="w-6 h-6 text-muted-foreground" />}
+                  {(!currentView || currentView === "dashboard" || currentView === "tasks") && <Target className="w-6 h-6 bg-gradient-to-br from-violet-500 to-purple-500 bg-clip-text text-transparent" />}
+                  <span className="gradient-text">
+                    {currentView === "dashboard" || currentView === "tasks" || !currentView
+                      ? "Dashboard"
+                      : currentView === "ai"
+                      ? "AI Command Center"
+                      : currentView.charAt(0).toUpperCase() + currentView.slice(1)}
+                  </span>
                 </h1>
-                <p className="text-xs sm:text-sm text-monza-500 dark:text-monza-400 hidden md:block">
+                <p className="text-xs sm:text-sm text-muted-foreground dark:text-muted-foreground hidden md:block">
                   {currentView === "analytics" && "Track your productivity and insights"}
                   {currentView === "templates" && "Quick-start with pre-made templates"}
+                  {currentView === "ai" && "Professional AI agent with GPT-4o & MCP integration"}
                   {currentView === "settings" && "Customize your experience"}
                   {(!currentView || currentView === "dashboard" || currentView === "tasks") && "Manage your tasks efficiently"}
                 </p>
@@ -764,13 +1126,13 @@ export default function DashboardPage() {
                     whileFocus={{ scale: 1.02 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-monza-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="text"
                       placeholder="Search tasks..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 pr-4 py-2 w-48 sm:w-64 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                      className="input-premium pl-10 pr-4 py-2 w-48 sm:w-64 text-sm"
                     />
                   </motion.div>
                 )}
@@ -780,11 +1142,11 @@ export default function DashboardPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="relative rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 h-9 w-9 sm:h-10 sm:w-10"
+                    className="relative rounded-xl hover:bg-white/50 dark:hover:bg-white/10 h-9 w-9 sm:h-10 sm:w-10"
                   >
                     <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                     <motion.span
-                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center"
+                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white text-[10px] flex items-center justify-center shadow-lg"
                       animate={{
                         scale: [1, 1.1, 1],
                       }}
@@ -805,7 +1167,7 @@ export default function DashboardPage() {
                     variant="ghost"
                     size="icon"
                     onClick={handleLogout}
-                    className="rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 h-9 w-9 sm:h-10 sm:w-10"
+                    className="rounded-xl hover:bg-white/50 dark:hover:bg-white/10 h-9 w-9 sm:h-10 sm:w-10"
                     title="Logout"
                   >
                     <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -877,6 +1239,9 @@ export default function DashboardPage() {
         onConfirm={handleConfirmedDelete}
         variant="destructive"
       />
+
+      {/* Floating AI Chatbot Button */}
+      <FloatingChatButton />
     </div>
   );
 }

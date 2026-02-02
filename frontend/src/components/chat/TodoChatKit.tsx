@@ -1,11 +1,13 @@
 // @spec: specs/003-ai-chatbot/ui/chatkit.md
 // OpenAI ChatKit component with custom backend integration
+// Enhanced with real-time dashboard context for full awareness
 
 "use client"
 
 import { useEffect, useState, Suspense } from "react"
 import { useChatKit, ChatKit } from "@openai/chatkit-react"
-import { authClient } from "@/lib/auth"
+import { authClient, getToken } from "@/lib/auth"
+import { useTaskSync } from "@/components/tasks/task-sync-context"
 
 interface TodoChatKitProps {
   userId: string
@@ -22,6 +24,7 @@ interface TodoChatKitProps {
  * - Conversation persistence
  * - Streaming responses
  * - Dark mode support
+ * - REAL-TIME DASHBOARD CONTEXT - Chatbot knows everything happening!
  *
  * @spec FR-005: Frontend MUST integrate OpenAI ChatKit widget for conversational UI
  * @spec FR-009: Frontend MUST persist conversation_id across browser sessions using localStorage
@@ -30,6 +33,9 @@ function TodoChatKitInner({ userId, className }: TodoChatKitProps) {
   const [isReady, setIsReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  // Get real-time dashboard context
+  const { getChatContext, snapshot } = useTaskSync()
 
   // Get API URL from environment
   const chatkitApiUrl = process.env.NEXT_PUBLIC_CHATKIT_API_URL ||
@@ -41,24 +47,36 @@ function TodoChatKitInner({ userId, className }: TodoChatKitProps) {
       // Domain key for custom backend validation
       // For development, use localhost as the domain key
       domainKey: "localhost",
-      // Custom fetch to inject Better Auth session cookies
+      // Custom fetch to inject JWT token AND dashboard context
       fetch: async (url, options) => {
-        // Verify user is authenticated
-        const result = await authClient.getSession()
-        if (!result?.data?.user) {
-          throw new Error("Not authenticated")
+        // Get JWT token from localStorage
+        const token = await getToken()
+        if (!token) {
+          throw new Error("Not authenticated - No JWT token found")
         }
 
-        // Forward credentials for cookie-based authentication
+        // Get current dashboard context
+        const dashboardContext = getChatContext()
+
+        // Forward JWT token for authentication
+        // AND include dashboard context in headers
         return fetch(url, {
           ...options,
           credentials: "include",
+          headers: {
+            ...options?.headers,
+            "Authorization": `Bearer ${token}`,
+            // Add dashboard context as a custom header
+            // This lets the chatbot know exactly what's happening in the dashboard
+            "X-Dashboard-Context": btoa(unescape(encodeURIComponent(dashboardContext))),
+            "X-Dashboard-Timestamp": new Date().toISOString(),
+            "X-Dashboard-Task-Count": snapshot?.totalTasks.toString() || "0",
+          },
         })
       },
     },
     // Event handlers for ChatKit lifecycle
     onReady: () => {
-      console.log("ChatKit is ready")
       setIsReady(true)
       setIsLoading(false)
     },
@@ -68,13 +86,12 @@ function TodoChatKitInner({ userId, className }: TodoChatKitProps) {
       setIsLoading(false)
     },
     onResponseStart: () => {
-      console.log("ChatKit response started")
+      // ChatKit response started
     },
     onResponseEnd: () => {
-      console.log("ChatKit response ended")
+      // ChatKit response ended
     },
     onThreadChange: ({ threadId }) => {
-      console.log("ChatKit thread changed:", threadId)
       if (threadId) {
         localStorage.setItem("chatkit_thread_id", threadId)
       } else {
@@ -82,7 +99,7 @@ function TodoChatKitInner({ userId, className }: TodoChatKitProps) {
       }
     },
     onLog: ({ name, data }) => {
-      console.log("ChatKit log:", name, data)
+      // ChatKit internal logging - silenced for production
     },
     // Theme configuration
     theme: {
@@ -100,20 +117,15 @@ function TodoChatKitInner({ userId, className }: TodoChatKitProps) {
     startScreen: {
       greeting: "Hello! I'm your AI Todo Assistant. I can help you:",
       prompts: [
-        { name: "Add Task", prompt: "Add a new task to my list", icon: "plus" },
-        { name: "Show Tasks", prompt: "Show me all my tasks", icon: "list" },
-        { name: "Update Task", prompt: "I want to update a task", icon: "edit" },
-        { name: "Complete Task", prompt: "Mark a task as complete", icon: "check" },
+        { label: "Add Task", prompt: "Add a new task to my list" },
+        { label: "Show Tasks", prompt: "Show me all my tasks" },
+        { label: "Update Task", prompt: "I want to update a task" },
+        { label: "Complete Task", prompt: "Mark a task as complete" },
       ],
     },
     // Composer configuration
     composer: {
       placeholder: "Ask me to add, view, update, or complete tasks...",
-    },
-    // Header configuration
-    header: {
-      title: "Todo Assistant",
-      subtitle: "Manage tasks with AI",
     },
   })
 

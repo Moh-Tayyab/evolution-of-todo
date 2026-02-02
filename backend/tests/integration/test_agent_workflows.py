@@ -8,7 +8,7 @@ from unittest.mock import Mock, AsyncMock, patch
 from sqlmodel import SQLModel, select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
-from src.agent.orchestrator import AgentOrchestrator, create_agent
+from src.agent.orchestrator import AgentOrchestrator, create_agent_orchestrator
 from src.mcp.tools import add_task, list_tasks, update_task, delete_task, complete_task
 from src.models.task import Task
 from src.models.conversation import Conversation
@@ -53,25 +53,33 @@ def mock_openai_response():
 class TestAgentTaskWorkflows:
     """Integration tests for agent task management workflows."""
 
-    async def test_ti001_agent_adds_task_when_user_says_add_buy_milk(
-        self, agent_session, test_user_uuid
+    async def test_ti001_agent_has_tools_schema_defined(
+        self, test_user_uuid
     ):
-        """TI001: Test Agent adds task when user says "Add buy milk"."""
-        # Create the agent
-        agent = create_agent(agent_session, test_user_uuid)
+        """TI001: Test Agent has tools schema defined for function calling."""
+        # Create the orchestrator with a mock API key
+        import os
+        os.environ["OPENAI_API_KEY"] = "test-key"
 
-        # The agent should have tools registered
-        assert agent is not None
-        assert hasattr(agent, 'tools')
-        assert len(agent.tools) == 5
+        try:
+            orchestrator = create_agent_orchestrator()
 
-        # Verify tools have the correct names
-        tool_names = [tool.name for tool in agent.tools]
-        assert "add_task_wrapper" in tool_names
-        assert "list_tasks_wrapper" in tool_names
-        assert "update_task_wrapper" in tool_names
-        assert "delete_task_wrapper" in tool_names
-        assert "complete_task_wrapper" in tool_names
+            # The orchestrator should have tools schema
+            assert orchestrator is not None
+            assert hasattr(orchestrator, '_tools_schema')
+            assert len(orchestrator._tools_schema) == 5
+
+            # Verify tools have the correct names
+            tool_names = [t["function"]["name"] for t in orchestrator._tools_schema]
+            assert "add_task" in tool_names
+            assert "list_tasks" in tool_names
+            assert "update_task" in tool_names
+            assert "delete_task" in tool_names
+            assert "complete_task" in tool_names
+        finally:
+            # Clean up
+            if "OPENAI_API_KEY" in os.environ:
+                del os.environ["OPENAI_API_KEY"]
 
     async def test_ti002_agent_returns_task_list_when_user_says_show_my_tasks(
         self, agent_session, test_user_uuid
@@ -273,19 +281,29 @@ class TestAgentBehavior:
         self, agent_session, test_user_uuid
     ):
         """TI009: Test Agent provides friendly confirmatory responses."""
-        # Create agent and test tool behavior
-        agent = create_agent(agent_session, test_user_uuid)
+        # Create orchestrator and test tool behavior
+        import os
+        os.environ["OPENAI_API_KEY"] = "test-key"
 
-        # Verify agent has friendly instructions
-        assert agent.instructions is not None
-        assert "friendly" in agent.instructions.lower() or "helpful" in agent.instructions.lower()
+        try:
+            orchestrator = create_agent_orchestrator()
 
-        # Test add_task returns friendly confirmation
-        result = await add_task(agent_session, test_user_uuid, "Test task")
-        await agent_session.commit()
+            # Verify orchestrator has friendly system message
+            system_msg = orchestrator._build_system_message(agent_session, test_user_uuid)
 
-        assert result.success is True
-        assert result.data["title"] == "Test task"
+            assert system_msg is not None
+            assert "friendly" in system_msg.lower() or "helpful" in system_msg.lower()
+
+            # Test add_task returns friendly confirmation
+            result = await add_task(agent_session, test_user_uuid, "Test task")
+            await agent_session.commit()
+
+            assert result.success is True
+            assert result.data["title"] == "Test task"
+        finally:
+            # Clean up
+            if "OPENAI_API_KEY" in os.environ:
+                del os.environ["OPENAI_API_KEY"]
 
     async def test_ti010_agent_requests_clarification_for_ambiguous_inputs(
         self, agent_session, test_user_uuid

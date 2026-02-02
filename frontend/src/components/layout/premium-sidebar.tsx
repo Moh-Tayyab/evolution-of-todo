@@ -1,5 +1,5 @@
 // @spec: specs/002-fullstack-web-app/plan.md
-// Premium Sidebar Component - Collapsible with Categories, Tags, Filters, Analytics
+// Premium Sidebar Component - Luxury Glass Design with Advanced Animations
 // User data fetched from real API - NO MOCK DATA
 
 "use client";
@@ -28,6 +28,7 @@ import {
   Plus,
   Menu,
   LogOut,
+  Brain,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -58,29 +59,39 @@ export interface PremiumSidebarProps {
   currentView?: string;
   currentFilter?: string;
   currentProject?: string;
+  selectedTagIds?: string[];
+  filterCounts?: {
+    all?: number;
+    today?: number;
+    upcoming?: number;
+    important?: number;
+    completed?: number;
+  };
   onNavigate?: (view: string) => void;
   onFilterChange?: (filter: string) => void;
   onProjectChange?: (projectId: string) => void;
+  onTagClick?: (tagName: string) => void;
   className?: string;
 }
 
-// Navigation items
+// Navigation items with premium gradient colors
 const navItems = [
-  { id: "dashboard", label: "Dashboard", icon: Home, color: "text-indigo-500" },
-  { id: "tasks", label: "My Tasks", icon: CheckSquare, color: "text-blue-500" },
-  { id: "calendar", label: "Calendar", icon: Calendar, color: "text-purple-500" },
-  { id: "analytics", label: "Analytics", icon: BarChart3, color: "text-emerald-500" },
-  { id: "templates", label: "Templates", icon: Sparkles, color: "text-blue-500" },
-  { id: "settings", label: "Settings", icon: Settings, color: "text-monza-500" },
+  { id: "dashboard", label: "Dashboard", icon: Home, gradient: "from-violet-500 to-purple-500" },
+  { id: "tasks", label: "My Tasks", icon: CheckSquare, gradient: "from-blue-500 to-cyan-500" },
+  { id: "calendar", label: "Calendar", icon: Calendar, gradient: "from-purple-500 to-fuchsia-500" },
+  { id: "analytics", label: "Analytics", icon: BarChart3, gradient: "from-emerald-500 to-teal-500" },
+  { id: "templates", label: "Templates", icon: Sparkles, gradient: "from-amber-500 to-orange-500" },
+  { id: "ai", label: "AI Center", icon: Brain, gradient: "from-fuchsia-500 to-pink-500" },
+  { id: "settings", label: "Settings", icon: Settings, gradient: "from-slate-400 to-slate-500" },
 ];
 
-// Quick filters
+// Quick filters (counts will be passed as prop)
 const quickFilters = [
-  { id: "all", label: "All Tasks", icon: Layers, count: 24 },
-  { id: "today", label: "Today", icon: Clock, count: 5 },
-  { id: "upcoming", label: "Upcoming", icon: Calendar, count: 8 },
-  { id: "important", label: "Important", icon: Star, count: 3 },
-  { id: "completed", label: "Completed", icon: CheckSquare, count: 18 },
+  { id: "all", label: "All Tasks", icon: Layers, count: 0 },
+  { id: "today", label: "Today", icon: Clock, count: 0 },
+  { id: "upcoming", label: "Upcoming", icon: Calendar, count: 0 },
+  { id: "important", label: "Important", icon: Star, count: 0 },
+  { id: "completed", label: "Completed", icon: CheckSquare, count: 0 },
 ];
 
 export function PremiumSidebar({
@@ -100,9 +111,12 @@ export function PremiumSidebar({
   currentView = "dashboard",
   currentFilter = "all",
   currentProject = "",
+  selectedTagIds = [],
+  filterCounts = {},
   onNavigate,
   onFilterChange,
   onProjectChange,
+  onTagClick,
   className,
 }: PremiumSidebarProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
@@ -124,6 +138,14 @@ export function PremiumSidebar({
   }, []);
 
   const sidebarWidth = isCollapsed ? "w-20" : "w-72";
+
+  // Update quickFilters with actual counts from props
+  const dynamicQuickFilters = React.useMemo(() => {
+    return quickFilters.map(filter => ({
+      ...filter,
+      count: (filterCounts as Record<string, number>)?.[filter.id] ?? 0
+    }));
+  }, [filterCounts]);
 
   // Generate initials from user name or email
   const getInitials = () => {
@@ -164,15 +186,16 @@ export function PremiumSidebar({
     }
   };
 
-  const handleNavClick = (itemId: string) => {
+  // Stable handlers using useCallback to prevent unnecessary re-renders
+  const handleNavClick = React.useCallback((itemId: string) => {
     onNavigate?.(itemId);
     setIsMobileOpen(false);
-  };
+  }, [onNavigate]);
 
-  const handleFilterClick = (filterId: string) => {
+  const handleFilterClick = React.useCallback((filterId: string) => {
     onFilterChange?.(filterId);
     setIsMobileOpen(false);
-  };
+  }, [onFilterChange]);
 
   return (
     <>
@@ -192,7 +215,7 @@ export function PremiumSidebar({
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:sticky top-0 z-50 h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out",
+          "fixed lg:sticky top-0 z-50 h-screen backdrop-blur-2xl bg-white/70 dark:bg-black/20 border-r border-white/20 dark:border-white/10 transition-all duration-300 ease-in-out",
           sidebarWidth,
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           className
@@ -200,7 +223,7 @@ export function PremiumSidebar({
       >
         <div className="flex flex-col h-full overflow-hidden">
           {/* Logo / Header */}
-          <div className="flex items-center justify-between p-4 border-b border-slate-200/50 dark:border-slate-800/50">
+          <div className="flex items-center justify-between p-4 border-b border-white/10 dark:border-white/5">
             <AnimatePresence mode="wait">
               {!isCollapsed ? (
                 <motion.div
@@ -209,14 +232,28 @@ export function PremiumSidebar({
                   exit={{ opacity: 0, width: 0 }}
                   className="flex items-center gap-3 overflow-hidden"
                 >
-                  <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-lg shadow-indigo-500/25">
+                  <motion.div
+                    className="p-2.5 rounded-xl bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 shadow-premium"
+                    animate={{
+                      boxShadow: [
+                        "0 4px 20px rgba(139, 92, 246, 0.15)",
+                        "0 4px 30px rgba(139, 92, 246, 0.3)",
+                        "0 4px 20px rgba(139, 92, 246, 0.15)",
+                      ],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  >
                     <Target className="w-5 h-5 text-white" />
-                  </div>
+                  </motion.div>
                   <div className="overflow-hidden">
-                    <h2 className="text-lg font-bold text-monza-900 dark:text-white">
+                    <h2 className="text-lg font-bold gradient-text">
                       TaskFlow Pro
                     </h2>
-                    <p className="text-xs text-monza-500 dark:text-monza-400">
+                    <p className="text-xs text-muted-foreground dark:text-muted-foreground">
                       Premium Edition
                     </p>
                   </div>
@@ -228,9 +265,23 @@ export function PremiumSidebar({
                   exit={{ opacity: 0 }}
                   className="w-full flex justify-center"
                 >
-                  <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-lg shadow-indigo-500/25">
+                  <motion.div
+                    className="p-2.5 rounded-xl bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 shadow-premium"
+                    animate={{
+                      boxShadow: [
+                        "0 4px 20px rgba(139, 92, 246, 0.15)",
+                        "0 4px 30px rgba(139, 92, 246, 0.3)",
+                        "0 4px 20px rgba(139, 92, 246, 0.15)",
+                      ],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  >
                     <Target className="w-5 h-5 text-white" />
-                  </div>
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -240,7 +291,7 @@ export function PremiumSidebar({
               variant="ghost"
               size="icon"
               className={cn(
-                "hidden lg:flex shrink-0 h-8 w-8 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50",
+                "hidden lg:flex shrink-0 h-8 w-8 rounded-lg hover:bg-white/50 dark:hover:bg-white/10",
                 isCollapsed && "rotate-180"
               )}
               onClick={() => setIsCollapsed(!isCollapsed)}
@@ -260,11 +311,11 @@ export function PremiumSidebar({
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-6">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-6 min-h-0">
             {/* Main Navigation */}
             <div className="space-y-1">
               {!isCollapsed && (
-                <p className="px-2 text-xs font-semibold text-monza-500 dark:text-monza-400 uppercase tracking-wider mb-2">
+                <p className="px-2 text-xs font-semibold text-muted-foreground dark:text-muted-foreground uppercase tracking-wider mb-2">
                   Menu
                 </p>
               )}
@@ -273,19 +324,37 @@ export function PremiumSidebar({
                 const isActive = currentView === item.id;
 
                 return (
-                  <button
+                  <motion.button
                     key={item.id}
                     onClick={() => handleNavClick(item.id)}
+                    data-testid={`nav-${item.id}`}
+                    aria-current={isActive ? "page" : undefined}
+                    whileHover={{ scale: 1.02, x: 4 }}
+                    whileTap={{ scale: 0.98 }}
                     className={cn(
                       "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative overflow-hidden",
                       isActive
-                        ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/25"
-                        : "hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-monza-700 dark:text-slate-300"
+                        ? `bg-gradient-to-r ${item.gradient} text-white shadow-premium`
+                        : "hover:bg-white/50 dark:hover:bg-white/10 text-foreground dark:text-slate-300"
                     )}
                   >
+                    {/* Animated glow effect for active state */}
+                    {isActive && (
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent"
+                        animate={{
+                          x: ["-100%", "100%"],
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "linear",
+                        }}
+                      />
+                    )}
                     <div className={cn(
-                      "shrink-0",
-                      isActive ? "text-white" : item.color
+                      "shrink-0 relative z-10",
+                      isActive ? "text-white" : ""
                     )}>
                       <Icon className="w-5 h-5" />
                     </div>
@@ -296,7 +365,7 @@ export function PremiumSidebar({
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -10 }}
                           transition={{ duration: 0.15 }}
-                          className="font-medium text-sm"
+                          className="font-medium text-sm relative z-10"
                         >
                           {item.label}
                         </motion.span>
@@ -305,11 +374,11 @@ export function PremiumSidebar({
                     {isActive && (
                       <motion.div
                         layoutId="activeNavIndicator"
-                        className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white"
+                        className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white shadow-premium z-10"
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                       />
                     )}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
@@ -317,32 +386,38 @@ export function PremiumSidebar({
             {/* Quick Filters */}
             {!isCollapsed && (
               <div className="space-y-2">
-                <p className="px-2 text-xs font-semibold text-monza-500 dark:text-monza-400 uppercase tracking-wider">
+                <p className="px-2 text-xs font-semibold text-muted-foreground dark:text-muted-foreground uppercase tracking-wider">
                   Quick Filters
                 </p>
-                {quickFilters.map((filter) => {
+                {dynamicQuickFilters.map((filter) => {
                   const Icon = filter.icon;
                   const isActive = currentFilter === filter.id;
 
                   return (
-                    <button
+                    <motion.button
                       key={filter.id}
                       onClick={() => handleFilterClick(filter.id)}
+                      data-testid={`quick-filter-${filter.id}`}
+                      aria-pressed={isActive}
+                      layout="position"
+                      whileHover={{ scale: 1.02, x: 2 }}
+                      whileTap={{ scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
                       className={cn(
-                        "w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 group",
+                        "w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 group relative",
                         isActive
                           ? "bg-slate-200 dark:bg-slate-800"
                           : "hover:bg-slate-200/50 dark:hover:bg-slate-800/30"
                       )}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 relative z-10">
                         <Icon className={cn(
                           "w-4 h-4",
-                          isActive ? "text-indigo-500" : "text-monza-400 group-hover:text-monza-600 dark:group-hover:text-slate-300"
+                          isActive ? "text-indigo-500" : "text-muted-foreground group-hover:text-foreground dark:group-hover:text-slate-300"
                         )} />
                         <span className={cn(
                           "text-sm font-medium",
-                          isActive ? "text-monza-900 dark:text-white" : "text-monza-600 dark:text-monza-400"
+                          isActive ? "text-foreground dark:text-white" : "text-foreground dark:text-muted-foreground"
                         )}>
                           {filter.label}
                         </span>
@@ -350,15 +425,15 @@ export function PremiumSidebar({
                       <Badge
                         variant="secondary"
                         className={cn(
-                          "text-xs",
+                          "text-xs relative z-10",
                           isActive
                             ? "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300"
-                            : "bg-slate-100 dark:bg-slate-800 text-monza-500"
+                            : "bg-slate-100 dark:bg-slate-800 text-muted-foreground"
                         )}
                       >
                         {filter.count}
                       </Badge>
-                    </button>
+                    </motion.button>
                   );
                 })}
               </div>
@@ -368,7 +443,7 @@ export function PremiumSidebar({
             {!isCollapsed && projects.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between px-2">
-                  <p className="text-xs font-semibold text-monza-500 dark:text-monza-400 uppercase tracking-wider">
+                  <p data-testid="projects-heading" className="text-xs font-semibold text-muted-foreground dark:text-muted-foreground uppercase tracking-wider">
                     Projects
                   </p>
                   <Button variant="ghost" size="icon" className="h-6 w-6">
@@ -379,6 +454,8 @@ export function PremiumSidebar({
                   <button
                     key={project.id}
                     onClick={() => onProjectChange?.(project.id)}
+                    data-testid={`project-${project.id}`}
+                    aria-pressed={currentProject === project.id}
                     className={cn(
                       "w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 group",
                       currentProject === project.id
@@ -391,13 +468,13 @@ export function PremiumSidebar({
                         className="w-3 h-3 rounded-full ring-2 ring-white dark:ring-slate-900"
                         style={{ backgroundColor: project.color }}
                       />
-                      <span className="text-sm font-medium text-monza-700 dark:text-slate-300">
+                      <span className="text-sm font-medium text-foreground dark:text-slate-300">
                         {project.name}
                       </span>
                     </div>
                     <Badge
                       variant="secondary"
-                      className="bg-slate-100 dark:bg-slate-800 text-monza-500 text-xs"
+                      className="bg-slate-100 dark:bg-slate-800 text-muted-foreground text-xs"
                     >
                       {project.taskCount}
                     </Badge>
@@ -410,32 +487,40 @@ export function PremiumSidebar({
             {!isCollapsed && tags.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between px-2">
-                  <p className="text-xs font-semibold text-monza-500 dark:text-monza-400 uppercase tracking-wider">
+                  <p data-testid="tags-heading" className="text-xs font-semibold text-muted-foreground dark:text-muted-foreground uppercase tracking-wider">
                     Tags
                   </p>
-                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                  <Button variant="ghost" size="icon" className="h-6 w-6" title="Create new tag">
                     <Plus className="w-3 h-3" />
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2 px-2">
-                  {tags.map((tag) => (
-                    <button
-                      key={tag.id}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-200",
-                        "hover:scale-105 active:scale-95"
-                      )}
-                      style={{
-                        backgroundColor: `${tag.color}20`,
-                        color: tag.color,
-                        border: `1px solid ${tag.color}40`,
-                      }}
-                    >
-                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tag.color }} />
-                      {tag.name}
-                      <span className="opacity-60">({tag.count})</span>
-                    </button>
-                  ))}
+                  {tags.map((tag) => {
+                    const isSelected = selectedTagIds?.includes(tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        onClick={() => onTagClick?.(tag.name)}
+                        data-testid={`tag-${tag.id}`}
+                        aria-pressed={isSelected}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-200",
+                          "hover:scale-105 active:scale-95",
+                          isSelected && "ring-2 ring-offset-1"
+                        )}
+                        style={{
+                          backgroundColor: isSelected ? `${tag.color}40` : `${tag.color}20`,
+                          color: tag.color,
+                          border: `1px solid ${tag.color}40`,
+                        }}
+                        title={`Click to filter by ${tag.name}`}
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tag.color }} />
+                        {tag.name}
+                        <span className="opacity-60">({tag.count})</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -462,10 +547,10 @@ export function PremiumSidebar({
                   {getInitials()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-monza-900 dark:text-white truncate">
+                  <p className="text-sm font-semibold text-foreground dark:text-white truncate">
                     {getDisplayName()}
                   </p>
-                  <p className="text-xs text-monza-500 dark:text-monza-400 truncate">
+                  <p className="text-xs text-muted-foreground dark:text-muted-foreground truncate">
                     {user?.email || "Guest"}
                   </p>
                 </div>
@@ -492,14 +577,20 @@ export function PremiumSidebar({
       </aside>
 
       {/* Mobile Toggle Button */}
-      <Button
-        variant="default"
-        size="icon"
-        className="lg:hidden fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-xl bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700"
-        onClick={() => setIsMobileOpen(true)}
+      <motion.div
+        className="lg:hidden fixed bottom-6 right-6 z-50"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
       >
-        <Menu className="w-6 h-6 text-white" />
-      </Button>
+        <Button
+          variant="default"
+          size="icon"
+          className="h-14 w-14 rounded-full shadow-premium-xl bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-500 hover:via-purple-500 hover:to-fuchsia-500"
+          onClick={() => setIsMobileOpen(true)}
+        >
+          <Menu className="w-6 h-6 text-white" />
+        </Button>
+      </motion.div>
     </>
   );
 }

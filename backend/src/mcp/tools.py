@@ -4,10 +4,37 @@
 
 from typing import Optional, Dict, Any
 from uuid import UUID
-from sqlmodel import Session, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
+from sqlalchemy import exc
+import asyncio
+import logging
 
 from ..models.task import Task, Priority
 from ..models.message import MessageRole
+
+logger = logging.getLogger(__name__)
+
+
+async def _execute_with_retry(session: AsyncSession, operation):
+    """
+    Execute a database operation with retry logic for connection errors.
+
+    This wrapper handles Neon serverless connection issues by retrying
+    operations that fail due to closed connections.
+    """
+    max_retries = 3
+    base_delay = 0.3
+
+    for attempt in range(max_retries):
+        try:
+            return await operation()
+        except (exc.InterfaceError, exc.OperationalError) as e:
+            if "connection" in str(e).lower() and attempt < max_retries - 1:
+                logger.warning(f"Connection error in tool (attempt {attempt + 1}/{max_retries}): {e}")
+                await asyncio.sleep(base_delay * (attempt + 1))
+                continue
+            raise
 
 
 class ToolResult:
@@ -34,7 +61,7 @@ class ToolResult:
 
 
 async def add_task(
-    session: Session,
+    session: AsyncSession,
     user_id: UUID,
     title: str,
     description: Optional[str] = None,
@@ -77,9 +104,14 @@ async def add_task(
             priority=task_priority,
             completed=False,
         )
-        session.add(task)
-        await session.commit()
-        await session.refresh(task)
+
+        async def _add_and_commit():
+            session.add(task)
+            await session.commit()
+            await session.refresh(task)
+            return task
+
+        task = await _execute_with_retry(session, _add_and_commit)
 
         return ToolResult(
             success=True,
@@ -98,7 +130,7 @@ async def add_task(
 
 
 async def list_tasks(
-    session: Session,
+    session: AsyncSession,
     user_id: UUID,
     completed: Optional[bool] = None,
 ) -> ToolResult:
@@ -113,19 +145,22 @@ async def list_tasks(
         ToolResult with list of tasks or error
     """
     try:
-        # Build query
-        query = select(Task).where(Task.user_id == user_id)
+        async def _fetch_tasks():
+            # Build query
+            query = select(Task).where(Task.user_id == user_id)
 
-        # Apply completion filter if specified
-        if completed is not None:
-            query = query.where(Task.completed == completed)
+            # Apply completion filter if specified
+            if completed is not None:
+                query = query.where(Task.completed == completed)
 
-        # Order by updated_at DESC (most recent first)
-        query = query.order_by(Task.updated_at.desc())
+            # Order by updated_at DESC (most recent first)
+            query = query.order_by(Task.updated_at.desc())
 
-        # Execute query
-        results = await session.execute(query)
-        tasks = results.scalars().all()
+            # Execute query
+            results = await session.execute(query)
+            return results.scalars().all()
+
+        tasks = await _execute_with_retry(session, _fetch_tasks)
 
         return ToolResult(
             success=True,
@@ -150,7 +185,7 @@ async def list_tasks(
 
 
 async def update_task(
-    session: Session,
+    session: AsyncSession,
     user_id: UUID,
     task_id: int,
     title: Optional[str] = None,
@@ -228,7 +263,7 @@ async def update_task(
 
 
 async def delete_task(
-    session: Session,
+    session: AsyncSession,
     user_id: UUID,
     task_id: int,
 ) -> ToolResult:
@@ -270,7 +305,7 @@ async def delete_task(
 
 
 async def complete_task(
-    session: Session,
+    session: AsyncSession,
     user_id: UUID,
     task_id: int,
     completed: bool = True,

@@ -1,6 +1,8 @@
 // @spec: specs/002-fullstack-web-app/spec.md
 // @spec: specs/002-fullstack-web-app/plan.md
 // Root layout for Phase III AI Chatbot application
+// Includes ChatProvider for global chat state management
+// Includes TaskSyncProvider for real-time dashboard tracking (chatbot awareness)
 
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
@@ -9,6 +11,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeScript } from "@/components/theme-script";
 import { GSAPProvider } from "@/lib/animations/gsap-provider";
 import { ReducedMotionProvider } from "@/components/animations/reduced-motion-provider";
+import { ChatProvider } from "@/components/chat/chat-context";
+import { TaskSyncProvider } from "@/components/tasks/task-sync-context";
 
 export const metadata: Metadata = {
   title: "TaskFlow Pro | Professional Task Management",
@@ -31,8 +35,12 @@ export default function RootLayout({
       <body className="min-h-screen bg-background font-sans antialiased">
         <ReducedMotionProvider>
           <GSAPProvider>
-            {children}
-            <Toaster />
+            <TaskSyncProvider>
+              <ChatProvider>
+                {children}
+                <Toaster />
+              </ChatProvider>
+            </TaskSyncProvider>
           </GSAPProvider>
         </ReducedMotionProvider>
       </body>

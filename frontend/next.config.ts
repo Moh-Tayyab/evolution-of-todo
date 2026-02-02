@@ -7,8 +7,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
-  // External packages that should not be bundled
-  serverExternalPackages: ["better-auth"],
+  // Transpile packages (resolves Better Auth + Zod v4 issue)
+  transpilePackages: ['better-auth', 'zod'],
 
   // Compiler options
   compiler: {
@@ -26,8 +26,11 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Use Turbopack with empty config (SVG support is built-in)
-  turbopack: {},
+  // Experimental features for module resolution
+  experimental: {
+    // Optimize package imports
+    optimizePackageImports: ['zod', 'better-auth'],
+  },
 };
 
 export default nextConfig;

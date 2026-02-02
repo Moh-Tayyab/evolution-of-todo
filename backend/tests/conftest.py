@@ -2,6 +2,7 @@
 # @spec: specs/003-ai-chatbot/spec.md
 # Pytest fixtures for backend tests - including AI chatbot fixtures
 
+import os
 from uuid import UUID, uuid4
 import pytest
 from sqlmodel import Session, SQLModel, select
@@ -11,6 +12,10 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from unittest.mock import Mock, AsyncMock
 from typing import Optional
 import asyncio
+
+# Set test environment before any imports from src
+os.environ["ENVIRONMENT"] = "test"
+os.environ["OPENAI_API_KEY"] = "sk-test-key-for-unit-tests-only"
 
 # Import from src package
 try:
@@ -41,6 +46,19 @@ except ImportError:
 # Test database (SQLite for tests)
 TEST_DATABASE_URL = "sqlite:///test.db"
 test_engine = create_engine(TEST_DATABASE_URL, echo=False)
+
+
+@pytest.fixture(autouse=True)
+async def set_test_env():
+    """Set test environment for all tests."""
+    original_env = os.environ.get("ENVIRONMENT")
+    os.environ["ENVIRONMENT"] = "test"
+    os.environ["OPENAI_API_KEY"] = "sk-test-key-for-unit-tests-only"
+    yield
+    if original_env is None:
+        os.environ.pop("ENVIRONMENT", None)
+    else:
+        os.environ["ENVIRONMENT"] = original_env
 
 # Async test database
 TEST_DATABASE_URL_ASYNC = "sqlite+aiosqlite:///test_async.db"
@@ -197,32 +215,28 @@ async def sample_task_with_conversation(async_session: AsyncSession, test_user_u
 # Mock fixtures for OpenAI API
 # ============================================================================
 
-class MockChatResult:
-    """Mock agent result for testing."""
-    def __init__(self, response_text: str = "Test response", tool_calls: list = None):
-        self.final_output = response_text
-        self.events = []
-        self.tool_calls_data = tool_calls or []
-
-
 class MockAgentOrchestrator:
-    """Mock agent orchestrator for testing without OpenAI API."""
+    """Mock agent orchestrator for testing without OpenAI API.
+
+    Matches the actual AgentOrchestrator.process_message return format:
+    {
+        "response": str,        # AI response text
+        "tool_calls": [],       # List of tool calls made
+        "tool_results": []      # Results from tool executions
+    }
+    """
+
     def __init__(self, response_text: str = "Test response", tool_calls: list = None):
         self.response_text = response_text
         self.tool_calls_data = tool_calls or []
-        self.mock_result = MockChatResult(response_text, tool_calls)
 
-    async def process_message(self, user_message, conversation_history, user_id, session):
-        """Mock process message that returns a mock result."""
-        return self.mock_result
-
-    def get_response_text(self, result):
-        """Return the mock response text."""
-        return result.final_output
-
-    def get_tool_calls(self, result):
-        """Return mock tool calls if any."""
-        return self.tool_calls_data
+    async def process_message(self, user_message, conversation_history, user_id, session, dashboard_context=None):
+        """Mock process message that returns a dict matching actual implementation."""
+        return {
+            "response": self.response_text,
+            "tool_calls": self.tool_calls_data,
+            "tool_results": []
+        }
 
 
 @pytest.fixture
@@ -237,8 +251,8 @@ def mock_agent_with_tool_calls():
     return MockAgentOrchestrator(
         response_text="I've added the task to your list.",
         tool_calls=[{
-            "tool": "add_task",
-            "parameters": {"title": "Test task"}
+            "name": "add_task",
+            "arguments": {"title": "Test task"}
         }]
     )
 
@@ -253,10 +267,11 @@ def auth_headers_dict(test_user_id_str: str) -> dict:
 @pytest.fixture
 def mock_openai_api_response():
     """Mock OpenAI API response for testing agent logic."""
-    mock_response = Mock()
-    mock_response.final_output = "I've added 'Buy milk' to your tasks."
-    mock_response.events = []
-    return mock_response
+    return {
+        "response": "I've added 'Buy milk' to your tasks.",
+        "tool_calls": [],
+        "tool_results": []
+    }
 
 
 # ============================================================================

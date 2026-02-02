@@ -267,11 +267,11 @@ export function AnalyticsDashboard({
           animate={{ opacity: 1, y: 0 }}
           className="text-center py-16"
         >
-          <BarChart3 className="w-16 h-16 text-slate-300 dark:text-monza-700 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-monza-900 dark:text-white mb-2">
+          <BarChart3 className="w-16 h-16 text-slate-300 dark:text-foreground mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-foreground dark:text-white mb-2">
             No Analytics Yet
           </h2>
-          <p className="text-monza-500 dark:text-monza-400">
+          <p className="text-muted-foreground dark:text-muted-foreground">
             Create some tasks to see your productivity analytics
           </p>
         </motion.div>
@@ -288,10 +288,10 @@ export function AnalyticsDashboard({
         className="flex items-center justify-between"
       >
         <div>
-          <h2 className="text-2xl font-bold text-monza-900 dark:text-white">
+          <h2 className="text-2xl font-bold text-foreground dark:text-white">
             Analytics Dashboard
           </h2>
-          <p className="text-sm text-monza-500 dark:text-monza-400">
+          <p className="text-sm text-muted-foreground dark:text-muted-foreground">
             Track your productivity and task completion trends
           </p>
         </div>
@@ -357,10 +357,10 @@ export function AnalyticsDashboard({
         >
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-monza-900 dark:text-white">
+              <h3 className="text-lg font-semibold text-foreground dark:text-white">
                 Weekly Activity
               </h3>
-              <p className="text-sm text-monza-500 dark:text-monza-400">
+              <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                 Tasks created vs completed
               </p>
             </div>
@@ -380,7 +380,7 @@ export function AnalyticsDashboard({
 
                 return (
                   <div key={day.day} className="space-y-2">
-                    <div className="flex items-center justify-between text-xs text-monza-500 dark:text-monza-400">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground dark:text-muted-foreground">
                       <span className="font-medium">{day.day}</span>
                       <span className="flex items-center gap-2">
                         <span className="text-emerald-500">{day.completed} done</span>
@@ -410,7 +410,7 @@ export function AnalyticsDashboard({
               })}
             </div>
           ) : (
-            <div className="text-center py-8 text-monza-400">
+            <div className="text-center py-8 text-muted-foreground">
               No activity this week
             </div>
           )}
@@ -418,11 +418,11 @@ export function AnalyticsDashboard({
           <div className="flex items-center justify-center gap-6 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-emerald-500" />
-              <span className="text-sm text-monza-600 dark:text-monza-400">Completed</span>
+              <span className="text-sm text-foreground dark:text-muted-foreground">Completed</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-indigo-500" />
-              <span className="text-sm text-monza-600 dark:text-monza-400">Created</span>
+              <span className="text-sm text-foreground dark:text-muted-foreground">Created</span>
             </div>
           </div>
         </motion.div>
@@ -436,10 +436,10 @@ export function AnalyticsDashboard({
         >
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-monza-900 dark:text-white">
+              <h3 className="text-lg font-semibold text-foreground dark:text-white">
                 Priority Distribution
               </h3>
-              <p className="text-sm text-monza-500 dark:text-monza-400">
+              <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                 Task breakdown by priority
               </p>
             </div>
@@ -462,11 +462,11 @@ export function AnalyticsDashboard({
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: priority.color }}
                       />
-                      <span className="text-sm font-medium text-monza-700 dark:text-slate-300 capitalize">
+                      <span className="text-sm font-medium text-foreground dark:text-slate-300 capitalize">
                         {priority.priority}
                       </span>
                     </div>
-                    <span className="text-sm text-monza-500 dark:text-monza-400">
+                    <span className="text-sm text-muted-foreground dark:text-muted-foreground">
                       {priority.completed}/{priority.count} completed
                     </span>
                   </div>
@@ -485,7 +485,7 @@ export function AnalyticsDashboard({
                       className="h-full absolute top-0 left-0"
                       style={{ backgroundColor: priority.color }}
                     />
-                    <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-monza-700 dark:text-slate-300 mix-blend-difference">
+                    <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-foreground dark:text-slate-300 mix-blend-difference">
                       {percentage}% ({completedPercentage}% done)
                     </span>
                   </div>
@@ -506,10 +506,10 @@ export function AnalyticsDashboard({
         >
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-monza-900 dark:text-white">
+              <h3 className="text-lg font-semibold text-foreground dark:text-white">
                 Category Progress
               </h3>
-              <p className="text-sm text-monza-500 dark:text-monza-400">
+              <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                 Track completion by category
               </p>
             </div>
@@ -535,17 +535,17 @@ export function AnalyticsDashboard({
                       className="w-4 h-4 rounded-lg"
                       style={{ backgroundColor: category.color }}
                     />
-                    <h4 className="font-semibold text-monza-900 dark:text-white">
+                    <h4 className="font-semibold text-foreground dark:text-white">
                       {category.category}
                     </h4>
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-baseline justify-between">
-                      <span className="text-2xl font-bold text-monza-900 dark:text-white">
+                      <span className="text-2xl font-bold text-foreground dark:text-white">
                         {progress}%
                       </span>
-                      <span className="text-sm text-monza-500 dark:text-monza-400">
+                      <span className="text-sm text-muted-foreground dark:text-muted-foreground">
                         {category.completed}/{category.count}
                       </span>
                     </div>
@@ -647,10 +647,10 @@ function MetricCard({
         </div>
       </div>
       <div>
-        <p className="text-2xl font-bold text-monza-900 dark:text-white mb-1">
+        <p className="text-2xl font-bold text-foreground dark:text-white mb-1">
           {value}
         </p>
-        <p className="text-sm text-monza-500 dark:text-monza-400">
+        <p className="text-sm text-muted-foreground dark:text-muted-foreground">
           {label}
         </p>
       </div>
@@ -675,7 +675,7 @@ function Button({
       className={cn(
         "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
         variant === "outline"
-          ? "border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-monza-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+          ? "border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-foreground dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
           : "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700",
         size === "sm" && "px-3 py-1.5 text-xs",
         className

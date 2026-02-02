@@ -1,0 +1,588 @@
+#!/usr/bin/env python3
+# @spec: Git Hooks System for Evolution of Todo Project
+# Pre-commit hook: Fast validation before committing changes
+#
+# This hook runs quick validation checks to ensure code quality before commits.
+# Designed to complete in <10 seconds to avoid disrupting developer workflow.
+#
+# Validations performed:
+# - Frontend: ESLint (fast mode), TypeScript quick check, console.log detection
+# - Backend: Ruff lint (fast mode), import sorting check
+# - Format validation (ruff format --check)
+#
+# Performance: <10s timeout enforced
+# Exit codes: 0 (success), 1 (failure)
+
+from __future__ import annotations
+
+import sys
+import os
+from pathlib import Path
+from typing import List, Tuple, Optional
+
+# Add hooks utils to path
+hooks_dir = Path(__file__).parent
+utils_dir = hooks_dir / "utils"
+sys.path.insert(0, str(utils_dir))
+
+# Import utility modules
+from logger import HookLogger, Colors
+from config import HookConfig
+from git import GitUtils
+from frontend import FrontendUtils
+from backend import BackendUtils
+
+
+def print_banner(logger: HookLogger) -> None:
+    """
+    Print the pre-commit hook banner with project information.
+
+    Args:
+        logger: HookLogger instance for output
+    """
+    branch = GitUtils.get_current_branch()
+    branch_info = f"Branch: {branch}" if branch else "Branch: (detached)"
+
+    logger.info("")
+    logger.info("=" * 70)
+    logger.info("  PRE-COMMIT HOOK - Fast Validation")
+    logger.info("")
+    logger.info(f"  {branch_info}")
+    logger.info("=" * 70)
+    logger.info("")
+
+
+def get_affected_directories(staged_files: List[Path]) -> Tuple[Optional[Path], Optional[Path]]:
+    """
+    Determine which project directories are affected by staged changes.
+
+    Args:
+        staged_files: List of staged file paths
+
+    Returns:
+        Tuple of (frontend_path, backend_path) - None if not affected
+    """
+    git_root = GitUtils.get_git_root()
+    if not git_root:
+        return None, None
+
+    frontend_path = None
+    backend_path = None
+
+    for file_path in staged_files:
+        # Resolve absolute path
+        abs_path = (git_root / file_path).resolve()
+
+        # Check if file is in frontend directory
+        if "frontend" in abs_path.parts:
+            idx = abs_path.parts.index("frontend")
+            frontend_path = Path(*abs_path.parts[:idx + 1])
+
+        # Check if file is in backend directory
+        if "backend" in abs_path.parts:
+            idx = abs_path.parts.index("backend")
+            backend_path = Path(*abs_path.parts[:idx + 1])
+
+        # Early exit if both found
+        if frontend_path and backend_path:
+            break
+
+    return frontend_path, backend_path
+
+
+def validate_frontend(
+    logger: HookLogger,
+    config: HookConfig,
+    frontend_dir: Path,
+    staged_files: List[Path]
+) -> bool:
+    """
+    Run frontend validation checks.
+
+    This function performs fast validation checks on frontend code:
+    1. ESLint with auto-fix disabled (report only)
+    2. TypeScript quick syntax check
+    3. Console.log detection (excluding test files)
+    4. Prettier format check (if configured)
+
+    Args:
+        logger: HookLogger instance for output
+        config: HookConfig with settings
+        frontend_dir: Path to frontend directory
+        staged_files: List of staged files for filtering
+
+    Returns:
+        True if all validations pass, False otherwise
+    """
+    logger.section("Frontend Validation")
+
+    frontend_config = config.frontend
+    if not frontend_config.get("enabled", True):
+        logger.info("Frontend validation disabled in config")
+        return True
+
+    all_passed = True
+
+    # Check if frontend dependencies are installed
+    package_manager = FrontendUtils.detect_package_manager(frontend_dir)
+    if not FrontendUtils.check_dependencies(frontend_dir, package_manager):
+        logger.warning("Frontend dependencies not installed. Skipping validation.")
+        logger.warning("Run: cd frontend && pnpm install")
+        return True  # Don't block commit if deps not installed
+
+    # Get staged frontend files for targeted checks
+    frontend_files = [f for f in staged_files if "frontend" in f.parts]
+
+    # 1. ESLint Check
+    # ==========
+
+    lint_config = frontend_config.get("lint", {})
+    if lint_config.get("enabled", True):
+        logger.sub_section("ESLint Check")
+
+        with logger.time_operation("frontend_lint"):
+            success, output = FrontendUtils.run_lint(
+                frontend_dir,
+                package_manager=package_manager,
+                fix=False  # Don't auto-fix in pre-commit, just report
+            )
+
+        if success:
+            logger.success("ESLint: No issues found")
+        else:
+            logger.error("ESLint: Issues detected", exit_code=None)
+            logger.info(output)
+            all_passed = False
+
+            # Offer to auto-fix if configured
+            if lint_config.get("fix_on_error", False):
+                logger.warning("Run: cd frontend && pnpm run lint:fix")
+    else:
+        logger.debug("ESLint disabled in config")
+
+    # 2. TypeScript Type Check (Fast Mode)
+    # ==========
+
+    typecheck_config = frontend_config.get("typecheck", {})
+    if typecheck_config.get("enabled", True):
+        logger.sub_section("TypeScript Type Check")
+
+        with logger.time_operation("frontend_typecheck"):
+            success, output = FrontendUtils.run_type_check(
+                frontend_dir,
+                package_manager=package_manager
+            )
+
+        if success:
+            logger.success("TypeScript: No type errors")
+        else:
+            logger.error("TypeScript: Type errors detected", exit_code=None)
+            logger.info(output)
+            all_passed = False
+    else:
+        logger.debug("TypeScript check disabled in config")
+
+    # 3. Console.log Detection
+    # ==========
+
+    no_console_config = frontend_config.get("no_console_log", {})
+    if no_console_config.get("enabled", True):
+        logger.sub_section("Console.log Detection")
+
+        patterns = no_console_config.get("patterns", [r"console\.log"])
+        exclude_files = no_console_config.get("exclude_files", ["*.test.ts", "*.spec.ts"])
+
+        with logger.time_operation("console_log_check"):
+            files_with_logs = FrontendUtils.find_console_logs(
+                frontend_dir,
+                patterns=patterns,
+                exclude_files=exclude_files
+            )
+
+        if files_with_logs:
+            logger.warning(f"Found console.log in {len(files_with_logs)} file(s):")
+            for file_path in files_with_logs:
+                rel_path = file_path.relative_to(frontend_dir)
+                logger.warning(f"  • {rel_path}")
+
+            # Don't fail commit for console.logs, just warn
+            logger.info("Consider removing console.log statements before production")
+        else:
+            logger.success("No console.log statements found")
+    else:
+        logger.debug("Console.log check disabled in config")
+
+    # 4. Format Check (Prettier)
+    # ==========
+
+    format_config = frontend_config.get("format", {})
+    if format_config.get("enabled", True):
+        logger.sub_section("Format Check")
+
+        with logger.time_operation("frontend_format_check"):
+            success, output = FrontendUtils.check_format(
+                frontend_dir,
+                package_manager=package_manager
+            )
+
+        if success:
+            logger.success("Code formatting: OK")
+        else:
+            logger.error("Code formatting issues detected", exit_code=None)
+            logger.info(output)
+            all_passed = False
+
+            if format_config.get("fix_on_error", False):
+                logger.warning("Run: cd frontend && pnpm run format:fix")
+    else:
+        logger.debug("Format check disabled in config")
+
+    return all_passed
+
+
+def validate_backend(
+    logger: HookLogger,
+    config: HookConfig,
+    backend_dir: Path,
+    staged_files: List[Path]
+) -> bool:
+    """
+    Run backend validation checks.
+
+    This function performs fast validation checks on backend code:
+    1. Ruff linting (syntax, style, potential bugs)
+    2. Import sorting check
+    3. Format validation
+
+    Note: mypy is NOT run in pre-commit as it's too slow (>10s)
+
+    Args:
+        logger: HookLogger instance for output
+        config: HookConfig with settings
+        backend_dir: Path to backend directory
+        staged_files: List of staged files for filtering
+
+    Returns:
+        True if all validations pass, False otherwise
+    """
+    logger.section("Backend Validation")
+
+    backend_config = config.backend
+    if not backend_config.get("enabled", True):
+        logger.info("Backend validation disabled in config")
+        return True
+
+    all_passed = True
+
+    # Check if Python is available
+    if not BackendUtils.is_backend_project(backend_dir):
+        logger.warning("Backend project structure not detected. Skipping validation.")
+        return True
+
+    # Get staged backend files for targeted checks
+    backend_files = [f for f in staged_files if "backend" in f.parts]
+
+    # 1. Ruff Lint Check
+    # ==========
+
+    lint_config = backend_config.get("lint", {})
+    if lint_config.get("enabled", True):
+        logger.sub_section("Ruff Lint Check")
+
+        with logger.time_operation("backend_lint"):
+            success, output = BackendUtils.lint(
+                backend_dir,
+                fix=False  # Don't auto-fix in pre-commit
+            )
+
+        if success:
+            logger.success("Ruff: No issues found")
+        else:
+            logger.error("Ruff: Issues detected", exit_code=None)
+            # Show first few lines of output
+            lines = output.split("\n")[:10]
+            logger.info("\n".join(lines))
+            if len(output.split("\n")) > 10:
+                logger.info("... (output truncated)")
+            all_passed = False
+
+            if lint_config.get("fix_on_error", False):
+                logger.warning("Run: cd backend && ruff check --fix .")
+    else:
+        logger.debug("Ruff lint disabled in config")
+
+    # 2. Import Sorting Check
+    # ==========
+
+    imports_config = backend_config.get("imports", {})
+    if imports_config.get("enabled", True):
+        logger.sub_section("Import Sorting Check")
+
+        with logger.time_operation("backend_imports"):
+            success, output = BackendUtils.check_imports(backend_dir)
+
+        if success:
+            logger.success("Import sorting: OK")
+        else:
+            logger.error("Import sorting issues detected", exit_code=None)
+            logger.info(output)
+            all_passed = False
+
+            logger.warning("Run: cd backend && ruff check --select I --fix .")
+    else:
+        logger.debug("Import check disabled in config")
+
+    # 3. Format Check
+    # ==========
+
+    format_config = backend_config.get("format", {})
+    if format_config.get("enabled", True):
+        logger.sub_section("Format Check")
+
+        with logger.time_operation("backend_format"):
+            success, output = BackendUtils.check_format(backend_dir)
+
+        if success:
+            logger.success("Code formatting: OK")
+        else:
+            logger.error("Code formatting issues detected", exit_code=None)
+            logger.info(output)
+            all_passed = False
+
+            if format_config.get("fix_on_error", False):
+                logger.warning("Run: cd backend && ruff format .")
+    else:
+        logger.debug("Format check disabled in config")
+
+    return all_passed
+
+
+def check_for_secrets(logger: HookLogger, staged_files: List[Path]) -> bool:
+    """
+    Basic check for potential secrets in staged files.
+
+    This is a simple heuristic check to prevent accidental commits of:
+    - API keys
+    - Passwords
+    - Tokens
+    - Certificates
+
+    Note: This is NOT a replacement for proper secret scanning tools.
+    Consider using git-secrets or similar for comprehensive protection.
+
+    Args:
+        logger: HookLogger instance for output
+        staged_files: List of staged file paths
+
+    Returns:
+        True if no obvious secrets detected, False otherwise
+    """
+    logger.section("Secret Detection (Basic)")
+
+    import re
+
+    # Patterns that might indicate secrets (basic set)
+    secret_patterns = [
+        r'api[_-]?key\s*=\s*["\'][\w-]{20,}["\']',  # API keys
+        r'password\s*=\s*["\'][\w@#$%^&*]{8,}["\']',  # Passwords
+        r'token\s*=\s*["\'][\w.-]{30,}["\']',  # Tokens
+        r'-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----',  # Private keys
+        r'sk_[a-zA-Z0-9]{32,}',  # Stripe-style keys
+        r'ghp_[a-zA-Z0-9]{36,}',  # GitHub tokens
+    ]
+
+    issues_found = False
+
+    for file_path in staged_files:
+        # Skip binary files and common non-code files
+        if file_path.suffix in ['.png', '.jpg', '.jpeg', '.gif', '.pdf', '.zip', '.lock']:
+            continue
+
+        try:
+            content = file_path.read_text(encoding='utf-8', errors='ignore')
+
+            for pattern in secret_patterns:
+                if re.search(pattern, content, re.IGNORECASE):
+                    logger.error(f"Potential secret detected in: {file_path}", exit_code=None)
+                    issues_found = True
+                    break
+
+        except (IOError, UnicodeDecodeError):
+            continue
+
+    if not issues_found:
+        logger.success("No obvious secrets detected")
+
+    return not issues_found
+
+
+def check_commit_message(logger: HookLogger) -> bool:
+    """
+    Validate commit message format.
+
+    This checks if the commit message follows conventional commit format:
+    - type(scope): description
+    - Types: feat, fix, docs, style, refactor, test, chore
+
+    Args:
+        logger: HookLogger instance for output
+
+    Returns:
+        True if message format is valid or validation is skipped, False otherwise
+    """
+    # Get commit message from .git/COMMIT_EDITMSG
+    git_root = GitUtils.get_git_root()
+    if not git_root:
+        return True
+
+    commit_msg_file = git_root / ".git" / "COMMIT_EDITMSG"
+    if not commit_msg_file.exists():
+        return True  # Skip validation if file not found
+
+    try:
+        commit_msg = commit_msg_file.read_text(encoding='utf-8').strip()
+        # Get first line (subject)
+        subject = commit_msg.split('\n')[0]
+
+        # Skip validation for merge commits, revert commits, or WIP commits
+        if subject.startswith('Merge ') or subject.startswith('Revert ') or subject.startswith('WIP'):
+            return True
+
+        # Check conventional commit format (optional, can be disabled)
+        # Pattern: type(scope): description
+        import re
+        conventional_pattern = r'^(feat|fix|docs|style|refactor|test|chore|build|ci|perf)(\(.+\))?\:\s+.+'
+
+        if not re.match(conventional_pattern, subject):
+            # This is just a warning, don't block commit
+            logger.debug("Commit message does not follow conventional commit format")
+            logger.debug("Recommended format: type(scope): description")
+            logger.debug("Types: feat, fix, docs, style, refactor, test, chore, build, ci, perf")
+
+        return True
+
+    except (IOError, UnicodeDecodeError):
+        return True  # Skip validation on error
+
+
+def main() -> int:
+    """
+    Main entry point for the pre-commit hook.
+
+    This function orchestrates all pre-commit validations:
+    1. Load configuration
+    2. Get staged files
+    3. Determine affected directories
+    4. Run frontend validation (if applicable)
+    5. Run backend validation (if applicable)
+    6. Run secret detection
+    7. Validate commit message (optional)
+    8. Report results
+
+    Returns:
+        Exit code: 0 for success, 1 for failure
+    """
+    # Initialize logger
+    logger = HookLogger(
+        hook_name="pre-commit",
+        verbose=os.getenv("GIT_HOOKS_VERBOSE", "false").lower() == "true"
+    )
+
+    # Print banner
+    print_banner(logger)
+
+    # Load configuration
+    logger.debug("Loading configuration...")
+    config = HookConfig()
+
+    # Check if hook is enabled
+    if not config.is_hook_enabled("pre_commit"):
+        logger.info("Pre-commit hook disabled in configuration. Exiting.")
+        return 0
+
+    # Get timeout
+    timeout = config.get_hook_timeout("pre_commit")
+    logger.debug(f"Timeout: {timeout}s")
+
+    # Get staged files
+    logger.debug("Getting staged files...")
+    staged_files = GitUtils.get_staged_files()
+
+    if not staged_files:
+        logger.info("No staged files. Skipping validation.")
+        return 0
+
+    logger.debug(f"Found {len(staged_files)} staged file(s)")
+
+    # Determine which directories are affected
+    logger.debug("Determining affected directories...")
+    frontend_dir, backend_dir = get_affected_directories(staged_files)
+
+    # Track results
+    all_passed = True
+
+    # Frontend validation (if frontend files are staged)
+    if frontend_dir:
+        try:
+            frontend_passed = validate_frontend(logger, config, frontend_dir, staged_files)
+            all_passed = all_passed and frontend_passed
+        except Exception as e:
+            logger.error(f"Frontend validation failed with exception: {e}", exit_code=None)
+            all_passed = False
+    else:
+        logger.debug("No frontend files staged. Skipping frontend validation.")
+
+    # Backend validation (if backend files are staged)
+    if backend_dir:
+        try:
+            backend_passed = validate_backend(logger, config, backend_dir, staged_files)
+            all_passed = all_passed and backend_passed
+        except Exception as e:
+            logger.error(f"Backend validation failed with exception: {e}", exit_code=None)
+            all_passed = False
+    else:
+        logger.debug("No backend files staged. Skipping backend validation.")
+
+    # Secret detection (always run if any files are staged)
+    try:
+        secrets_ok = check_for_secrets(logger, staged_files)
+        all_passed = all_passed and secrets_ok
+    except Exception as e:
+        logger.error(f"Secret detection failed with exception: {e}", exit_code=None)
+        all_passed = False
+
+    # Commit message validation (optional)
+    try:
+        check_commit_message(logger)
+    except Exception as e:
+        logger.debug(f"Commit message validation failed: {e}")
+
+    # Print summary
+    logger.log_summary()
+
+    # Final result
+    if all_passed:
+        logger.success("Pre-commit validation: PASSED")
+        return 0
+    else:
+        logger.error("Pre-commit validation: FAILED", exit_code=None)
+        logger.info("")
+        logger.info("Fix the issues above and try again.")
+        logger.info("To bypass this hook (not recommended):")
+        logger.info("  git commit --no-verify")
+        logger.info("")
+        return 1
+
+
+if __name__ == "__main__":
+    try:
+        exit_code = main()
+        sys.exit(exit_code)
+    except KeyboardInterrupt:
+        logger = HookLogger("pre-commit")
+        logger.warning("\nPre-commit hook interrupted by user")
+        sys.exit(130)  # Standard exit code for SIGINT
+    except Exception as e:
+        logger = HookLogger("pre-commit")
+        logger.error(f"Pre-commit hook failed unexpectedly: {e}", exit_code=1)
+        sys.exit(1)

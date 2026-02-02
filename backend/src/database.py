@@ -33,7 +33,15 @@ if database_url.startswith("postgresql://"):
     engine = create_async_engine(
         database_url,
         echo=False,
-        connect_args=connect_args if connect_args else None
+        connect_args=connect_args if connect_args else None,
+        # Connection pool configuration for Neon serverless
+        # pool_pre_ping verifies connection health before using it
+        # pool_recycle recycles connections before Neon's 5-minute timeout
+        pool_size=2,  # Small pool for serverless
+        max_overflow=2,  # Allow some overflow
+        pool_recycle=240,  # 4 minutes (Neon timeout is 5 min)
+        pool_pre_ping=True,  # Verify connection before use
+        pool_timeout=30,  # Wait 30s for connection
     )
 
 elif database_url.startswith("sqlite://"):
@@ -46,6 +54,50 @@ else:
 
 
 async def get_session() -> AsyncSession:
-    """Get async database session dependency for FastAPI routes."""
-    async with AsyncSession(engine) as session:
-        yield session
+    """Get async database session dependency for FastAPI routes.
+
+    Includes retry logic for Neon serverless auto-suspend and connection errors.
+    """
+    import asyncio
+    from sqlalchemy import exc, text
+    import logging
+
+    logger = logging.getLogger(__name__)
+    max_retries = 5
+    base_delay = 0.5  # seconds
+
+    for attempt in range(max_retries):
+        try:
+            async with AsyncSession(engine) as session:
+                # Test connection with a simple query
+                try:
+                    # Quick connection health check
+                    await session.execute(text("SELECT 1"))
+                except Exception as conn_error:
+                    if attempt < max_retries - 1:
+                        logger.warning(f"Connection health check failed (attempt {attempt + 1}/{max_retries}): {conn_error}")
+                        await asyncio.sleep(base_delay * (attempt + 1))  # Exponential backoff
+                        continue
+                    raise
+
+                yield session
+                return
+
+        except exc.InterfaceError as e:
+            if attempt < max_retries - 1:
+                logger.warning(f"Database connection error (attempt {attempt + 1}/{max_retries}): {e}")
+                await asyncio.sleep(base_delay * (attempt + 1))
+                continue
+            logger.error(f"Database connection failed after {max_retries} attempts: {e}")
+            raise
+
+        except exc.OperationalError as e:
+            if "connection" in str(e).lower() and attempt < max_retries - 1:
+                logger.warning(f"Database operational error (attempt {attempt + 1}/{max_retries}): {e}")
+                await asyncio.sleep(base_delay * (attempt + 1))
+                continue
+            raise
+
+        except Exception as e:
+            logger.error(f"Unexpected database error: {e}")
+            raise

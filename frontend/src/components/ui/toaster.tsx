@@ -28,7 +28,7 @@ const toastVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-monza-900 dark:text-slate-100",
+        default: "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-foreground dark:text-slate-100",
         destructive:
           "destructive group border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 text-red-900 dark:text-red-100",
       },
@@ -103,8 +103,18 @@ try {
   console.warn("Toast hook not available:", error);
 }
 
+// Define ToasterToast type locally (matching use-toast.ts)
+type ToasterToast = {
+  id: string;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+  variant?: "default" | "destructive";
+  open?: boolean;
+};
+
 export function Toaster() {
-  const [toasts, setToasts] = React.useState([]);
+  const [toasts, setToasts] = React.useState<ToasterToast[]>([]);
 
   // Set up listener for toast state changes
   React.useEffect(() => {
@@ -129,9 +139,15 @@ export function Toaster() {
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, variant = "default", ...props }) {
+      {toasts.map((toast) => {
+        const id = toast.id;
+        const title = toast.title;
+        const description = toast.description;
+        const action = toast.action;
+        const variant = toast.variant ?? "default";
+
         return (
-          <Toast key={id} variant={variant} {...props}>
+          <Toast key={id} variant={variant}>
             <div className="grid gap-1">
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && (

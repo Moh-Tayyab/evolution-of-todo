@@ -114,6 +114,10 @@ async def chat_endpoint(
             chat_request.conversation_id,
         )
 
+        # Extract conversation_id BEFORE async operations (object may expire)
+        conversation_id_str = str(conversation.id)
+        conversation_title = conversation.title  # Also extract title before async ops
+
         # Get conversation history for context
         messages = await conversation_service.get_conversation_messages(
             session, conversation.id
@@ -154,14 +158,14 @@ async def chat_endpoint(
             session,
         )
 
-        # Extract AI response
-        ai_response_text = orchestrator.get_response_text(result)
-        tool_calls = orchestrator.get_tool_calls(result)
+        # Extract AI response from result dictionary
+        ai_response_text = result.get("response", "")
+        tool_calls = result.get("tool_calls", [])
 
         # Persist AI message
         ai_message = await conversation_service.add_message(
             session,
-            conversation.id,
+            UUID(conversation_id_str),  # Use extracted ID
             MessageRole.ASSISTANT,
             ai_response_text,
             {"tool_calls": tool_calls} if tool_calls else None,
@@ -170,17 +174,17 @@ async def chat_endpoint(
         # Store message details before commit (to avoid lazy-loading issues)
         message_id = str(ai_message.id)
         message_created_at = ai_message.created_at.isoformat()
-        conversation_id = str(conversation.id)
+        conversation_id = conversation_id_str  # Use extracted ID
 
         # Update conversation title based on first exchange if still "New Chat"
-        if conversation.title == "New Chat":
+        if conversation_title == "New Chat":
             # Generate title from first few words of user message
             title_words = chat_request.message.split()[:5]
             new_title = " ".join(title_words)
             if len(chat_request.message.split()) > 5:
                 new_title += "..."
             await conversation_service.update_conversation_title(
-                session, conversation.id, new_title
+                session, UUID(conversation_id_str), new_title
             )
 
         # Commit the transaction to persist all changes

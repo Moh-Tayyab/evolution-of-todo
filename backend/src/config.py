@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     )
 
     # Development settings
+    environment: Literal["development", "test", "production"] = Field(
+        default="development",
+        description="Application environment"
+    )
     debug: bool = Field(
         default=False,
         description="Enable debug mode (verbose logging, auto-reload)"
@@ -78,6 +82,10 @@ class Settings(BaseSettings):
         Raises:
             ValueError: If OPENAI_API_KEY is required but not set
         """
+        # Skip validation for test environment
+        if self.environment == "test":
+            return
+
         if self.openai_api_key:
             if not self.openai_api_key.startswith("sk-"):
                 logger.warning(

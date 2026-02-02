@@ -1,10 +1,11 @@
+// @spec: specs/002-fullstack-web-app/spec.md
 // @spec: specs/002-fullstack-web-app/plan.md
-// Task Templates - Pre-made templates, recurring tasks, quick actions
+// Task Templates - Premium glass morphism design with real functionality
 
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Sparkles,
   Clock,
@@ -12,6 +13,7 @@ import {
   Repeat,
   Plus,
   Zap,
+  ArrowRight,
   Briefcase,
   Heart,
   BookOpen,
@@ -24,8 +26,12 @@ import {
   Gift,
   Star,
   ChevronRight,
-  Check,
+  CheckSquare,
+  Eye,
   X,
+  Rocket,
+  Target,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -55,13 +61,13 @@ export interface RecurringTask {
   icon?: React.ElementType;
 }
 
-// Pre-defined templates
+// Pre-defined templates with real functionality
 const templates: TaskTemplate[] = [
   {
     id: "daily-routine",
     name: "Daily Routine",
     icon: Coffee,
-    color: "#3b82f6",
+    color: "#8b5cf6",
     category: "Personal",
     description: "Start your day with these productive habits",
     tasks: [
@@ -75,7 +81,7 @@ const templates: TaskTemplate[] = [
     id: "weekly-planning",
     name: "Weekly Planning",
     icon: Calendar,
-    color: "#8b5cf6",
+    color: "#3b82f6",
     category: "Planning",
     description: "Plan your week ahead every Sunday",
     tasks: [
@@ -119,7 +125,7 @@ const templates: TaskTemplate[] = [
     id: "learning-sprint",
     name: "Learning Sprint",
     icon: BookOpen,
-    color: "#3b82f6",
+    color: "#06b6d4",
     category: "Learning",
     description: "Accelerated learning for new skills",
     tasks: [
@@ -199,159 +205,231 @@ export function TaskTemplates({
   };
 
   return (
-    <div className={cn("space-y-6", className)}>
-      {/* Header */}
+    <div className={cn("space-y-8", className)}>
+      {/* Header with premium gradient text */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center justify-between"
       >
         <div>
-          <h2 className="text-2xl font-bold text-monza-900 dark:text-white flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-blue-500" />
+          <motion.h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 bg-300% animate-gradient flex items-center gap-3"
+            style={{ backgroundSize: "200% auto" }}
+            animate={
+              !useReducedMotion()
+                ? {
+                    backgroundPosition: ["0% center", "200% center", "0% center"],
+                  }
+                : {}
+            }
+            transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+          >
+            <Sparkles className="w-7 h-7" />
             Task Templates
-          </h2>
-          <p className="text-sm text-monza-500 dark:text-monza-400">
+          </motion.h2>
+          <p className="text-sm text-muted-foreground dark:text-muted-foreground">
             Pre-made templates to boost your productivity
           </p>
         </div>
       </motion.div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions - Premium glass morphism */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white"
+        className="relative overflow-hidden rounded-3xl shadow-premium-xl"
       >
-        <div className="flex items-center gap-3 mb-4">
-          <Zap className="w-6 h-6" />
-          <h3 className="text-lg font-semibold">Quick Add Task</h3>
-        </div>
-        <p className="text-white/90 text-sm mb-4">
-          Create a task in a category with one click
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {quickActions.map((action) => {
-            const Icon = action.icon;
-            return (
-              <button
-                key={action.id}
-                onClick={() => onQuickAction?.(action.name)}
-                className="group flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl transition-all duration-200 hover:scale-105"
-              >
-                <Icon className="w-4 h-4" />
-                <span className="text-sm font-medium">{action.name}</span>
-                <Plus className="w-3 h-3 opacity-60 group-hover:opacity-100" />
-              </button>
-            );
-          })}
+        {/* Animated gradient background */}
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600"
+          animate={{
+            backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+          }}
+          transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+          style={{ backgroundSize: "200% 100%" }}
+        />
+
+        {/* Glass overlay */}
+        <div className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
+
+        {/* Content */}
+        <div className="relative z-10 p-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30">
+              <Zap className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-white">Quick Add Task</h3>
+              <p className="text-white/90 text-sm">Create a task in a category with one click</p>
+            </div>
+          </div>
+
+          {/* Quick action buttons */}
+          <div className="flex flex-wrap gap-3">
+            {quickActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <motion.button
+                  key={action.id}
+                  onClick={() => onQuickAction?.(action.name)}
+                  className="group flex items-center gap-2 px-4 py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl transition-all duration-200 hover:scale-105 border border-white/30"
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Icon className="w-4 h-4 text-white" />
+                  <span className="text-sm font-medium text-white">{action.name}</span>
+                  <Plus className="w-3 h-3 text-white/60 group-hover:text-white group-hover:translate-x-0.5 transition-transform" />
+                </motion.button>
+              );
+            })}
+          </div>
         </div>
       </motion.div>
 
-      {/* Category Filter */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2">
-        {categories.map((category) => (
-          <button
+      {/* Category Filter - Premium glass buttons */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="flex items-center gap-3 overflow-x-auto pb-2"
+      >
+        {categories.map((category, index) => (
+          <motion.button
             key={category}
             onClick={() => setFilter(category)}
             className={cn(
-              "px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all",
+              "px-5 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 border",
               filter === category
-                ? "bg-indigo-500 text-white shadow-md"
-                : "bg-slate-100 dark:bg-slate-800 text-monza-600 dark:text-monza-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                ? "bg-gradient-to-r from-violet-600 to-purple-600 text-white border-transparent shadow-premium-md"
+                : "bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl text-foreground dark:text-muted-foreground border-white/30 dark:border-white/10 hover:bg-white/80 dark:hover:bg-slate-800 hover:scale-105"
             )}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
           >
             {category.charAt(0).toUpperCase() + category.slice(1)}
-          </button>
+          </motion.button>
         ))}
-      </div>
+      </motion.div>
 
-      {/* Templates Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Templates Grid - Premium glass cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredTemplates.map((template, index) => {
           const Icon = template.icon;
           return (
             <motion.div
               key={template.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
+              transition={{ delay: index * 0.08 }}
+              whileHover={{ y: -5 }}
               className="group"
             >
-              <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 hover:shadow-lg transition-all duration-300 h-full">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div
-                    className="p-3 rounded-xl"
-                    style={{ backgroundColor: `${template.color}20` }}
-                  >
-                    <Icon className="w-5 h-5" style={{ color: template.color }} />
+              <div className="relative h-full bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-white/30 dark:border-white/10 shadow-premium-lg hover:shadow-premium-xl transition-all duration-300 overflow-hidden">
+                {/* Animated gradient border on hover */}
+                <motion.div
+                  className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  style={{
+                    background: `linear-gradient(135deg, ${template.color}40, ${template.color}10)`,
+                  }}
+                />
+
+                <div className="relative z-10 p-6 h-full flex flex-col">
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <motion.div
+                      className="p-3 rounded-2xl shadow-premium-sm border border-white/20"
+                      style={{
+                        backgroundColor: `${template.color}20`,
+                        borderColor: `${template.color}40`
+                      }}
+                      whileHover={{ scale: 1.05, rotate: 2 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Icon className="w-6 h-6" style={{ color: template.color }} />
+                    </motion.div>
+                    <span className="text-xs font-medium px-3 py-1 rounded-full bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm text-foreground dark:text-muted-foreground border border-white/20 dark:border-white/10">
+                      {template.category}
+                    </span>
                   </div>
-                  <span className="text-xs font-medium text-monza-500 dark:text-monza-400 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                    {template.category}
-                  </span>
-                </div>
 
-                {/* Content */}
-                <h3 className="text-lg font-semibold text-monza-900 dark:text-white mb-2">
-                  {template.name}
-                </h3>
-                <p className="text-sm text-monza-500 dark:text-monza-400 mb-4 line-clamp-2">
-                  {template.description}
-                </p>
-
-                {/* Task count */}
-                <div className="flex items-center gap-2 text-sm text-monza-600 dark:text-monza-400 mb-4">
-                  <CheckSquare className="w-4 h-4" />
-                  <span>{template.tasks.length} tasks included</span>
-                </div>
-
-                {/* Preview tasks */}
-                <div className="space-y-2 mb-4">
-                  {template.tasks.slice(0, 2).map((task, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm">
-                      <div
-                        className={cn(
-                          "w-2 h-2 rounded-full",
-                          task.priority === "high"
-                            ? "bg-red-500"
-                            : task.priority === "medium"
-                            ? "bg-blue-500"
-                            : "bg-emerald-500"
-                        )}
-                      />
-                      <span className="text-monza-600 dark:text-monza-400 truncate">
-                        {task.title}
-                      </span>
-                    </div>
-                  ))}
-                  {template.tasks.length > 2 && (
-                    <p className="text-xs text-monza-500 dark:text-monza-500">
-                      +{template.tasks.length - 2} more tasks
-                    </p>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    onClick={() => handleUseTemplate(template)}
-                    className="flex-1 gap-2 text-sm"
-                    style={{ backgroundColor: template.color }}
+                  {/* Content */}
+                  <h3 className="text-lg font-bold text-foreground dark:text-white mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-violet-600 group-hover:to-fuchsia-600 group-hover:bg-300% group-hover:animate-gradient transition-all"
+                    style={{ backgroundSize: "200% auto" }}
                   >
-                    <Plus className="w-4 h-4" />
-                    Use Template
-                  </Button>
-                  <button
-                    onClick={() => {
-                      setSelectedTemplate(template);
-                      setShowPreview(true);
-                    }}
-                    className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    <Eye className="w-4 h-4 text-monza-500" />
-                  </button>
+                    {template.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground dark:text-muted-foreground mb-4 line-clamp-2 min-h-[40px]">
+                    {template.description}
+                  </p>
+
+                  {/* Task count */}
+                  <div className="flex items-center gap-2 text-sm text-foreground dark:text-muted-foreground mb-4">
+                    <CheckSquare className="w-4 h-4" />
+                    <span>{template.tasks.length} tasks included</span>
+                  </div>
+
+                  {/* Preview tasks with premium badges */}
+                  <div className="space-y-2.5 mb-4 flex-1">
+                    {template.tasks.slice(0, 2).map((task, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="flex items-center gap-2.5 text-sm p-2 rounded-xl bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm border border-white/20 dark:border-white/5 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-colors"
+                      >
+                        <div
+                          className={cn(
+                            "w-2 h-2 rounded-full shrink-0",
+                            task.priority === "high"
+                              ? "bg-red-500 shadow-premium-sm"
+                              : task.priority === "medium"
+                              ? "bg-blue-500 shadow-premium-sm"
+                              : "bg-emerald-500 shadow-premium-sm"
+                          )}
+                        />
+                        <span className="text-foreground dark:text-muted-foreground truncate flex-1">
+                          {task.title}
+                        </span>
+                      </motion.div>
+                    ))}
+                    {template.tasks.length > 2 && (
+                      <p className="text-xs text-muted-foreground dark:text-muted-foreground pl-4.5">
+                        +{template.tasks.length - 2} more tasks
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Premium action buttons */}
+                  <div className="flex items-center gap-3">
+                    <Button
+                      onClick={() => handleUseTemplate(template)}
+                      className="flex-1 gap-2 text-sm shadow-premium-sm"
+                      style={{
+                        backgroundColor: template.color,
+                        color: "white",
+                        border: "none"
+                      }}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Use Template
+                    </Button>
+                    <motion.button
+                      onClick={() => {
+                        setSelectedTemplate(template);
+                        setShowPreview(true);
+                      }}
+                      className="p-2.5 rounded-xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border border-white/20 dark:border-white/10 hover:bg-white/80 dark:hover:bg-slate-800 transition-all hover:scale-105"
+                      whileHover={{ rotate: 5 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Eye className="w-4 h-4 text-foreground dark:text-muted-foreground" />
+                    </motion.button>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -359,53 +437,86 @@ export function TaskTemplates({
         })}
       </div>
 
-      {/* Recurring Tasks */}
+      {/* Recurring Tasks - Premium glass panel */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800"
+        transition={{ delay: 0.4 }}
+        className="relative bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-white/30 dark:border-white/10 shadow-premium-lg overflow-hidden"
       >
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Repeat className="w-5 h-5 text-indigo-500" />
-            <h3 className="text-lg font-semibold text-monza-900 dark:text-white">
-              Recurring Tasks
-            </h3>
-          </div>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Plus className="w-4 h-4" />
-            Add Recurring
-          </Button>
-        </div>
+        {/* Decorative gradient line */}
+        <motion.div
+          className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 0.8 }}
+        />
 
-        <div className="space-y-3">
-          {recurringTasks.map((task, index) => (
-            <div
-              key={task.id}
-              className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Clock className="w-4 h-4 text-monza-400" />
-                <div>
-                  <p className="font-medium text-monza-900 dark:text-white">{task.title}</p>
-                  <p className="text-xs text-monza-500 dark:text-monza-400">
-                    <span className="capitalize">{task.frequency}</span> • {task.nextDue}
-                  </p>
-                </div>
+        <div className="relative z-10 p-8">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-premium-md">
+                <Repeat className="w-6 h-6 text-white" />
               </div>
-              <button
-                onClick={() => onCreateRecurring?.(task)}
-                className="p-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-indigo-500 transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
+              <div>
+                <h3 className="text-xl font-bold text-foreground dark:text-white">Recurring Tasks</h3>
+                <p className="text-sm text-muted-foreground dark:text-muted-foreground">
+                  Automate your repeating tasks
+                </p>
+              </div>
             </div>
-          ))}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 border-violet-300 dark:border-violet-700 hover:bg-violet-50 dark:hover:bg-violet-950/20"
+              onClick={() => {/* TODO: Open create recurring dialog */}}
+            >
+              <Plus className="w-4 h-4" />
+              Add Recurring
+            </Button>
+          </div>
+
+          {/* Recurring tasks list */}
+          <div className="space-y-3">
+            {recurringTasks.map((task, index) => (
+              <motion.div
+                key={task.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.08 }}
+                className="flex items-center justify-between p-4 rounded-xl bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm border border-white/20 dark:border-white/5 hover:bg-white/60 dark:hover:bg-slate-800/60 hover:scale-[1.02] transition-all duration-200 group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-600/20 group-hover:from-violet-500/30 group-hover:to-purple-600/30 transition-all">
+                    <Clock className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground dark:text-white">{task.title}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs capitalize px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300">
+                        {task.frequency}
+                      </span>
+                      <span className="text-xs text-muted-foreground dark:text-muted-foreground">
+                        • {task.nextDue}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <motion.button
+                  onClick={() => onCreateRecurring?.(task)}
+                  className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950/20 text-violet-500 hover:bg-violet-100 dark:hover:bg-violet-950/40 transition-colors hover:scale-110"
+                  whileHover={{ rotate: 90 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Plus className="w-4 h-4" />
+                </motion.button>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </motion.div>
 
-      {/* Template Preview Modal */}
+      {/* Template Preview Modal - Premium glass design */}
       <AnimatePresence>
         {showPreview && selectedTemplate && (
           <TemplatePreviewModal
@@ -422,7 +533,7 @@ export function TaskTemplates({
   );
 }
 
-// Template Preview Modal
+// Template Preview Modal with premium glass morphism
 interface TemplatePreviewModalProps {
   template: TaskTemplate;
   onClose: () => void;
@@ -437,156 +548,136 @@ function TemplatePreviewModal({ template, onClose, onUse }: TemplatePreviewModal
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
+      {/* Backdrop with premium blur */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        onClick={(e) => e.stopPropagation()}
-        className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full max-h-[80vh] overflow-hidden shadow-2xl"
-      >
-        {/* Header */}
-        <div
-          className="p-6 text-white"
-          style={{ backgroundColor: template.color }}
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/20 rounded-xl">
-                <Icon className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold">{template.name}</h3>
-                <p className="text-white/80 text-sm">{template.category}</p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-white/20 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          <p className="mt-4 text-white/90">{template.description}</p>
-        </div>
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
 
-        {/* Tasks List */}
-        <div className="p-6 overflow-y-auto max-h-[50vh]">
-          <h4 className="text-sm font-semibold text-monza-900 dark:text-white mb-4">
-            Tasks ({template.tasks.length})
-          </h4>
-          <div className="space-y-3">
-            {template.tasks.map((task, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50"
-              >
-                <div
-                  className={cn(
-                    "w-2 h-2 rounded-full mt-2 shrink-0",
-                    task.priority === "high"
-                      ? "bg-red-500"
-                      : task.priority === "medium"
-                      ? "bg-blue-500"
-                      : "bg-emerald-500"
-                  )}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-monza-900 dark:text-white text-sm">
-                    {task.title}
-                  </p>
-                  {task.description && (
-                    <p className="text-xs text-monza-500 dark:text-monza-400 mt-1">
-                      {task.description}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-xs capitalize px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-monza-600 dark:text-monza-400">
-                      {task.priority}
-                    </span>
-                    {task.tag && (
-                      <span className="text-xs px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300">
-                        {task.tag}
-                      </span>
-                    )}
-                  </div>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative z-10 w-full max-w-lg"
+      >
+        {/* Premium glass card with gradient border */}
+        <div className="absolute inset-0 -inset-[1px] rounded-3xl bg-gradient-to-br from-white/80 via-white/60 to-white/40 dark:from-slate-800/80 dark:via-slate-900/60 dark:to-slate-950/40 backdrop-blur-2xl rounded-3xl shadow-premium-2xl border border-white/30 dark:border-white/10" />
+
+        {/* Animated gradient border */}
+        <motion.div
+          className="absolute inset-0 rounded-3xl opacity-50"
+          animate={{
+            backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+          }}
+          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+          style={{
+            background: `linear-gradient(90deg, ${template.color}40, transparent, ${template.color}40, transparent)`,
+            backgroundSize: "200% 100%",
+          }}
+        />
+
+        <div className="relative z-10 overflow-hidden rounded-3xl">
+          {/* Header with gradient */}
+          <div
+            className="p-8 text-white"
+            style={{
+              background: `linear-gradient(135deg, ${template.color}, ${template.color}dd)`,
+            }}
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-4">
+                <motion.div
+                  className="p-3 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30"
+                  whileHover={{ scale: 1.05, rotate: 3 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Icon className="w-8 h-8" />
+                </motion.div>
+                <div>
+                  <h3 className="text-2xl font-bold">{template.name}</h3>
+                  <p className="text-white/80 text-sm">{template.category}</p>
                 </div>
               </div>
-            ))}
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl hover:bg-white/20 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <p className="mt-4 text-white/90 leading-relaxed">{template.description}</p>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t border-slate-200 dark:border-slate-800">
-          <Button
-            onClick={onUse}
-            className="w-full gap-2"
-            style={{ backgroundColor: template.color }}
-          >
-            <Plus className="w-4 h-4" />
-            Use This Template
-          </Button>
+          {/* Tasks List with premium cards */}
+          <div className="p-8 max-h-[50vh] overflow-y-auto bg-white/40 dark:bg-slate-900/40">
+            <h4 className="text-lg font-bold text-foreground dark:text-white mb-6 flex items-center gap-2">
+              <CheckSquare className="w-5 h-5 text-violet-500" />
+              Tasks ({template.tasks.length})
+            </h4>
+            <div className="space-y-3">
+              {template.tasks.map((task, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.06 }}
+                  className="p-4 rounded-xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border border-white/20 dark:border-white/5 hover:bg-white/80 dark:hover:bg-slate-800 hover:scale-[1.01] transition-all duration-200"
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={cn(
+                        "w-2.5 h-2.5 rounded-full mt-1 shrink-0 shadow-sm",
+                        task.priority === "high"
+                          ? "bg-gradient-to-br from-red-500 to-rose-500"
+                          : task.priority === "medium"
+                          ? "bg-gradient-to-br from-blue-500 to-cyan-500"
+                          : "bg-gradient-to-br from-emerald-500 to-green-500"
+                      )}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground dark:text-white">{task.title}</p>
+                      {task.description && (
+                        <p className="text-sm text-muted-foreground dark:text-muted-foreground mt-1">{task.description}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xs capitalize px-2 py-0.5 rounded-md bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 text-foreground dark:text-muted-foreground font-medium">
+                          {task.priority}
+                        </span>
+                        {task.tag && (
+                          <span className="text-xs px-2 py-0.5 rounded-md bg-gradient-to-r from-violet-100 to-violet-200 dark:from-violet-950 dark:to-violet-900 text-violet-700 dark:text-violet-300 font-medium">
+                            {task.tag}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer with gradient button */}
+          <div className="p-8 border-t border-white/20 dark:border-white/10 bg-white/40 dark:bg-slate-900/40">
+            <Button
+              onClick={onUse}
+              className="w-full gap-2 text-white shadow-premium-md text-base py-3 hover:shadow-premium-lg transition-all"
+              style={{
+                background: `linear-gradient(135deg, ${template.color}, ${template.color}dd)`,
+              }}
+            >
+              <Plus className="w-5 h-5" />
+              Use This Template
+              <ArrowRight className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
       </motion.div>
     </motion.div>
-  );
-}
-
-// Additional icon components
-function Rocket({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
-      <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
-      <path d="M9 12H4s.55-3.03 2-4c1.62-1.1 2.75-2 2.75-2" />
-      <path d="M12 15v5s3.03-.55 4-2c1.1-1.62 2-2.75 2-2.75" />
-    </svg>
-  );
-}
-
-function CheckSquare({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="m9 11 3 3L22 4" />
-      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-    </svg>
-  );
-}
-
-function Eye({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
   );
 }

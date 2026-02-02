@@ -305,7 +305,7 @@ export function ChatWidget({
   }, [])
 
   return (
-    <div className={cn("flex h-screen bg-background", className)}>
+    <div className={cn("flex h-screen bg-background overflow-x-hidden", className)}>
       {/* Sidebar */}
       {showSidebar && (
         <ConversationSidebar
@@ -320,9 +320,9 @@ export function ChatWidget({
       )}
 
       {/* Main chat area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <ChatHeader
+        <PremiumChatHeader
           onNewChat={handleNewChat}
           onToggleSidebar={showSidebar ? toggleSidebar : undefined}
           showMenuButton={showSidebar}
@@ -364,9 +364,9 @@ export function ChatWidget({
 }
 
 /**
- * ChatHeader - Header with title and actions
+ * PremiumChatHeader - Enhanced header with glass-morphism and premium styling
  */
-function ChatHeader({
+function PremiumChatHeader({
   onNewChat,
   onToggleSidebar,
   showMenuButton
@@ -376,14 +376,14 @@ function ChatHeader({
   showMenuButton?: boolean
 }) {
   return (
-    <header className="bg-card border-b border-border px-4 py-3 flex items-center justify-between shrink-0">
+    <header className="bg-gradient-to-r from-card via-card/95 to-card border-b border-border/50 px-4 py-3 flex items-center justify-between shrink-0 backdrop-blur-sm">
       <div className="flex items-center gap-3">
         {showMenuButton && onToggleSidebar && (
           <Button
             variant="ghost"
             size="icon"
             onClick={onToggleSidebar}
-            className="lg:hidden"
+            className="lg:hidden hover:bg-primary/10"
             aria-label="Toggle menu"
           >
             <svg
@@ -404,22 +404,40 @@ function ChatHeader({
         )}
 
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center shadow-sm">
-            <span className="text-lg" role="img" aria-label="Robot">
-              🤖
-            </span>
+          {/* Premium avatar with glow */}
+          <div className="relative">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary via-primary/90 to-secondary rounded-xl flex items-center justify-center shadow-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-primary-foreground">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" x2="12" y1="19" y2="22" />
+              </svg>
+            </div>
+            {/* Animated glow ring */}
+            <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-primary/40 to-secondary/40 blur-lg -z-10" />
           </div>
+
           <div>
-            <h1 className="text-lg font-semibold text-foreground">Todo Assistant</h1>
-            <p className="text-xs text-muted-foreground">Manage tasks with AI</p>
+            <h1 className="text-lg font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              AI Task Assistant
+            </h1>
+            <div className="flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <p className="text-xs text-muted-foreground">Online • Ready to help</p>
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Premium new chat button */}
       <Button
         onClick={onNewChat}
         variant="outline"
         size="sm"
+        className="bg-gradient-to-r from-primary/5 to-transparent hover:from-primary/10 hover:to-transparent border-primary/20 hover:border-primary/30"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

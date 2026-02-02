@@ -18,6 +18,10 @@ FastMCP provides:
 Usage:
     server = create_mcp_server()
     # Expose tools to agents
+
+Logging:
+    All MCP tool operations are logged at INFO level for observability.
+    Tool execution errors are logged at ERROR level with full context.
 """
 
 from typing import Optional
@@ -25,9 +29,13 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from fastmcp import FastMCP
+import logging
 
 from ..models.task import Task, Priority
 from ..models.message import MessageRole
+
+# Configure MCP server logger
+logger = logging.getLogger(__name__)
 
 
 def create_mcp_server(name: str = "todo-tools") -> FastMCP:
@@ -94,41 +102,53 @@ def create_mcp_server(name: str = "todo-tools") -> FastMCP:
         session = get_session()
         user_id = get_user_id()
 
+        logger.info(f"MCP: add_task called - user_id={user_id}, title='{title}', priority={priority}")
+
         # Validate inputs
         if not title or not title.strip():
+            logger.warning(f"MCP: add_task validation failed - empty title for user_id={user_id}")
             return "Error: Title is required and cannot be empty."
 
         if len(title) > 200:
+            logger.warning(f"MCP: add_task validation failed - title too long ({len(title)} chars) for user_id={user_id}")
             return "Error: Title must be 200 characters or less."
 
         if description and len(description) > 2000:
+            logger.warning(f"MCP: add_task validation failed - description too long ({len(description)} chars) for user_id={user_id}")
             return "Error: Description must be 2000 characters or less."
 
         # Validate priority
         try:
             task_priority = Priority(priority.lower())
         except ValueError:
+            logger.warning(f"MCP: add_task - invalid priority '{priority}', defaulting to MEDIUM for user_id={user_id}")
             task_priority = Priority.MEDIUM
 
         # Create task
-        task = Task(
-            user_id=user_id,
-            title=title.strip(),
-            description=description.strip() if description else None,
-            priority=task_priority,
-            completed=False,
-        )
-        session.add(task)
-        await session.flush()
-        await session.refresh(task)
+        try:
+            task = Task(
+                user_id=user_id,
+                title=title.strip(),
+                description=description.strip() if description else None,
+                priority=task_priority,
+                completed=False,
+            )
+            session.add(task)
+            await session.flush()
+            await session.refresh(task)
 
-        return (
-            f"Task added successfully!\n"
-            f"ID: {task.id}\n"
-            f"Title: {task.title}\n"
-            f"Priority: {task.priority.value}\n"
-            f"Description: {task.description or 'No description'}"
-        )
+            logger.info(f"MCP: add_task succeeded - task_id={task.id}, user_id={user_id}, title='{task.title}'")
+
+            return (
+                f"Task added successfully!\n"
+                f"ID: {task.id}\n"
+                f"Title: {task.title}\n"
+                f"Priority: {task.priority.value}\n"
+                f"Description: {task.description or 'No description'}"
+            )
+        except Exception as e:
+            logger.error(f"MCP: add_task failed - user_id={user_id}, error={e}", exc_info=True)
+            return f"Error: Failed to create task - {str(e)}"
 
     # ========================================================================
     # MCP Tool: list_tasks
@@ -151,53 +171,62 @@ def create_mcp_server(name: str = "todo-tools") -> FastMCP:
         session = get_session()
         user_id = get_user_id()
 
-        # Build query
-        query = select(Task).where(Task.user_id == user_id)
+        logger.info(f"MCP: list_tasks called - user_id={user_id}, completed={completed}")
 
-        # Apply completion filter if specified
-        if completed is not None:
-            query = query.where(Task.completed == completed)
+        try:
+            # Build query
+            query = select(Task).where(Task.user_id == user_id)
 
-        # Order by updated_at DESC (most recent first)
-        query = query.order_by(Task.updated_at.desc())
+            # Apply completion filter if specified
+            if completed is not None:
+                query = query.where(Task.completed == completed)
 
-        # Execute query
-        results = await session.execute(query)
-        tasks = results.scalars().all()
+            # Order by updated_at DESC (most recent first)
+            query = query.order_by(Task.updated_at.desc())
 
-        if not tasks:
+            # Execute query
+            results = await session.execute(query)
+            tasks = results.scalars().all()
+
+            logger.info(f"MCP: list_tasks succeeded - user_id={user_id}, count={len(tasks)}")
+
+            if not tasks:
+                if completed is True:
+                    return "You don't have any completed tasks yet."
+                elif completed is False:
+                    return "You don't have any incomplete tasks."
+                else:
+                    return "You don't have any tasks yet. Would you like to add one?"
+
+            # Format output
+            status_filter = ""
             if completed is True:
-                return "You don't have any completed tasks yet."
+                status_filter = "completed "
             elif completed is False:
-                return "You don't have any incomplete tasks."
-            else:
-                return "You don't have any tasks yet. Would you like to add one?"
+                status_filter = "incomplete "
 
-        # Format output
-        status_filter = ""
-        if completed is True:
-            status_filter = "completed "
-        elif completed is False:
-            status_filter = "incomplete "
+            output = [f"You have {len(tasks)} {status_filter}task(s):\n"]
 
-        output = [f"You have {len(tasks)} {status_filter}task(s):\n"]
+            for task in tasks:
+                status = "✓ DONE" if task.completed else "TODO"
+                priority_emoji = {
+                    Priority.HIGH: "🔴",
+                    Priority.MEDIUM: "🟡",
+                    Priority.LOW: "🟢",
+                }.get(task.priority, "⚪")
 
-        for task in tasks:
-            status = "✓ DONE" if task.completed else "TODO"
-            priority_emoji = {
-                Priority.HIGH: "🔴",
-                Priority.MEDIUM: "🟡",
-                Priority.LOW: "🟢",
-            }.get(task.priority, "⚪")
+                output.append(
+                    f"  {task.id}. [{status}] {priority_emoji} {task.title}"
+                    f" (Priority: {task.priority.value})"
+                )
+                if task.description:
+                    output.append(f"      Description: {task.description}")
 
-            output.append(
-                f"  {task.id}. [{status}] {priority_emoji} {task.title}"
-                f" (Priority: {task.priority.value})"
-            )
-            if task.description:
-                output.append(f"      Description: {task.description}")
+            return "\n".join(output)
 
-        return "\n".join(output)
+        except Exception as e:
+            logger.error(f"MCP: list_tasks failed - user_id={user_id}, error={e}", exc_info=True)
+            return f"Error: Failed to list tasks - {str(e)}"
 
     # ========================================================================
     # MCP Tool: update_task
@@ -227,47 +256,61 @@ def create_mcp_server(name: str = "todo-tools") -> FastMCP:
         session = get_session()
         user_id = get_user_id()
 
-        # Get task
-        query = select(Task).where(Task.id == task_id, Task.user_id == user_id)
-        results = await session.execute(query)
-        task = results.scalar_one_or_none()
+        logger.info(f"MCP: update_task called - user_id={user_id}, task_id={task_id}, title={title}, priority={priority}")
 
-        if not task:
-            return f"Error: Task {task_id} not found or access denied."
+        try:
+            # Get task
+            query = select(Task).where(Task.id == task_id, Task.user_id == user_id)
+            results = await session.execute(query)
+            task = results.scalar_one_or_none()
 
-        # Update fields if provided
-        if title is not None:
-            if not title.strip():
-                return "Error: Title cannot be empty."
-            if len(title) > 200:
-                return "Error: Title must be 200 characters or less."
-            task.title = title.strip()
+            if not task:
+                logger.warning(f"MCP: update_task - task not found - task_id={task_id}, user_id={user_id}")
+                return f"Error: Task {task_id} not found or access denied."
 
-        if description is not None:
-            if description and len(description) > 2000:
-                return "Error: Description must be 2000 characters or less."
-            task.description = description.strip() if description else None
+            # Update fields if provided
+            if title is not None:
+                if not title.strip():
+                    logger.warning(f"MCP: update_task validation failed - empty title for task_id={task_id}")
+                    return "Error: Title cannot be empty."
+                if len(title) > 200:
+                    logger.warning(f"MCP: update_task validation failed - title too long for task_id={task_id}")
+                    return "Error: Title must be 200 characters or less."
+                task.title = title.strip()
 
-        if priority is not None:
-            try:
-                task.priority = Priority(priority.lower())
-            except ValueError:
-                return f"Error: Invalid priority '{priority}'. Use: high, medium, or low."
+            if description is not None:
+                if description and len(description) > 2000:
+                    logger.warning(f"MCP: update_task validation failed - description too long for task_id={task_id}")
+                    return "Error: Description must be 2000 characters or less."
+                task.description = description.strip() if description else None
 
-        # Update timestamp
-        from datetime import datetime
-        task.updated_at = datetime.utcnow()
+            if priority is not None:
+                try:
+                    task.priority = Priority(priority.lower())
+                except ValueError:
+                    logger.warning(f"MCP: update_task - invalid priority '{priority}' for task_id={task_id}")
+                    return f"Error: Invalid priority '{priority}'. Use: high, medium, or low."
 
-        await session.flush()
-        await session.refresh(task)
+            # Update timestamp
+            from datetime import datetime
+            task.updated_at = datetime.utcnow()
 
-        return (
-            f"Task {task_id} updated successfully!\n"
-            f"Title: {task.title}\n"
-            f"Priority: {task.priority.value}\n"
-            f"Description: {task.description or 'No description'}\n"
-            f"Completed: {task.completed}"
-        )
+            await session.flush()
+            await session.refresh(task)
+
+            logger.info(f"MCP: update_task succeeded - task_id={task_id}, user_id={user_id}")
+
+            return (
+                f"Task {task_id} updated successfully!\n"
+                f"Title: {task.title}\n"
+                f"Priority: {task.priority.value}\n"
+                f"Description: {task.description or 'No description'}\n"
+                f"Completed: {task.completed}"
+            )
+
+        except Exception as e:
+            logger.error(f"MCP: update_task failed - task_id={task_id}, user_id={user_id}, error={e}", exc_info=True)
+            return f"Error: Failed to update task - {str(e)}"
 
     # ========================================================================
     # MCP Tool: delete_task
@@ -291,22 +334,32 @@ def create_mcp_server(name: str = "todo-tools") -> FastMCP:
         session = get_session()
         user_id = get_user_id()
 
-        # Get task
-        query = select(Task).where(Task.id == task_id, Task.user_id == user_id)
-        results = await session.execute(query)
-        task = results.scalar_one_or_none()
+        logger.info(f"MCP: delete_task called - user_id={user_id}, task_id={task_id}")
 
-        if not task:
-            return f"Error: Task {task_id} not found or access denied."
+        try:
+            # Get task
+            query = select(Task).where(Task.id == task_id, Task.user_id == user_id)
+            results = await session.execute(query)
+            task = results.scalar_one_or_none()
 
-        # Store title for confirmation
-        task_title = task.title
+            if not task:
+                logger.warning(f"MCP: delete_task - task not found - task_id={task_id}, user_id={user_id}")
+                return f"Error: Task {task_id} not found or access denied."
 
-        # Delete task
-        await session.delete(task)
-        await session.flush()
+            # Store title for confirmation
+            task_title = task.title
 
-        return f"Task '{task_title}' (ID: {task_id}) has been deleted."
+            # Delete task
+            await session.delete(task)
+            await session.flush()
+
+            logger.info(f"MCP: delete_task succeeded - task_id={task_id}, user_id={user_id}, title='{task_title}'")
+
+            return f"Task '{task_title}' (ID: {task_id}) has been deleted."
+
+        except Exception as e:
+            logger.error(f"MCP: delete_task failed - task_id={task_id}, user_id={user_id}, error={e}", exc_info=True)
+            return f"Error: Failed to delete task - {str(e)}"
 
     # ========================================================================
     # MCP Tool: complete_task
@@ -332,26 +385,36 @@ def create_mcp_server(name: str = "todo-tools") -> FastMCP:
         session = get_session()
         user_id = get_user_id()
 
-        # Get task
-        query = select(Task).where(Task.id == task_id, Task.user_id == user_id)
-        results = await session.execute(query)
-        task = results.scalar_one_or_none()
+        logger.info(f"MCP: complete_task called - user_id={user_id}, task_id={task_id}, completed={completed}")
 
-        if not task:
-            return f"Error: Task {task_id} not found or access denied."
+        try:
+            # Get task
+            query = select(Task).where(Task.id == task_id, Task.user_id == user_id)
+            results = await session.execute(query)
+            task = results.scalar_one_or_none()
 
-        # Update completion status
-        task.completed = completed
+            if not task:
+                logger.warning(f"MCP: complete_task - task not found - task_id={task_id}, user_id={user_id}")
+                return f"Error: Task {task_id} not found or access denied."
 
-        # Update timestamp
-        from datetime import datetime
-        task.updated_at = datetime.utcnow()
+            # Update completion status
+            task.completed = completed
 
-        await session.flush()
-        await session.refresh(task)
+            # Update timestamp
+            from datetime import datetime
+            task.updated_at = datetime.utcnow()
 
-        status = "completed" if completed else "marked as incomplete"
-        return f"Task '{task.title}' (ID: {task_id}) has been {status}."
+            await session.flush()
+            await session.refresh(task)
+
+            status = "completed" if completed else "marked as incomplete"
+            logger.info(f"MCP: complete_task succeeded - task_id={task_id}, user_id={user_id}, status={status}")
+
+            return f"Task '{task.title}' (ID: {task_id}) has been {status}."
+
+        except Exception as e:
+            logger.error(f"MCP: complete_task failed - task_id={task_id}, user_id={user_id}, error={e}", exc_info=True)
+            return f"Error: Failed to update task status - {str(e)}"
 
     # Attach context helpers to the server for external use
     mcp.set_session_context = set_session_context

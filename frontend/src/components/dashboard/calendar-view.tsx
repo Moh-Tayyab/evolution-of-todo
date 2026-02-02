@@ -211,7 +211,7 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
 							>
 								<div className={cn(
 									"text-xs font-medium mb-1",
-									isToday(day) ? "text-indigo-600 dark:text-indigo-400" : "text-monza-900 dark:text-slate-100"
+									isToday(day) ? "text-indigo-600 dark:text-indigo-400" : "text-foreground dark:text-slate-100"
 								)}>
 									{day}
 								</div>

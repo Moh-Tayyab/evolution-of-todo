@@ -1,18 +1,19 @@
 // @spec: specs/003-ai-chatbot/spec.md
 // @spec: specs/003-ai-chatbot/ui/chatkit.md
-// Optimized message list component with Framer Motion animations
+// Premium message list component with enhanced empty state
 
 "use client"
 
 import { memo, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { Sparkles, MessageSquare, Plus, Clock, Target, Trash2, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MessageBubble } from "./MessageBubble"
 import { TypingIndicator } from "./TypingIndicator"
 import type { MessageListProps } from "@/types/chat"
 
 /**
- * MessageList - Optimized list of chat messages
+ * PremiumMessageList - Enhanced list with premium empty state
  *
  * Displays all messages in a conversation with auto-scrolling.
  * Supports smooth scrolling to new messages and maintains scroll position.
@@ -22,12 +23,12 @@ import type { MessageListProps } from "@/types/chat"
  * - Auto-scroll to bottom on new messages
  * - Smooth scroll behavior
  * - Maintains scroll position when loading history
- * - Empty state with welcome message
+ * - Premium empty state with animated icons and interactive example prompts
  *
  * @spec FR-006: Frontend MUST display message bubbles for user (right, blue) and AI (left, gray)
  * @spec FR-007: Frontend MUST show typing indicators during AI processing
  */
-export const MessageList = memo(function MessageList({
+export const PremiumMessageList = memo(function PremiumMessageList({
   messages,
   isTyping,
   messagesEndRef
@@ -67,15 +68,15 @@ export const MessageList = memo(function MessageList({
     prevMessagesLengthRef.current = messagesLength
   }, [messages, messagesEndRef])
 
-  // Empty state when no messages
+  // Empty state when no messages - Premium version
   if (messages.length === 0) {
-    return <EmptyState />
+    return <PremiumEmptyState />
   }
 
   return (
     <div
       ref={scrollRef}
-      className="flex-1 overflow-y-auto px-4 py-6"
+      className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 bg-gradient-to-b from-background to-background/50"
       role="log"
       aria-live="polite"
       aria-label="Chat messages"
@@ -93,11 +94,16 @@ export const MessageList = memo(function MessageList({
 
         {/* Typing indicator */}
         {isTyping && (
-          <div className="flex justify-start">
-            <div className="bg-card border border-border rounded-2xl rounded-bl-md px-4 py-3">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex justify-start"
+          >
+            <div className="bg-card/80 backdrop-blur-md border border-border/50 rounded-2xl rounded-bl-md px-4 py-3 shadow-lg">
               <TypingIndicator size="md" />
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Scroll anchor */}
@@ -108,17 +114,17 @@ export const MessageList = memo(function MessageList({
 })
 
 /**
- * EmptyState - Welcome message when no messages exist with animations
+ * PremiumEmptyState - Enhanced welcome message with glass-morphism and premium animations
  *
- * Shows a friendly greeting with example prompts to guide users.
+ * Shows a friendly greeting with interactive example prompts.
  * Uses Framer Motion for smooth entrance animations.
  */
-function EmptyState() {
+function PremiumEmptyState() {
   const examplePrompts = [
-    { text: "Add buy milk tomorrow", category: "Create Task" },
-    { text: "Show my tasks", category: "View Tasks" },
-    { text: "Mark task 1 as done", category: "Complete Task" },
-    { text: "Delete meeting task", category: "Delete Task" }
+    { text: "Add task: Buy groceries tomorrow", category: "Create Task", icon: Plus },
+    { text: "Show my high priority tasks", category: "View Tasks", icon: Target },
+    { text: "Mark task 1 as completed", category: "Complete Task", icon: Check },
+    { text: "Delete the meeting task", category: "Delete Task", icon: Trash2 },
   ]
 
   const containerVariants = {
@@ -126,18 +132,24 @@ function EmptyState() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
+        staggerChildren: 0.12,
+        delayChildren: 0.3,
       },
     },
   }
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 30, scale: 0.9 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] },
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 200,
+        damping: 20,
+        duration: 0.5,
+      },
     },
   }
 
@@ -146,90 +158,166 @@ function EmptyState() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="flex-1 flex items-center justify-center px-4"
+      className="flex-1 flex items-center justify-center px-4 bg-gradient-to-b from-background via-background/95 to-background/90"
     >
-      <div className="max-w-md w-full text-center space-y-6">
-        {/* Logo/avatar with animated entrance */}
-        <motion.div variants={itemVariants} className="flex justify-center">
-          <div className="relative">
+      <div className="max-w-lg w-full text-center space-y-8">
+        {/* Premium animated logo */}
+        <motion.div variants={itemVariants} className="flex justify-center relative">
+          {/* Animated rings */}
+          <motion.div
+            className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary/30 via-primary/20 to-secondary/30 blur-2xl"
+            animate={{
+              scale: [1, 1.2, 1],
+              rotate: [0, 180, 360],
+              opacity: [0.4, 0.7, 0.4],
+            }}
+            transition={{
+              duration: 6,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+
+          <motion.div
+            className="absolute inset-0 rounded-3xl bg-gradient-to-br from-secondary/20 via-secondary/10 to-primary/20 blur-xl"
+            animate={{
+              scale: [1.1, 1.3, 1.1],
+              rotate: [360, 180, 0],
+              opacity: [0.3, 0.5, 0.3],
+            }}
+            transition={{
+              duration: 5,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.5,
+            }}
+          />
+
+          {/* Main logo */}
+          <motion.div
+            className="relative w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-primary via-primary/90 to-secondary rounded-3xl flex items-center justify-center shadow-2xl"
+            animate={{
+              rotate: [0, 5, -5, 0],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              repeatDelay: 2,
+              ease: "easeInOut",
+            }}
+            whileHover={{ scale: 1.05, rotate: 0 }}
+          >
+            <MessageSquare className="w-10 h-10 sm:w-12 sm:h-12 text-primary-foreground" />
+
+            {/* Sparkle accent */}
             <motion.div
-              className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center shadow-lg"
+              className="absolute -top-1 -right-1"
               animate={{
-                rotate: [0, 5, -5, 0],
-              }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                repeatDelay: 2,
-                ease: "easeInOut",
-              }}
-            >
-              <span className="text-3xl sm:text-4xl" role="img" aria-label="Robot">
-                🤖
-              </span>
-            </motion.div>
-            {/* Decorative rings */}
-            <motion.div
-              className="absolute -inset-2 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-3xl -z-10"
-              animate={{
-                scale: [1, 1.1, 1],
-                opacity: [0.5, 0.8, 0.5],
+                rotate: [0, 360],
+                scale: [1, 1.3, 1],
               }}
               transition={{
                 duration: 3,
                 repeat: Infinity,
-                ease: "easeInOut",
+                ease: "linear",
               }}
-            />
-          </div>
+            >
+              <Sparkles className="w-5 h-5 text-yellow-300 fill-yellow-300" />
+            </motion.div>
+          </motion.div>
         </motion.div>
 
         {/* Welcome message */}
-        <motion.div variants={itemVariants} className="space-y-2">
-          <h2 className="text-xl sm:text-2xl font-semibold text-foreground">
-            Welcome to Todo Assistant!
+        <motion.div variants={itemVariants} className="space-y-3">
+          <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+            Welcome to AI Task Assistant
           </h2>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            I can help you manage your tasks using natural language. Try these examples:
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            Manage your tasks using natural language. I can help you create, view, complete, and delete tasks with simple commands.
           </p>
         </motion.div>
 
-        {/* Example prompts with staggered animations */}
-        <motion.div variants={itemVariants} className="grid gap-2 text-left">
-          {examplePrompts.map((prompt, index) => (
-            <motion.button
-              key={index}
-              variants={itemVariants}
-              whileHover={{ scale: 1.02, x: 4 }}
-              whileTap={{ scale: 0.98 }}
-              className={cn(
-                "group flex items-center justify-between",
-                "bg-card border border-border rounded-lg px-4 py-3",
-                "hover:border-primary/50 hover:bg-accent/5",
-                "transition-all duration-200",
-                "cursor-pointer"
-              )}
-              onClick={() => {
-                // This would trigger the prompt - parent component handles this
-                const event = new CustomEvent("examplePrompt", { detail: prompt.text })
-                window.dispatchEvent(event)
-              }}
+        {/* Premium stats badges */}
+        <motion.div
+          variants={itemVariants}
+          className="flex items-center justify-center gap-4 flex-wrap"
+        >
+          {[
+            { icon: MessageSquare, label: "Smart Chat", color: "text-primary" },
+            { icon: Target, label: "Task Focus", color: "text-secondary" },
+            { icon: Sparkles, label: "AI Powered", color: "text-accent" },
+          ].map((badge, i) => (
+            <motion.div
+              key={i}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card/50 backdrop-blur border border-border/50 shadow-md"
+              whileHover={{ scale: 1.05, y: -2 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
-              <span className="text-sm text-foreground font-medium">
-                "{prompt.text}"
-              </span>
-              <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
-                {prompt.category}
-              </span>
-            </motion.button>
+              <badge.icon className={cn("w-4 h-4", badge.color)} />
+              <span className="text-xs font-medium text-foreground">{badge.label}</span>
+            </motion.div>
           ))}
         </motion.div>
 
-        {/* Helper text */}
-        <motion.p variants={itemVariants} className="text-xs text-muted-foreground">
-          Type your message below or tap an example to get started
+        {/* Example prompts with enhanced interactions */}
+        <motion.div variants={itemVariants} className="space-y-3 text-left">
+          <p className="text-sm text-muted-foreground text-center mb-4">
+            Try these example commands:
+          </p>
+          <div className="space-y-2">
+            {examplePrompts.map((prompt, index) => (
+              <motion.button
+                key={index}
+                variants={itemVariants}
+                whileHover={{ x: 8, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={cn(
+                  "group flex items-center justify-between w-full",
+                  "bg-card/60 backdrop-blur-md border border-border/50 rounded-xl px-4 py-4",
+                  "hover:border-primary/50 hover:bg-gradient-to-r hover:from-primary/5 hover:to-transparent",
+                  "hover:shadow-lg hover:shadow-primary/10",
+                  "transition-all duration-300",
+                  "cursor-pointer"
+                )}
+                onClick={() => {
+                  const event = new CustomEvent("examplePrompt", { detail: prompt.text })
+                  window.dispatchEvent(event)
+                }}
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <prompt.icon className="w-4 h-4 text-primary" />
+                  </div>
+                  <span className="text-sm text-foreground font-medium truncate">
+                    {prompt.text}
+                  </span>
+                </div>
+                <span className={cn(
+                  "text-xs px-2.5 py-1 rounded-full font-medium",
+                  "bg-muted/50 group-hover:bg-primary/10",
+                  "text-muted-foreground group-hover:text-primary",
+                  "transition-colors whitespace-nowrap"
+                )}>
+                  {prompt.category}
+                </span>
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Premium helper text */}
+        <motion.p
+          variants={itemVariants}
+          className="text-xs text-muted-foreground flex items-center justify-center gap-2"
+        >
+          <Sparkles className="w-3 h-3" />
+          Type a message or tap an example to get started
+          <Sparkles className="w-3 h-3" />
         </motion.p>
       </div>
     </motion.div>
   )
 }
+
+// Export the premium list as the default MessageList
+export const MessageList = PremiumMessageList

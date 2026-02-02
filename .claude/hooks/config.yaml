@@ -1,0 +1,147 @@
+# @spec: Git Hooks System for Evolution of Todo Project
+# Configuration file for git hooks
+#
+# This file contains all configurable settings for the git hooks system.
+# Settings can be overridden by environment variables with GIT_HOOKS_ prefix.
+#
+# Environment Variable Override Examples:
+#   GIT_HOOKS_VERBOSE=true                    - Enable verbose logging
+#   GIT_HOOKS_PRE_COMMIT_ENABLED=false        - Disable pre-commit hook
+#   GIT_HOOKS_PRE_PUSH_TIMEOUT=45             - Set pre-push timeout to 45s
+#   GIT_HOOKS_COVERAGE_THRESHOLD=80           - Require 80% coverage
+#   GIT_HOOKS_FRONTEND_ENABLED=false          - Disable frontend checks
+
+# General settings
+verbose: false
+log_level: INFO
+log_dir: .claude/logs
+
+# Pre-commit hook settings
+pre_commit:
+  enabled: true
+  timeout_seconds: 10
+  require_tests: false
+  fail_on_error: true
+
+# Pre-push hook settings
+pre_push:
+  enabled: true
+  timeout_seconds: 30
+  require_tests: true
+  test_coverage_threshold: 70
+  fail_on_coverage_below_threshold: true
+
+# Post-checkout hook settings
+post_checkout:
+  enabled: true
+  run_install: true
+  show_branch_info: true
+
+# Post-merge hook settings
+post_merge:
+  enabled: true
+  run_migrations: false
+  clear_caches: true
+  notify_changes: true
+
+# Pre-execute hook settings (custom commands before execution)
+pre_execute:
+  enabled: false
+  commands: []
+  # Example commands:
+  # - echo "Starting build..."
+  # - npm run pre-build
+
+# Post-execute hook settings (custom commands after execution)
+post_execute:
+  enabled: false
+  commands: []
+  # Example commands:
+  # - echo "Build complete!"
+  # - npm run post-build
+
+# Frontend settings
+frontend:
+  enabled: true
+  directory: frontend
+  package_manager: npm  # Auto-detected, can be npm, pnpm, or yarn
+
+  # Linting (ESLint)
+  lint:
+    enabled: true
+    command: npm run lint
+    fix_on_error: false
+    max_issues: 0
+
+  # Type checking (TypeScript)
+  typecheck:
+    enabled: true
+    command: npx tsc --noEmit
+
+  # Formatting (Prettier)
+  format:
+    enabled: true
+    command: npm run format:check
+    fix_on_error: false
+
+  # Console.log detection
+  no_console_log:
+    enabled: true
+    patterns:
+      - console\\.log
+      - console\\.debug
+      - console\\.warn
+    exclude_files:
+      - "*.test.ts"
+      - "*.spec.ts"
+      - "*.mock.ts"
+
+  # Unit tests
+  tests:
+    enabled: false  # Disabled for pre-commit (too slow)
+    command: npm run test:unit
+    max_duration_seconds: 5
+
+# Backend settings
+backend:
+  enabled: true
+  directory: backend
+  python_version: "3.13"
+
+  # Linting (Ruff)
+  lint:
+    enabled: true
+    command: ruff check .
+    fix_on_error: false
+    max_issues: 0
+
+  # Type checking (mypy)
+  mypy:
+    enabled: true
+    command: mypy src/
+    strict_mode: true
+
+  # Formatting (Ruff)
+  format:
+    enabled: true
+    command: ruff format --check .
+    fix_on_error: false
+
+  # Import sorting
+  imports:
+    enabled: true
+    command: ruff check --select I .
+
+  # Tests (pytest)
+  tests:
+    enabled: false  # Disabled for pre-commit
+    command: pytest tests/ -v
+    max_duration_seconds: 10
+    coverage_threshold: 70
+
+# E2E tests
+e2e:
+  enabled: false  # Disabled by default, enable in pre-push
+  directory: frontend/e2e
+  command: npm run test:e2e
+  max_duration_seconds: 60

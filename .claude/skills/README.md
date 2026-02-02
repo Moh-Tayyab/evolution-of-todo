@@ -1,7 +1,7 @@
 # Claude Code Skills Catalog
 
-**Version:** 1.1.0
-**Last Updated:** 2025-01-18
+**Version:** 1.2.0
+**Last Updated:** 2025-02-02
 
 This directory contains specialized production-grade skills for the Evolution of Todo project. Skills provide detailed implementation guidance, patterns, and best practices for specific technologies, frameworks, and development methodologies. Unlike agents which orchestrate tasks, skills serve as authoritative references for implementation details.
 
@@ -43,6 +43,7 @@ This directory contains specialized production-grade skills for the Evolution of
 | [openai-chatkit-frontend-embed-skill](./openai-chatkit-frontend-embed-skill/SKILL.md) | ChatKit UI embedding and configuration | chatkit-frontend-engineer |
 | [prompt-engineer-patterns](./prompt-engineer-patterns/SKILL.md) | AI prompt design and optimization | prompt-engineer, all agents |
 | [playwright-testing](./playwright-testing/SKILL.md) | Playwright E2E testing for modern web applications | testing-qa-specialist |
+| [playwright-mcp](./playwright-mcp/SKILL.md) | Playwright MCP server for browser automation & monitoring | playwright-automation-engineer |
 | [shadcn](./shadcn/SKILL.md) | shadcn/ui component patterns | ui-ux-designer |
 | [spec-driven-development](./spec-driven-development/SKILL.md) | Spec-Driven Development for requirements analysis | All agents (via skill invocation) |
 | [sql-optimization-patterns](./sql-optimization-patterns/SKILL.md) | SQL query optimization techniques | database-expert, performance-optimization |
@@ -51,6 +52,7 @@ This directory contains specialized production-grade skills for the Evolution of
 | [tech-stack-constraints](./tech-stack-constraints/SKILL.md) | Project technology constraints and standards | Most agents |
 | [vitest-expert](./vitest-expert/SKILL.md) | Vitest testing framework for TypeScript/JavaScript projects | testing-qa-specialist |
 | [voice-task](./voice-task/SKILL.md) | Voice interface and TTS patterns | voice-task |
+| [vercel-deployment](./vercel-deployment/SKILL.md) | Vercel platform deployment automation | fullstack-engineer, nextjs-engineer |
 
 ## Skill Categories
 
@@ -88,6 +90,7 @@ Deployment, containerization, and orchestration patterns.
 
 | Skill | Description | Key Patterns |
 |-------|-------------|--------------|
+| [vercel-deployment](./vercel-deployment/SKILL.md) | Vercel platform deployment | CI/CD, environment variables, rollback |
 | [helm-charts-scffolding](./helm-charts-scffolding/SKILL.md) | Helm chart templates | Chart structure, values.yaml |
 | [k8s-manifest-generator](./k8s-manifest-generator/SKILL.md) | Kubernetes YAML manifests | Deployment specs, services |
 
@@ -99,6 +102,8 @@ Git, testing, code review, and development methodologies.
 |-------|-------------|--------------|
 | [git-workflow](./git-workflow/SKILL.md) | Git branching and PR workflows | Feature branches, commit conventions |
 | [tdd-workflow](./tdd-workflow/SKILL.md) | Test-driven development | Red-green-refactor cycle |
+| [playwright-testing](./playwright-testing/SKILL.md) | Playwright E2E testing | Browser automation, visual regression |
+| [playwright-mcp](./playwright-mcp/SKILL.md) | Playwright MCP server | Console monitoring, network inspection, screenshots |
 | [code-reviewer](./code-reviewer/SKILL.md) | Code review patterns | Review checklist, feedback |
 | [cli-builder](./cli-builder/SKILL.md) | CLI application building | Command patterns, argument parsing |
 | [console-ui](./console-ui/SKILL.md) | Terminal user interfaces | Progress bars, menus |
