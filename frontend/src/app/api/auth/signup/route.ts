@@ -60,3 +60,4 @@ export async function POST(request: NextRequest) {
 // Deployment trigger: Tue Feb  3 02:31:25 PKT 2026
 
 // Rebuild with env vars: Tue Feb  3 02:43:52 PKT 2026
+// Deployment trigger after root dir fix: Tue Feb  3 03:01:24 PKT 2026
