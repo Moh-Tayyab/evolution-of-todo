@@ -46,8 +46,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(signupData);
   } catch (error: any) {
     console.error("Signup proxy error:", error);
+    // Return more detailed error for debugging
     return NextResponse.json(
-      { detail: "Internal server error" },
+      {
+        detail: "Internal server error",
+        error: error?.message || String(error),
+        stack: error?.stack || undefined,
+      },
       { status: 500 }
     );
   }
