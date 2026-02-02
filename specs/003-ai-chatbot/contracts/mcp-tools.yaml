@@ -1,0 +1,442 @@
+# MCP Tools Schema Specification
+# @spec: specs/003-ai-chatbot/spec.md
+
+This document defines the JSON Schema for 5 required MCP tools for todo task management.
+All tools accept `user_id` as required parameter (FR-019, FR-032) and are stateless (FR-022).
+
+## Tool Registry
+
+| Tool Name | Description | Required Params | Optional Params | Return Type |
+|------------|-------------|------------------|-----------------|-------------|
+| `add_task` | Create a new task for user | `user_id`, `title` | `description` | Task object |
+| `list_tasks` | Retrieve all tasks for user | `user_id` | None | Array of task objects |
+| `update_task` | Modify existing task | `user_id`, `task_id`, `title` or `description` | N/A | Updated task object |
+| `delete_task` | Remove a task | `user_id`, `task_id` | None | Success confirmation |
+| `complete_task` | Toggle task completion | `user_id`, `task_id`, `completed` | N/A | Updated task object |
+
+---
+
+## Tool: add_task
+
+Creates a new task for specified user with optional description.
+
+**MCP Tool Definition**:
+```json
+{
+  "name": "add_task",
+  "description": "Create a new task for a user with optional description",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "user_id": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Unique identifier of the user who owns this task"
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "Title of the task to create"
+      },
+      "description": {
+        "type": ["string", "null"],
+        "maxLength": 2000,
+        "description": "Optional detailed description of the task"
+      }
+    },
+    "required": ["user_id", "title"],
+    "additionalProperties": false
+  }
+}
+```
+
+**Example Input**:
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655419",
+  "title": "Buy milk tomorrow",
+  "description": "Pick up milk from grocery store"
+}
+```
+
+**Success Response**:
+```json
+{
+  "success": true,
+  "task_id": "a1b2c3d-4e5f-6f7a-8b9d-9d4e7f3c4",
+  "title": "Buy milk tomorrow",
+  "description": "Pick up milk from grocery store",
+  "completed": false,
+  "created_at": "2025-12-31T10:30:00Z"
+}
+```
+
+**Error Response**:
+```json
+{
+  "success": false,
+  "error": "Invalid user_id format",
+  "code": "INVALID_USER_ID"
+}
+```
+
+---
+
+## Tool: list_tasks
+
+Retrieves all tasks for specified user, optionally filtered by completion status.
+
+**MCP Tool Definition**:
+```json
+{
+  "name": "list_tasks",
+  "description": "Retrieve all tasks for a specified user",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "user_id": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Unique identifier of the user whose tasks to retrieve"
+      },
+      "completed": {
+        "type": ["boolean", "null"],
+        "description": "Optional filter for completion status (true=completed, false=incomplete, null=all)"
+      }
+    },
+    "required": ["user_id"],
+    "additionalProperties": false
+  }
+}
+```
+
+**Example Input (all tasks)**:
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655419"
+}
+```
+
+**Example Input (incomplete tasks only)**:
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655419",
+  "completed": false
+}
+```
+
+**Success Response**:
+```json
+{
+  "success": true,
+  "tasks": [
+    {
+      "task_id": "a1b2c3d-4e5f-6f7a-8b9d-9d4e7f3c4",
+      "title": "Buy milk",
+      "description": "Pick up from store",
+      "completed": false,
+      "created_at": "2025-12-30T15:00:00Z"
+    },
+    {
+      "task_id": "b2c3d4e-5f7a-6f7a-8b9d-9d4e7f3c4a",
+      "title": "Pay bills",
+      "description": null,
+      "completed": true,
+      "created_at": "2025-12-29T10:00:00Z"
+    }
+  ],
+  "total": 2
+}
+```
+
+---
+
+## Tool: update_task
+
+Modifies an existing task's title and/or description.
+
+**MCP Tool Definition**:
+```json
+{
+  "name": "update_task",
+  "description": "Update an existing task's title and/or description",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "user_id": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Unique identifier of the user who owns this task"
+      },
+      "task_id": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Unique identifier of the task to update"
+      },
+      "title": {
+        "type": ["string", "null"],
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "New title for the task (optional)"
+      },
+      "description": {
+        "type": ["string", "null"],
+        "maxLength": 2000,
+        "description": "New description for the task (optional)"
+      }
+    },
+    "required": ["user_id", "task_id"],
+    "additionalProperties": false
+  }
+}
+```
+
+**Example Input (update title only)**:
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655419",
+  "task_id": "a1b2c3d-4e5f-6f7a-8b9d-9d4e7f3c4",
+  "title": "Buy groceries"
+}
+```
+
+**Example Input (update description only)**:
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655419",
+  "task_id": "a1b2c3d-4e5f-6f7a-8b9d-9d4e7f3c4",
+  "description": "Buy milk, bread, eggs"
+}
+```
+
+**Success Response**:
+```json
+{
+  "success": true,
+  "task_id": "a1b2c3d-4e5f-6f7a-8b9d-9d4e7f3c4",
+  "title": "Buy groceries",
+  "description": "Buy milk, bread, eggs",
+  "completed": false,
+  "created_at": "2025-12-30T15:00:00Z",
+  "updated_at": "2025-12-31T10:30:00Z"
+}
+```
+
+**Error Response (task not found)**:
+```json
+{
+  "success": false,
+  "error": "Task not found",
+  "code": "TASK_NOT_FOUND"
+}
+```
+
+---
+
+## Tool: delete_task
+
+Removes a task permanently from database.
+
+**MCP Tool Definition**:
+```json
+{
+  "name": "delete_task",
+  "description": "Delete a task by ID for a specified user",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "user_id": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Unique identifier of the user who owns this task"
+      },
+      "task_id": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Unique identifier of the task to delete"
+      }
+    },
+    "required": ["user_id", "task_id"],
+    "additionalProperties": false
+  }
+}
+```
+
+**Example Input**:
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655419",
+  "task_id": "a1b2c3d-4e5f-6f7a-8b9d-9d4e7f3c4"
+}
+```
+
+**Success Response**:
+```json
+{
+  "success": true,
+  "task_id": "a1b2c3d-4e5f-6f7a-8b9d-9d4e7f3c4",
+  "message": "Task deleted successfully"
+}
+```
+
+**Error Response (task not found)**:
+```json
+{
+  "success": false,
+  "error": "Task not found or does not belong to user",
+  "code": "TASK_NOT_FOUND_OR_UNAUTHORIZED"
+}
+```
+
+---
+
+## Tool: complete_task
+
+Toggles a task's completion status (mark as done or incomplete).
+
+**MCP Tool Definition**:
+```json
+{
+  "name": "complete_task",
+  "description": "Mark a task as completed or incomplete",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "user_id": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Unique identifier of the user who owns this task"
+      },
+      "task_id": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Unique identifier of the task to update"
+      },
+      "completed": {
+        "type": "boolean",
+        "description": "New completion status (true=completed, false=incomplete)"
+      }
+    },
+    "required": ["user_id", "task_id", "completed"],
+    "additionalProperties": false
+  }
+}
+```
+
+**Example Input (mark complete)**:
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655419",
+  "task_id": "a1b2c3d-4e5f-6f7a-8b9d-9d4e7f3c4",
+  "completed": true
+}
+```
+
+**Example Input (mark incomplete)**:
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655419",
+  "task_id": "a1b2c3d-4e5f-6f7a-8b9d-9d4e7f3c4",
+  "completed": false
+}
+```
+
+**Success Response**:
+```json
+{
+  "success": true,
+  "task_id": "a1b2c3d-4e5f-6f7a-8b9d-9d4e7f3c4",
+  "title": "Buy milk",
+  "completed": true,
+  "updated_at": "2025-12-31T10:30:00Z"
+}
+```
+
+---
+
+## Common Error Codes
+
+| Code | Description | HTTP Status |
+|-------|-------------|--------------|
+| `INVALID_USER_ID` | User ID is not valid UUID format | 400 |
+| `INVALID_TASK_ID` | Task ID is not valid UUID format | 400 |
+| `INVALID_TITLE` | Title is missing or exceeds max length | 400 |
+| `INVALID_DESCRIPTION` | Description exceeds max length | 400 |
+| `INVALID_COMPLETED` | Completed must be boolean | 400 |
+| `TASK_NOT_FOUND` | Task does not exist | 404 |
+| `TASK_NOT_FOUND_OR_UNAUTHORIZED` | Task not found or user does not own it | 404 |
+| `UNAUTHORIZED_ACCESS` | User does not own specified resource | 401 |
+| `VALIDATION_ERROR` | Generic validation failure | 400 |
+
+---
+
+## Validation Constraints
+
+| Parameter | Type | Required | Min Length | Max Length | Format |
+|-----------|-------|----------|-------------|--------|
+| `user_id` | UUID string | Yes | N/A | UUID v4 |
+| `task_id` | UUID string | Yes | N/A | UUID v4 |
+| `title` | string | Yes | 1 | 200 | N/A |
+| `description` | string/nullable | No | N/A | 2000 | N/A |
+| `completed` | boolean | Yes | N/A | N/A | N/A |
+
+---
+
+## Tool Registration Format (for OpenAI Agents SDK)
+
+When registering these tools with OpenAI Agents SDK `@function_tool` decorator:
+
+```python
+from agents import Agent, function_tool
+
+@function_tool
+async def add_task(user_id: str, title: str, description: str | None = None) -> dict:
+    """Create a new task for a user with optional description.
+
+    @spec: specs/003-ai-chatbot/spec.md
+    User Story 1: Add Task via Natural Language
+
+    Args:
+        user_id: Unique identifier of the user who owns this task
+        title: Title of the task to create (required)
+        description: Optional detailed description of the task
+
+    Returns:
+        Dictionary with success flag and task details
+    """
+    # Implementation calls SQLModel to persist task
+    # Returns dict matching JSON schema above
+```
+
+**Type hint mappings**:
+- `str` → JSON string type
+- `str | None` → JSON string or null type
+- `bool` → JSON boolean type
+- `int` → JSON integer type
+- `dict` → JSON object type
+
+**Return format**:
+All tools must return dict with `success` boolean field (FR-021).
+
+**Success**: `{success": True, "task_id": "...", ...}`
+**Error**: `{success": False, "error": "...", "code": "..."}`
+
+---
+
+## Acceptance Criteria
+
+All 5 required tools defined with:
+- [x] `add_task` with user_id, title, description params
+- [x] `list_tasks` with user_id, optional completed filter
+- [x] `update_task` with user_id, task_id, title, description params
+- [x] `delete_task` with user_id, task_id params
+- [x] `complete_task` with user_id, task_id, completed params
+- [x] All tools validate user_id before database operations (FR-020)
+- [x] All tools are stateless (no in-memory state, FR-022)
+- [x] All tools return structured JSON with success/error fields (FR-021)
+- [x] JSON Schema validation defined for all inputs
+- [x] Error codes standardized across all tools
+- [x] Examples provided for all operations
+
+**Status**: ✅ MCP Tools Schema Complete

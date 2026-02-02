@@ -1,1 +1,0 @@
-# neon-postgres Templates

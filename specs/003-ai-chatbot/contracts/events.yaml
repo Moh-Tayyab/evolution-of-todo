@@ -1,0 +1,360 @@
+# Event Schemas Specification
+# @spec: specs/003-ai-chatbot/spec.md
+
+This document defines event schemas for conversation-related events including message creation, tool invocations, and conversation state changes.
+
+---
+
+## Event Types
+
+| Event Type | Description | Payload Fields |
+|-------------|-------------|-----------------|
+| `message_sent` | A new message was added to a conversation | `conversation_id`, `message_id`, `role`, `content`, `created_at` |
+| `tool_invoked` | AI agent called an MCP tool | `conversation_id`, `tool_name`, `tool_args`, `tool_result`, `timestamp` |
+| `conversation_created` | A new conversation was created | `conversation_id`, `user_id`, `title`, `created_at` |
+| `conversation_updated` | Conversation metadata was updated | `conversation_id`, `user_id`, `updated_at` |
+
+---
+
+## Event: message_sent
+
+Emitted when a new message (user or AI) is added to a conversation.
+
+**Event Schema**:
+```json
+{
+  "event_type": "message_sent",
+  "timestamp": "2025-12-31T10:30:00Z",
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655419",
+    "message_id": "a1b2c3d-4e5f-6f7a-8b9d-9d4e7f3c4",
+    "role": "user",
+    "content": "Add buy milk tomorrow",
+    "created_at": "2025-12-31T10:30:00Z",
+    "tool_calls": null
+  }
+}
+```
+
+**Event Properties**:
+
+| Property | Type | Required | Description |
+|-----------|-------|------------|-------------|
+| `conversation_id` | UUID string | Yes | ID of conversation message belongs to |
+| `message_id` | UUID string | Yes | Unique message identifier |
+| `role` | string enum | Yes | "user", "assistant", or "system" |
+| `content` | string | Yes | Text content of message |
+| `created_at` | ISO 8601 timestamp | Yes | When message was created |
+| `tool_calls` | object or null | No | JSON object with MCP tool invocation details (assistant messages only) |
+
+**Example: User Message**:
+```json
+{
+  "event_type": "message_sent",
+  "timestamp": "2025-12-31T10:30:00Z",
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655419",
+    "message_id": "a1b2c3d-4e5f-6f7a-8b9d-9d4e7f3c4",
+    "role": "user",
+    "content": "Add buy milk tomorrow",
+    "created_at": "2025-12-31T10:30:00Z",
+    "tool_calls": null
+  }
+}
+```
+
+**Example: AI Assistant Message**:
+```json
+{
+  "event_type": "message_sent",
+  "timestamp": "2025-12-31T10:30:05Z",
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655419",
+    "message_id": "b2c3d4e-5f7a-6f7a-8b9d-9d4e7f3c4a",
+    "role": "assistant",
+    "content": "I've added 'Buy milk' to your tasks. You now have 3 tasks total.",
+    "created_at": "2025-12-31T10:30:05Z",
+    "tool_calls": {
+      "tool_name": "add_task",
+      "tool_args": {
+        "user_id": "550e8400-e29b-41d4-a716-446655419",
+        "title": "Buy milk",
+        "description": null
+      },
+      "tool_result": {
+        "success": true,
+        "task_id": "a1b2c3d-4e5f-6f7a-8b9d-9d4e7f3c4",
+        "title": "Buy milk",
+        "completed": false
+      }
+    }
+  }
+}
+```
+
+---
+
+## Event: tool_invoked
+
+Emitted when AI agent calls an MCP tool.
+
+**Event Schema**:
+```json
+{
+  "event_type": "tool_invoked",
+  "timestamp": "2025-12-31T10:30:05Z",
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655419",
+    "tool_name": "add_task",
+    "tool_args": {
+      "user_id": "550e8400-e29b-41d4-a716-446655419",
+      "title": "Buy milk",
+      "description": null
+    },
+    "tool_result": {
+      "success": true,
+      "task_id": "a1b2c3d-4e5f-6f7a-8b9d-9d4e7f3c4",
+      "title": "Buy milk",
+      "completed": false
+    },
+    "duration_ms": 150
+  }
+}
+```
+
+**Event Properties**:
+
+| Property | Type | Required | Description |
+|-----------|-------|------------|-------------|
+| `conversation_id` | UUID string | Yes | ID of conversation during tool invocation |
+| `tool_name` | string enum | Yes | One of: "add_task", "list_tasks", "update_task", "delete_task", "complete_task" |
+| `tool_args` | object | Yes | Arguments passed to MCP tool |
+| `tool_result` | object | Yes | Result returned from MCP tool |
+| `duration_ms` | integer | Yes | Tool execution duration in milliseconds |
+| `timestamp` | ISO 8601 timestamp | Yes | When tool was invoked |
+
+**Tool Name Enum Values**:
+- `add_task`: Create a new task
+- `list_tasks`: Retrieve all tasks
+- `update_task`: Modify existing task
+- `delete_task`: Remove a task
+- `complete_task`: Toggle task completion status
+
+**Example: Successful Tool Invocation**:
+```json
+{
+  "event_type": "tool_invoked",
+  "timestamp": "2025-12-31T10:30:05Z",
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655419",
+    "tool_name": "add_task",
+    "tool_args": {
+      "user_id": "550e8400-e29b-41d4-a716-446655419",
+      "title": "Buy milk",
+      "description": null
+    },
+    "tool_result": {
+      "success": true,
+      "task_id": "a1b2c3d-4e5f-6f7a-8b9d-9d4e7f3c4",
+      "title": "Buy milk",
+      "completed": false
+    },
+    "duration_ms": 150
+  }
+}
+```
+
+**Example: Failed Tool Invocation**:
+```json
+{
+  "event_type": "tool_invoked",
+  "timestamp": "2025-12-31T10:30:05Z",
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655419",
+    "tool_name": "update_task",
+    "tool_args": {
+      "user_id": "550e8400-e29b-41d4-a716-446655419",
+      "task_id": "invalid-task-id",
+      "title": "Update title"
+    },
+    "tool_result": {
+      "success": false,
+      "error": "Task not found",
+      "code": "TASK_NOT_FOUND"
+    },
+    "duration_ms": 75
+  }
+}
+```
+
+---
+
+## Event: conversation_created
+
+Emitted when a new conversation is created for a user.
+
+**Event Schema**:
+```json
+{
+  "event_type": "conversation_created",
+  "timestamp": "2025-12-31T10:30:00Z",
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655419",
+    "user_id": "550e8400-e29b-41d4-a716-446655419",
+    "title": "New Chat",
+    "created_at": "2025-12-31T10:30:00Z"
+  }
+}
+```
+
+**Event Properties**:
+
+| Property | Type | Required | Description |
+|-----------|-------|------------|-------------|
+| `conversation_id` | UUID string | Yes | Unique conversation identifier |
+| `user_id` | UUID string | Yes | ID of user who owns conversation |
+| `title` | string | Yes | Auto-generated or user-defined title |
+| `created_at` | ISO 8601 timestamp | Yes | When conversation was created |
+
+---
+
+## Event: conversation_updated
+
+Emitted when conversation metadata is updated (typically when new message is added).
+
+**Event Schema**:
+```json
+{
+  "event_type": "conversation_updated",
+  "timestamp": "2025-12-31T10:30:05Z",
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655419",
+    "user_id": "550e8400-e29b-41d4-a716-446655419",
+    "updated_at": "2025-12-31T10:30:05Z"
+  }
+}
+```
+
+**Event Properties**:
+
+| Property | Type | Required | Description |
+|-----------|-------|------------|-------------|
+| `conversation_id` | UUID string | Yes | Unique conversation identifier |
+| `user_id` | UUID string | Yes | ID of user who owns conversation |
+| `updated_at` | ISO 8601 timestamp | Yes | When conversation was last updated |
+
+---
+
+## Event Validation Rules
+
+### Common Event Properties
+
+| Property | Type | Validation |
+|-----------|-------|-------------|
+| `event_type` | string | Must be valid event type (message_sent, tool_invoked, conversation_created, conversation_updated) |
+| `timestamp` | ISO 8601 | Must be valid date-time string |
+| `data` | object | Must match event-specific schema |
+
+### Tool Invocation Event Validation
+
+| Property | Validation |
+|-----------|-------------|
+| `tool_name` | Must be one of 5 defined MCP tools |
+| `tool_args` | Must match MCP tool input schema |
+| `tool_result` | Must contain `success` boolean field |
+
+### Message Event Validation
+
+| Property | Validation |
+|-----------|-------------|
+| `role` | Must be "user", "assistant", or "system" |
+| `content` | Must be non-empty string (max 10000 characters) |
+| `tool_calls` | Present and non-null only when role is "assistant" |
+
+---
+
+## Event Publishing
+
+### Backend Event Emission
+
+Events should be emitted during chat endpoint processing:
+
+```python
+# @spec: specs/003-ai-chatbot/spec.md
+# FR-017: Agent MUST invoke appropriate MCP tool and track tool calls
+
+from datetime import datetime
+from typing import Optional
+import json
+
+async def emit_event(event_type: str, data: dict) -> None:
+    """Publish event to message bus or log."""
+    event = {
+        "event_type": event_type,
+        "timestamp": datetime.utcnow().isoformat(),
+        "data": data,
+    }
+    # TODO: Integrate with Kafka in Phase V
+    # For now, log to application logs
+    app.state.event_bus.publish(event_type, event)
+
+
+async def process_message(user_id: str, conversation_id: str, message: str) -> dict:
+    """Process user message and emit events."""
+    # Emit message_sent event
+    await emit_event("message_sent", {
+        "conversation_id": conversation_id,
+        "message_id": uuid4(),
+        "role": "user",
+        "content": message,
+        "created_at": datetime.utcnow().isoformat(),
+    })
+
+    # Process with agent
+    agent_response = await agent.run(message, conversation_history)
+
+    # Emit tool_invoked event for each tool call
+    for tool_call in agent_response.tool_calls:
+        await emit_event("tool_invoked", {
+            "conversation_id": conversation_id,
+            "tool_name": tool_call.tool_name,
+            "tool_args": tool_call.tool_args,
+            "tool_result": tool_call.tool_result,
+            "duration_ms": tool_call.duration_ms,
+        })
+
+    # Emit assistant message event
+    await emit_event("message_sent", {
+        "conversation_id": conversation_id,
+        "message_id": uuid4(),
+        "role": "assistant",
+        "content": agent_response.content,
+        "created_at": datetime.utcnow().isoformat(),
+        "tool_calls": agent_response.tool_calls,
+    })
+
+    # Emit conversation_updated event
+    await emit_event("conversation_updated", {
+        "conversation_id": conversation_id,
+        "user_id": user_id,
+        "updated_at": datetime.utcnow().isoformat(),
+    })
+
+    return agent_response
+```
+
+---
+
+## Acceptance Criteria
+
+All event schemas defined with:
+- [x] `message_sent` event schema for user and AI messages
+- [x] `tool_invoked` event schema with tool name, args, result
+- [x] `conversation_created` event schema for new conversations
+- [x] `conversation_updated` event schema for conversation updates
+- [x] Validation rules defined for all event properties
+- [x] Examples provided for success and failure scenarios
+- [x] Tool invocation duration tracking included
+- [x] Event emission pattern documented for Phase V (Kafka integration)
+
+**Status**: ✅ Event Schemas Complete

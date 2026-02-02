@@ -111,3 +111,5 @@ Phase-II-fullstack-web-app/backend/*.egg-info/
 # SpecKit & History
 .spec-kit/
 .history/
+.vercel
+.env*.local

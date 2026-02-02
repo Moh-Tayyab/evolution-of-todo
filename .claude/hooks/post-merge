@@ -1,0 +1,459 @@
+#!/usr/bin/env python3
+# @spec: Git Hooks System for Evolution of Todo Project
+# Post-merge hook: Actions after merging changes
+#
+# This hook runs after git merge completes successfully.
+# Useful for environment synchronization after pulling/updating.
+#
+# Actions performed:
+# - Notify of merge changes
+# - Clear build caches
+# - Run database migrations (if configured)
+# - Update dependencies (if needed)
+#
+# Performance: <15s for sync operations
+# Exit codes: 0 (success, always - don't block merge)
+
+from __future__ import annotations
+
+import sys
+import os
+from pathlib import Path
+from typing import List
+
+# Add hooks utils to path
+hooks_dir = Path(__file__).parent
+utils_dir = hooks_dir / "utils"
+sys.path.insert(0, str(utils_dir))
+
+# Import utility modules
+from logger import HookLogger, Colors
+from config import HookConfig
+from git import GitUtils
+from frontend import FrontendUtils
+from backend import BackendUtils
+
+
+def print_banner(logger: HookLogger) -> None:
+    """
+    Print the post-merge hook banner.
+
+    Args:
+        logger: HookLogger instance for output
+    """
+    branch = GitUtils.get_current_branch()
+
+    logger.info("")
+    logger.info("=" * 70)
+    logger.info("  POST-MERGE HOOK - Environment Synchronization")
+    logger.info("")
+    if branch:
+        logger.info(f"  Branch: {branch}")
+    logger.info("=" * 70)
+    logger.info("")
+
+
+def get_merge_changes() -> List[str]:
+    """
+    Get information about what was merged.
+
+    Returns:
+        List of commit messages that were merged
+    """
+    try:
+        # Get commits that were merged (HEAD@{1} is pre-merge state)
+        result = GitUtils.run_git_command([
+            "log",
+            "--oneline",
+            "HEAD@{1}..HEAD"
+        ])
+
+        commits = result.stdout.strip().split("\n") if result.stdout.strip() else []
+        return [c for c in commits if c]
+
+    except Exception:
+        return []
+
+
+def get_merge_source() -> str:
+    """
+    Try to determine the source of the merge.
+
+    Returns:
+        Source branch or remote name
+    """
+    try:
+        # Check if we just did a pull
+        result = GitUtils.run_git_command(["config", "branch.`git rev-parse --abbrev-ref HEAD`.merge"])
+        # This is complex, just return generic
+        return "merge"
+    except Exception:
+        return "merge"
+
+
+def display_merge_summary(logger: HookLogger, commits: List[str]) -> None:
+    """
+    Display summary of what was merged.
+
+    Args:
+        logger: HookLogger instance for output
+        commits: List of merged commit messages
+    """
+    logger.sub_section("Merge Summary")
+
+    if not commits:
+        logger.info("No commits merged (possibly fast-forward)")
+        return
+
+    logger.info(f"Merged {len(commits)} commit(s):")
+
+    # Show first 10 commits
+    for commit in commits[:10]:
+        logger.info(f"  • {commit}")
+
+    if len(commits) > 10:
+        logger.info(f"  ... and {len(commits) - 10} more")
+
+
+def clear_caches(logger: HookLogger, git_root: Path) -> None:
+    """
+    Clear build caches after merge to ensure clean state.
+
+    Args:
+        logger: HookLogger instance for output
+        git_root: Path to git repository root
+    """
+    logger.sub_section("Cache Cleanup")
+
+    if not logger.verbose:
+        return  # Only clear caches in verbose mode
+
+    caches_to_clear = [
+        git_root / "frontend" / ".next",
+        git_root / "frontend" / "node_modules" / ".cache",
+        git_root / "backend" / "__pycache__",
+        git_root / "backend" / ".pytest_cache",
+        git_root / "backend" / ".ruff_cache",
+        git_root / "backend" / ".mypy_cache",
+    ]
+
+    cleared = 0
+
+    for cache_path in caches_to_clear:
+        if cache_path.exists():
+            try:
+                import shutil
+                if cache_path.is_dir():
+                    shutil.rmtree(cache_path)
+                    logger.debug(f"Removed: {cache_path.relative_to(git_root)}")
+                    cleared += 1
+            except Exception:
+                pass
+
+    if cleared > 0:
+        logger.info(f"Cleared {cleared} cache directory(s)")
+    else:
+        logger.debug("No caches to clear")
+
+
+def check_package_changes(logger: HookLogger, git_root: Path) -> bool:
+    """
+    Check if package files changed during merge.
+
+    Args:
+        logger: HookLogger instance for output
+        git_root: Path to git repository root
+
+    Returns:
+        True if package files changed, False otherwise
+    """
+    logger.sub_section("Dependency Check")
+
+    try:
+        # Get diff from ORIG_HEAD to HEAD (pre-merge to post-merge)
+        result = GitUtils.run_git_command([
+            "diff",
+            "--name-only",
+            "ORIG_HEAD..HEAD"
+        ])
+
+        changed_files = result.stdout.strip().split("\n") if result.stdout.strip() else []
+
+        # Check for package file changes
+        package_patterns = [
+            "package.json",
+            "pnpm-lock.yaml",
+            "yarn.lock",
+            "package-lock.json",
+            "requirements.txt",
+            "pyproject.toml",
+            "poetry.lock",
+            "Pipfile",
+        ]
+
+        package_changes = []
+        for file_path in changed_files:
+            for pattern in package_patterns:
+                if pattern in file_path:
+                    package_changes.append(file_path)
+                    break
+
+        if package_changes:
+            logger.info("Package files changed during merge:")
+            for file_path in package_changes:
+                logger.info(f"  • {file_path}")
+            logger.info("")
+            logger.warning("Consider running: npm install  # or pnpm install, or pip install")
+            return True
+
+        return False
+
+    except Exception as e:
+        logger.debug(f"Package check error: {e}")
+        return False
+
+
+def notify_deployment_changes(logger: HookLogger, commits: List[str]) -> None:
+    """
+    Check if merge includes deployment-related changes.
+
+    Args:
+        logger: HookLogger instance for output
+        commits: List of merged commit messages
+    """
+    logger.sub_section("Deployment Notification")
+
+    deployment_keywords = [
+        "deploy",
+        "release",
+        "migration",
+        "schema",
+        "breaking",
+    ]
+
+    relevant_commits = [
+        commit for commit in commits
+        if any(keyword in commit.lower() for keyword in deployment_keywords)
+    ]
+
+    if relevant_commits:
+        logger.warning("Potential deployment-related changes detected:")
+        for commit in relevant_commits:
+            logger.warning(f"  • {commit}")
+        logger.info("")
+        logger.info("Please review deployment documentation and run any required migrations.")
+
+
+def run_database_migrations(logger: HookLogger, git_root: Path) -> bool:
+    """
+    Run database migrations if configured and available.
+
+    Args:
+        logger: HookLogger instance for output
+        git_root: Path to git repository root
+
+    Returns:
+        True if migrations ran or were not needed, False on failure
+    """
+    logger.sub_section("Database Migrations")
+
+    # Check if migrations are enabled in config
+    # This would be a custom config setting
+    migrations_enabled = False  # Default to disabled
+
+    if not migrations_enabled:
+        logger.debug("Migrations disabled in configuration")
+        return True
+
+    # Check for migration scripts
+    backend_dir = git_root / "backend"
+    migration_dirs = [
+        backend_dir / "alembic",
+        backend_dir / "migrations",
+        git_root / "migrations",
+    ]
+
+    migration_dir = None
+    for dir_path in migration_dirs:
+        if dir_path.exists():
+            migration_dir = dir_path
+            break
+
+    if not migration_dir:
+        logger.debug("No migration directory found")
+        return True
+
+    logger.info("Migration directory found:")
+    logger.info(f"  {migration_dir.relative_to(git_root)}")
+    logger.info("")
+    logger.warning("Please run migrations manually:")
+    logger.info(f"  cd {migration_dir.relative_to(git_root)}")
+    logger.info("  # Run your migration command here")
+
+    return True
+
+
+def check_environment_changes(logger: HookLogger, git_root: Path) -> None:
+    """
+    Check for environment configuration changes.
+
+    Args:
+        logger: HookLogger instance for output
+        git_root: Path to git repository root
+    """
+    logger.sub_section("Environment Configuration Check")
+
+    try:
+        result = GitUtils.run_git_command([
+            "diff",
+            "--name-only",
+            "ORIG_HEAD..HEAD"
+        ])
+
+        changed_files = result.stdout.strip().split("\n") if result.stdout.strip() else []
+
+        env_files = [
+            ".env",
+            ".env.example",
+            ".env.local",
+            ".env.production",
+            ".env.development",
+            "docker-compose.yml",
+            "Dockerfile",
+        ]
+
+        env_changes = []
+        for file_path in changed_files:
+            for env_file in env_files:
+                if file_path.endswith(env_file) or f"/{env_file}" in file_path:
+                    env_changes.append(file_path)
+
+        if env_changes:
+            logger.warning("Environment configuration changed:")
+            for file_path in env_changes:
+                logger.warning(f"  • {file_path}")
+            logger.info("")
+            logger.info("Please update your local environment variables as needed.")
+
+    except Exception as e:
+        logger.debug(f"Environment check error: {e}")
+
+
+def main() -> int:
+    """
+    Main entry point for the post-merge hook.
+
+    This hook runs after git merge completes successfully.
+    Git passes one argument: a flag indicating if it was a squash merge (1) or not (0).
+
+    Returns:
+        Exit code: 0 (always success, don't block operations)
+    """
+    # Parse git argument (0 = normal merge, 1 = squash merge)
+    is_squash = len(sys.argv) > 1 and int(sys.argv[1]) == 1
+
+    # Initialize logger
+    logger = HookLogger(
+        hook_name="post-merge",
+        verbose=os.getenv("GIT_HOOKS_VERBOSE", "false").lower() == "true"
+    )
+
+    # Print banner
+    print_banner(logger)
+
+    # Load configuration
+    logger.debug("Loading configuration...")
+    config = HookConfig()
+
+    # Check if hook is enabled
+    if not config.is_hook_enabled("post_merge"):
+        logger.debug("Post-merge hook disabled in configuration")
+        return 0
+
+    # Get git root
+    git_root = GitUtils.get_git_root()
+    if not git_root:
+        return 0
+
+    # 1. Get merge information
+    # ==========
+
+    commits = get_merge_changes()
+
+    # 2. Display merge summary
+    # ==========
+
+    if config.post_merge.get("notify_changes", True):
+        try:
+            display_merge_summary(logger, commits)
+        except Exception as e:
+            logger.debug(f"Merge summary error: {e}")
+
+    # 3. Check for package changes
+    # ==========
+
+    try:
+        check_package_changes(logger, git_root)
+    except Exception as e:
+        logger.debug(f"Package check error: {e}")
+
+    # 4. Check for environment changes
+    # ==========
+
+    try:
+        check_environment_changes(logger, git_root)
+    except Exception as e:
+        logger.debug(f"Environment check error: {e}")
+
+    # 5. Clear caches
+    # ==========
+
+    if config.post_merge.get("clear_caches", True):
+        try:
+            clear_caches(logger, git_root)
+        except Exception as e:
+            logger.debug(f"Cache cleanup error: {e}")
+
+    # 6. Run migrations (if configured)
+    # ==========
+
+    if config.post_merge.get("run_migrations", False):
+        try:
+            run_database_migrations(logger, git_root)
+        except Exception as e:
+            logger.debug(f"Migration check error: {e}")
+
+    # 7. Check for deployment changes
+    # ==========
+
+    try:
+        notify_deployment_changes(logger, commits)
+    except Exception as e:
+        logger.debug(f"Deployment notification error: {e}")
+
+    # Print summary
+    logger.log_summary()
+
+    logger.success("Merge complete!")
+    logger.info("")
+
+    # Show helpful commands
+    logger.info("Quick commands:")
+    logger.info("  git log --oneline -5  - Show recent commits")
+    logger.info("  git status            - Check for conflicts")
+    logger.info("  git diff              - Show merge changes")
+    logger.info("")
+
+    return 0  # Always succeed
+
+
+if __name__ == "__main__":
+    try:
+        exit_code = main()
+        sys.exit(exit_code)
+    except KeyboardInterrupt:
+        sys.exit(130)  # Standard exit code for SIGINT
+    except Exception as e:
+        logger = HookLogger("post-merge")
+        logger.debug(f"Post-merge hook error: {e}")
+        sys.exit(0)  # Always succeed, don't block merge

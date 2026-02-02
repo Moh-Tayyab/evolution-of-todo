@@ -1,0 +1,405 @@
+# OpenAPI Specification: Chat Endpoint
+# @spec: specs/003-ai-chatbot/spec.md
+
+openapi: 3.0.3
+info:
+  title: Todo Chatbot API
+  description: Natural language chat interface for todo task management
+  version: 1.0.0
+  contact:
+    name: Evolution of Todo Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.evolution-of-todo.com
+    description: Production server
+
+paths:
+  /api/{user_id}/chat:
+    post:
+      summary: Send message to AI chatbot
+      description: |
+        Processes natural language messages through AI agent, invoking MCP tools for task operations.
+        Returns AI response with streaming support.
+      operationId: chatWithAgent
+      tags:
+        - Chat
+      security:
+        - BearerAuth
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID from JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Successful chat response with streaming
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChatResponse'
+                  - $ref: '#/components/schemas/ChatStreamEvent'
+        '400':
+          description: Bad request - invalid input or missing fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - missing or invalid JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded - too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitErrorResponse'
+              headers:
+                X-RateLimit-Limit:
+                  schema:
+                    type: integer
+                  description: Requests allowed per window
+                X-RateLimit-Remaining:
+                  schema:
+                    type: integer
+                  description: Requests remaining in window
+                X-RateLimit-Reset:
+                  schema:
+                    type: integer
+                  description: Timestamp when window resets
+                Retry-After:
+                  schema:
+                    type: integer
+                  description: Seconds until next request allowed
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/conversations:
+    get:
+      summary: List user's conversations
+      description: Retrieve all conversations for authenticated user
+      operationId: listConversations
+      tags:
+        - Conversations
+      security:
+        - BearerAuth
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID from JWT token
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
+          description: Maximum number of conversations to return
+      responses:
+        '200':
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationsListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/conversations/{conversation_id}:
+    get:
+      summary: Get conversation details
+      description: Retrieve specific conversation with messages
+      operationId: getConversation
+      tags:
+        - Conversations
+      security:
+        - BearerAuth
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Conversation ID
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+          description: Maximum number of messages to load
+      responses:
+        '200':
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from Better Auth
+
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - message
+        - conversation_id
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          description: User's natural language message
+          example: "Add buy milk to my tasks"
+        conversation_id:
+          type: string
+          format: uuid
+          description: |
+            ID of conversation to continue. If "latest" or omitted, creates or loads most recent conversation.
+          example: "550e8400-e29b-41d4-a716-446655419"
+
+    ChatResponse:
+      type: object
+      required:
+        - conversation_id
+        - message
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+          description: ID of conversation (may be new if first message)
+          example: "550e8400-e29b-41d4-a716-446655419"
+        message:
+          type: string
+          description: AI assistant's response to user message
+          example: "I've added 'Buy milk' to your tasks. You now have 3 tasks total."
+        tool_calls:
+          type: array
+          description: List of MCP tools invoked during this response
+          items:
+            $ref: '#/components/schemas/ToolInvocation'
+
+    ChatStreamEvent:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [message_start, content_delta, content_end, tool_call, done]
+          description: Event type from streaming response
+        conversation_id:
+          type: string
+          format: uuid
+          description: Conversation ID
+        role:
+          type: string
+          enum: [assistant]
+          description: Role of message sender
+        content:
+          type: string
+          description: Partial or complete message content (for content_delta events)
+        tool_call:
+          $ref: '#/components/schemas/ToolInvocation'
+          description: Tool invocation details (for tool_call events)
+
+    ToolInvocation:
+      type: object
+      required:
+        - tool_name
+        - args
+        - result
+      properties:
+        tool_name:
+          type: string
+          enum: [add_task, list_tasks, update_task, delete_task, complete_task]
+          description: Name of MCP tool invoked
+          example: "add_task"
+        args:
+          type: object
+          description: Arguments passed to MCP tool
+          example:
+            user_id: "550e8400-e29b-41d4-a716-446655419"
+            title: "Buy milk"
+            description: None
+        result:
+          type: object
+          description: Result returned from MCP tool
+          example:
+            success: true
+            task_id: "a1b2c3d-4e5f-6f7a-8b9d-9d4e7f3c4"
+
+    ConversationsListResponse:
+      type: object
+      required:
+        - conversations
+        - total
+      properties:
+        conversations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Conversation'
+          description: List of user's conversations
+        total:
+          type: integer
+          description: Total count of user's conversations
+
+    ConversationDetailResponse:
+      type: object
+      required:
+        - conversation
+        - messages
+      properties:
+        conversation:
+          $ref: '#/components/schemas/Conversation'
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+          description: Messages in conversation, ordered chronologically
+
+    Conversation:
+      type: object
+      required:
+        - id
+        - title
+        - created_at
+        - updated_at
+        - message_count
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique conversation identifier
+        title:
+          type: string
+          maxLength: 200
+          description: Auto-generated or user-defined title
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when conversation was created
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: ISO 8601 timestamp of last message
+        message_count:
+          type: integer
+          description: Number of messages in conversation
+
+    Message:
+      type: object
+      required:
+        - id
+        - conversation_id
+        - role
+        - content
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique message identifier
+        conversation_id:
+          type: string
+          format: uuid
+          description: ID of conversation message belongs to
+        role:
+          type: string
+          enum: [user, assistant, system]
+          description: Who sent this message
+        content:
+          type: string
+          description: Text content of message
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when message was created
+        tool_calls:
+          type: object
+          nullable: true
+          description: JSONB field with MCP tool invocation details (for assistant messages only)
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          example: "Conversation not found"
+        code:
+          type: string
+          description: Machine-readable error code
+          example: "CONVERSATION_NOT_FOUND"
+
+    RateLimitErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+      required:
+        - retry_after
+      properties:
+        retry_after:
+          type: integer
+          description: Seconds until next request is allowed
+          example: 45
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+tags:
+  - name: Chat
+    description: AI-powered chat operations
+  - name: Conversations
+    description: Conversation history management

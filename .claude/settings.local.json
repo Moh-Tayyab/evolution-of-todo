@@ -1,11 +1,4 @@
 {
-  "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "context7",
-    "github",
-    "shadcn",
-    "aceternityui"
-  ],
   "permissions": {
     "allow": [
       "Bash(git config:*)",
@@ -18,7 +11,16 @@
       "Bash(fi)",
       "Bash(uv init:*)",
       "Bash(uv python pin:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(uv pip install:*)",
+      "Bash(uv run python -m pytest:*)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "context7",
+    "github",
+    "shadcn",
+    "aceternityui"
+  ]
 }
