@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:8000";
+const FASTAPI_URL = process.env.FASTAPI_URL || "https://m-tayyab-evolution-of-todo-backend.hf.space";
 
 /**
  * GET /api/[userId]/tasks/[taskId]
